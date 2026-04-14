@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VieForce Patrol — Full Scope Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+<style>
+  :root {
+    --navy: #004D71;
+    --blue: #00A6CE;
+    --green: #95C93D;
+    --gold: #F1B11D;
+    --orange: #F58320;
+    --pink: #E21B90;
+    --white: #FFFFFF;
+    --light: #F5F5F5;
+    --dark: #444444;
+    --mid: #CCCCCC;
+    --black: #1A1A1A;
+    --radius: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ===== GLOBAL COMPONENTS ===== */
+  .page { display: none; padding-bottom: 80px; min-height: 100vh; }
+  .page.active { display: block; }
+
+  .top-bar {
+    background: var(--navy);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar h1 { font-size: 18px; font-weight: 700; flex: 1; }
+  .top-bar .subtitle { font-size: 11px; opacity: 0.7; font-weight: 500; }
+  .top-bar .back-btn {
+    background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 4px;
+  }
+  .top-bar .action-btn {
+    background: var(--blue); border: none; color: white; padding: 6px 14px;
+    border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: white; border-top: 1px solid var(--mid);
+    display: flex; z-index: 200;
+  }
+  .bottom-nav .nav-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    padding: 8px 0; cursor: pointer; border: none; background: none;
+    color: var(--dark); font-size: 10px; font-weight: 600; gap: 2px;
+    transition: color 0.2s;
+  }
+  .bottom-nav .nav-item.active { color: var(--navy); }
+  .bottom-nav .nav-item svg { width: 22px; height: 22px; }
+
+  .card {
+    background: white; border: 1px solid #eee; border-radius: var(--radius);
+    margin: 12px 16px; padding: 16px; position: relative;
+  }
+  .card.clickable { cursor: pointer; transition: box-shadow 0.2s; }
+  .card.clickable:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+  .health-bar {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .health-ok { background: var(--green); }
+  .health-warn { background: var(--orange); }
+  .health-crit { background: var(--pink); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+  }
+  .badge-a { background: var(--navy); color: white; }
+  .badge-b { background: var(--blue); color: white; }
+  .badge-c { background: var(--mid); color: var(--dark); }
+  .badge-segment {
+    background: rgba(0,77,113,0.08); color: var(--navy);
+    font-size: 9px; padding: 2px 6px;
+  }
+
+  .search-bar {
+    margin: 12px 16px; display: flex; gap: 8px;
+  }
+  .search-bar input {
+    flex: 1; padding: 10px 14px; border: 1px solid var(--mid);
+    border-radius: var(--radius); font-family: inherit; font-size: 13px;
+  }
+  .search-bar input:focus { outline: none; border-color: var(--blue); }
+
+  .filter-row {
+    display: flex; gap: 6px; padding: 0 16px; margin-bottom: 8px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .filter-chip {
+    flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--mid); background: white;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+  }
+  .filter-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+  .kpi-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    padding: 0 16px; margin: 12px 0;
+  }
+  .kpi-card {
+    background: white; border-radius: var(--radius); padding: 14px;
+    border: 1px solid #eee;
+  }
+  .kpi-card .label { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #888; }
+  .kpi-card .value { font-size: 26px; font-weight: 800; color: var(--navy); margin-top: 2px; }
+  .kpi-card .delta { font-size: 11px; font-weight: 600; margin-top: 2px; }
+  .delta-up { color: var(--green); }
+  .delta-down { color: var(--pink); }
+
+  .section-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    color: var(--navy); padding: 12px 16px 4px; letter-spacing: 0.5px;
+  }
+
+  .list-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0; cursor: pointer;
+  }
+  .list-row:hover { background: #fafafa; }
+  .list-row .rank {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--navy);
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .list-row .rank.gold { background: var(--gold); }
+  .list-row .rank.silver { background: #aaa; }
+  .list-row .rank.bronze { background: #cd7f32; }
+
+  .tab-bar {
+    display: flex; border-bottom: 2px solid #eee; padding: 0 16px; background: white;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 12px 16px; border: none; background: none; font-family: inherit;
+    font-size: 12px; font-weight: 600; color: #999; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -2px; white-space: nowrap;
+  }
+  .tab-btn.active { color: var(--navy); border-bottom-color: var(--navy); }
+
+  .fab {
+    position: fixed; bottom: 80px; right: calc(50% - 220px);
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--green); color: white; border: none;
+    font-size: 28px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 150;
+  }
+
+  .segment-matrix {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    padding: 0 16px; margin: 8px 0;
+  }
+  .segment-cell {
+    padding: 10px 6px; border-radius: 6px; text-align: center;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    background: rgba(0,77,113,0.05); border: 1px solid #eee;
+  }
+  .segment-cell .count { font-size: 20px; font-weight: 800; color: var(--navy); display: block; }
+
+  .progress-bar {
+    height: 6px; background: #eee; border-radius: 3px; overflow: hidden; margin-top: 6px;
+  }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.6s; }
+
+  .supply-chain {
+    display: flex; align-items: center; gap: 4px; font-size: 11px; color: #888;
+    margin-top: 6px; flex-wrap: wrap;
+  }
+  .supply-chain .arrow { color: var(--blue); font-weight: 700; }
+  .supply-chain .node { color: var(--navy); font-weight: 600; }
+
+  /* ===== LOGIN PAGE ===== */
+  .login-page {
+    background: var(--navy); min-height: 100vh; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 24px;
+  }
+  .login-page .logo {
+    width: 80px; height: 80px; background: white; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; font-weight: 800; color: var(--navy); margin-bottom: 16px;
+  }
+  .login-page h1 { color: white; font-size: 28px; font-weight: 800; }
+  .login-page p { color: rgba(255,255,255,0.6); font-size: 13px; margin-top: 4px; }
+  .login-box {
+    background: white; border-radius: 12px; padding: 24px; width: 100%;
+    margin-top: 32px;
+  }
+  .login-box label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    color: #888; display: block; margin-bottom: 6px; margin-top: 16px;
+  }
+  .login-box input {
+    width: 100%; padding: 12px; border: 1px solid var(--mid);
+    border-radius: var(--radius); font-family: inherit; font-size: 14px;
+  }
+  .login-box input:focus { outline: none; border-color: var(--blue); }
+  .login-btn {
+    width: 100%; padding: 14px; background: var(--navy); color: white;
+    border: none; border-radius: var(--radius); font-family: inherit;
+    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 20px;
+  }
+  .login-divider {
+    display: flex; align-items: center; gap: 12px; margin: 20px 0;
+    font-size: 11px; color: #999;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1; height: 1px; background: #ddd;
+  }
+  .google-btn {
+    width: 100%; padding: 12px; background: white; color: var(--dark);
+    border: 1px solid var(--mid); border-radius: var(--radius);
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+
+  /* ===== WIZARD ===== */
+  .wizard-progress {
+    display: flex; gap: 4px; padding: 12px 16px; background: white;
+  }
+  .wizard-step {
+    flex: 1; height: 4px; background: #eee; border-radius: 2px;
+  }
+  .wizard-step.done { background: var(--green); }
+  .wizard-step.current { background: var(--blue); }
+
+  .wizard-content { padding: 20px 16px; }
+  .wizard-content h2 { font-size: 20px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+  .wizard-content p { font-size: 13px; color: #888; margin-bottom: 20px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    color: #888; display: block; margin-bottom: 6px;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--mid);
+    border-radius: var(--radius); font-family: inherit; font-size: 13px;
+  }
+  .form-group textarea { height: 80px; resize: vertical; }
+
+  .btn-primary {
+    width: 100%; padding: 14px; background: var(--navy); color: white;
+    border: none; border-radius: var(--radius); font-family: inherit;
+    font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 12px;
+  }
+  .btn-secondary {
+    width: 100%; padding: 14px; background: white; color: var(--navy);
+    border: 1px solid var(--navy); border-radius: var(--radius);
+    font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    margin-top: 8px;
+  }
+
+  .chip-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .chip {
+    padding: 8px 14px; border-radius: 20px; border: 1px solid var(--mid);
+    font-size: 12px; font-weight: 600; cursor: pointer; background: white;
+    font-family: inherit;
+  }
+  .chip.selected { background: var(--navy); color: white; border-color: var(--navy); }
+
+  /* ===== STORE DETAIL ===== */
+  .detail-header {
+    background: var(--navy); color: white; padding: 20px;
+  }
+  .detail-header h1 { font-size: 22px; font-weight: 800; }
+  .detail-header .meta { font-size: 12px; opacity: 0.7; margin-top: 4px; }
+  .detail-badges { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+  .merch-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .merch-check {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--mid);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .merch-check.checked { background: var(--green); border-color: var(--green); color: white; }
+
+  /* ===== MAP ===== */
+  #map-container { height: calc(100vh - 130px); width: 100%; }
+
+  /* ===== REPORT TABLE ===== */
+  .report-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  .report-table th {
+    background: var(--navy); color: white; padding: 10px 8px;
+    text-align: left; font-weight: 700; font-size: 10px;
+    text-transform: uppercase; position: sticky; top: 0;
+  }
+  .report-table td { padding: 10px 8px; border-bottom: 1px solid #eee; }
+  .report-table tr:hover { background: #fafafa; }
+
+  /* ===== CROSS-SELL ===== */
+  .opportunity-card {
+    background: white; border: 1px solid #eee; border-radius: var(--radius);
+    margin: 8px 16px; padding: 14px; border-left: 3px solid var(--gold);
+  }
+  .missing-groups {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;
+  }
+  .missing-chip {
+    padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
+    background: rgba(241,177,29,0.12); color: #b8860b;
+  }
+
+  /* ===== PROFILE ===== */
+  .profile-avatar {
+    width: 80px; height: 80px; border-radius: 50%; background: var(--navy);
+    color: white; display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 800; margin: 24px auto 12px;
+  }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .card, .kpi-card { animation: fadeIn 0.3s ease; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0; height: 0; }
+</style>
+</head>
+<body>
+
+<!-- ========================================= -->
+<!-- LOGIN PAGE                                -->
+<!-- ========================================= -->
+<div id="page-login" class="page active">
+  <div class="login-page">
+    <div class="logo">VP</div>
+    <h1>VieForce Patrol</h1>
+    <p>Field Sales CRM</p>
+    <div class="login-box">
+      <label>Phone Number</label>
+      <input type="tel" placeholder="+63 917 xxx xxxx" value="+63 917 845 2301">
+      <label>PIN Code</label>
+      <input type="password" placeholder="6-digit PIN" value="••••••" maxlength="6">
+      <button class="login-btn" onclick="loginAs('tsr')">Sign In</button>
+      <div class="login-divider">or</div>
+      <button class="google-btn" onclick="loginAs('dsm')">🔵 Sign in with Google (@vienovo.ph)</button>
+      <p style="font-size:10px;color:#999;text-align:center;margin-top:12px">
+        PIN → logs in as TSR &nbsp;|&nbsp; Google → logs in as DSM
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- STORE LIST (TSR Home)                     -->
+<!-- ========================================= -->
+<div id="page-stores" class="page">
+  <div class="top-bar">
+    <div>
+      <h1>My Stores</h1>
+      <div class="subtitle">Quezon City South · 47 stores</div>
+    </div>
+    <button class="action-btn" onclick="nav('page-store-new')">+ New</button>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" placeholder="Search stores...">
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-chip active">All (47)</button>
+    <button class="filter-chip" style="color:var(--pink)">Critical (8)</button>
+    <button class="filter-chip" style="color:var(--orange)">Warning (12)</button>
+    <button class="filter-chip" style="color:var(--green)">OK (27)</button>
+  </div>
+
+  <div id="store-list">
+    <!-- Populated by JS -->
+  </div>
+
+  <button class="fab" onclick="nav('page-store-new')">+</button>
+</div>
+
+<!-- ========================================= -->
+<!-- STORE DETAIL                              -->
+<!-- ========================================= -->
+<div id="page-store-detail" class="page">
+  <div class="detail-header">
+    <button class="back-btn" onclick="nav('page-stores')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-bottom:8px">← Back</button>
+    <h1>Golden Feed Supply</h1>
+    <div class="meta">POS · Quezon City · Brgy. Batasan Hills</div>
+    <div class="detail-badges">
+      <span class="badge badge-a">Vol A</span>
+      <span class="badge badge-a">Cov A</span>
+      <span class="badge-segment badge" style="background:rgba(149,201,61,0.15);color:#5a8a0a">CHAMPION</span>
+      <span class="badge" style="background:var(--green);color:white">● OK</span>
+    </div>
+  </div>
+
+  <div class="tab-bar" id="store-tabs">
+    <button class="tab-btn active" onclick="storeTab('profile')">Profile</button>
+    <button class="tab-btn" onclick="storeTab('products')">Products</button>
+    <button class="tab-btn" onclick="storeTab('competitors')">Competitors</button>
+    <button class="tab-btn" onclick="storeTab('merch')">Merch</button>
+    <button class="tab-btn" onclick="storeTab('history')">History</button>
+  </div>
+
+  <!-- Profile Tab -->
+  <div id="store-tab-profile" class="store-tab-content">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Contact</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div><span style="color:#888">Owner</span><br><b>Ricardo Santos</b></div>
+        <div><span style="color:#888">Phone</span><br><b>+63 917 321 4567</b></div>
+        <div><span style="color:#888">Contact Person</span><br><b>Maria Santos</b></div>
+        <div><span style="color:#888">Decision Maker</span><br><b>Ricardo Santos</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Supply Chain</div>
+      <div class="supply-chain">
+        <span class="node">Vienovo</span> <span class="arrow">→</span>
+        <span class="node">Metro Manila Dist.</span> <span class="arrow">→</span>
+        <span class="node">QC Feeds Dealer</span> <span class="arrow">→</span>
+        <span class="node" style="color:var(--green)">Golden Feed Supply</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Commercial</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div><span style="color:#888">Credit Terms</span><br><b>COD</b></div>
+        <div><span style="color:#888">Multi-Brand</span><br><b>Yes</b></div>
+        <div><span style="color:#888">Total Monthly Vol</span><br><b>180 bags</b></div>
+        <div><span style="color:#888">Vienovo Monthly</span><br><b>120 bags</b></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#888">
+        Vienovo Share
+        <div class="progress-bar"><div class="progress-fill" style="width:67%;background:var(--green)"></div></div>
+        <span style="font-weight:700;color:var(--navy)">67%</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Visit Health</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;text-align:center">
+        <div><span style="color:#888">Last Visit</span><br><b style="color:var(--green)">2 days ago</b></div>
+        <div><span style="color:#888">Total Visits</span><br><b>23</b></div>
+        <div><span style="color:#888">Target</span><br><b>4×/mo</b></div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="nav('page-visit-wizard')" style="margin:16px">🎯 Start Visit</button>
+  </div>
+
+  <!-- Products Tab -->
+  <div id="store-tab-products" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Product Groups (4 of 5)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <span class="chip selected">🐖 Hog</span>
+        <span class="chip selected">🐔 Poultry</span>
+        <span class="chip selected">🐓 Gamefowl</span>
+        <span class="chip selected">🐕 Pet</span>
+        <span class="chip" style="opacity:0.4">🐟 Aqua</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Brands Carried</div>
+      <div style="font-size:12px;line-height:2">
+        <span class="badge" style="background:#e8f5e9;color:#2e7d32">ViePro Hog Grower</span>
+        <span class="badge" style="background:#e8f5e9;color:#2e7d32">ViePro Hog Finisher</span>
+        <span class="badge" style="background:#e3f2fd;color:#1565c0">PowerBoost Poultry</span>
+        <span class="badge" style="background:#e3f2fd;color:#1565c0">PowerBoost Layer</span>
+        <span class="badge" style="background:#fff3e0;color:#e65100">KEOS Gamefowl</span>
+        <span class="badge" style="background:#fce4ec;color:#c62828">NovoPet Dog</span>
+        <span class="badge" style="background:#fce4ec;color:#c62828">NovoPet Cat</span>
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <div style="font-size:13px;font-weight:700;color:var(--gold)">⚡ Cross-Sell Opportunity</div>
+      <p style="font-size:12px;color:#888;margin-top:4px">Missing: <b style="color:var(--navy)">Aqua</b> line. Store is near fish farms area — high potential.</p>
+    </div>
+  </div>
+
+  <!-- Competitors Tab -->
+  <div id="store-tab-competitors" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">Competitor Brands</div>
+        <span style="font-size:11px;color:#888">3 brands</span>
+      </div>
+      <div style="margin-top:12px">
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0">
+          <div style="display:flex;justify-content:space-between;font-size:13px">
+            <b>B-MEG (San Miguel)</b>
+            <span class="badge" style="background:#fff3e0;color:#e65100">Hog · Poultry</span>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:4px">Est. 40 bags/mo · Price competitive · Strong promo activity</div>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0">
+          <div style="display:flex;justify-content:space-between;font-size:13px">
+            <b>Vitarich</b>
+            <span class="badge" style="background:#e3f2fd;color:#1565c0">Poultry</span>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:4px">Est. 15 bags/mo · Premium pricing · Feed technician visits</div>
+        </div>
+        <div style="padding:10px 0">
+          <div style="display:flex;justify-content:space-between;font-size:13px">
+            <b>Cargill (Provimi)</b>
+            <span class="badge" style="background:#fce4ec;color:#c62828">Gamefowl</span>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:4px">Est. 5 bags/mo · Recently entered area · Aggressive sampling</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">Latest Intel</div>
+      <div style="font-size:12px;color:var(--dark);line-height:1.6">
+        <i>"B-MEG rep visited Apr 10 — offered 5% volume discount for exclusive shelf space. Owner undecided. Recommend we counter with 3+1 promo on ViePro Hog."</i>
+        <div style="font-size:10px;color:#999;margin-top:4px">— TSR J. dela Cruz · Apr 11, 2026</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Merch Tab -->
+  <div id="store-tab-merch" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">Merchandising Score</div>
+        <div style="font-size:24px;font-weight:800;color:var(--green)">4/5</div>
+      </div>
+      <div class="progress-bar" style="height:8px"><div class="progress-fill" style="width:80%;background:var(--green)"></div></div>
+      <div style="margin-top:16px">
+        <div class="merch-item">
+          <div class="merch-check checked">✓</div>
+          <div><b style="font-size:13px">Signage</b><div style="font-size:11px;color:#888">Vienovo signboard visible</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check checked">✓</div>
+          <div><b style="font-size:13px">Price Board</b><div style="font-size:11px;color:#888">Updated price list displayed</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check checked">✓</div>
+          <div><b style="font-size:13px">Flyers</b><div style="font-size:11px;color:#888">Product flyers available</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check checked">✓</div>
+          <div><b style="font-size:13px">Standee</b><div style="font-size:11px;color:#888">Standing display present</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check"></div>
+          <div><b style="font-size:13px">Price Talkers</b><div style="font-size:11px;color:var(--orange)">Missing — needs resupply</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div id="store-tab-history" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Recent Visits</div>
+      <div style="font-size:12px">
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+          <div><b>Apr 11, 2026</b> · Order Taken<div style="color:#888;font-size:11px">J. dela Cruz · 30 bags ViePro Hog · ₱45,000</div></div>
+          <span class="badge" style="background:#e8f5e9;color:#2e7d32">✓</span>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+          <div><b>Apr 4, 2026</b> · Relationship<div style="color:#888;font-size:11px">J. dela Cruz · Discussed credit terms</div></div>
+          <span class="badge" style="background:#e3f2fd;color:#1565c0">●</span>
+        </div>
+        <div style="padding:10px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+          <div><b>Mar 28, 2026</b> · Merch Fix<div style="color:#888;font-size:11px">J. dela Cruz · Replaced damaged signage</div></div>
+          <span class="badge" style="background:#fff3e0;color:#e65100">🔧</span>
+        </div>
+        <div style="padding:10px 0;display:flex;justify-content:space-between">
+          <div><b>Mar 21, 2026</b> · Order Taken<div style="color:#888;font-size:11px">J. dela Cruz · 25 bags PowerBoost · ₱31,250</div></div>
+          <span class="badge" style="background:#e8f5e9;color:#2e7d32">✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- NEW STORE WIZARD                          -->
+<!-- ========================================= -->
+<div id="page-store-new" class="page">
+  <div class="top-bar">
+    <button class="back-btn" onclick="nav('page-stores')">←</button>
+    <h1>New POS Registration</h1>
+  </div>
+  <div class="wizard-progress">
+    <div class="wizard-step done"></div>
+    <div class="wizard-step current"></div>
+    <div class="wizard-step"></div>
+  </div>
+  <div class="wizard-content">
+    <h2>Step 2: Location & Chain</h2>
+    <p>Where is this store and who supplies it?</p>
+
+    <div class="form-group">
+      <label>Province</label>
+      <select><option>Metro Manila</option><option>Rizal</option><option>Bulacan</option><option>Laguna</option></select>
+    </div>
+    <div class="form-group">
+      <label>City / Municipality</label>
+      <select><option>Quezon City</option><option>Marikina</option><option>Pasig</option></select>
+    </div>
+    <div class="form-group">
+      <label>Barangay</label>
+      <select><option>Batasan Hills</option><option>Commonwealth</option><option>Holy Spirit</option></select>
+    </div>
+    <div class="form-group">
+      <label>Street / Landmark</label>
+      <input type="text" placeholder="e.g. Along IBP Road, near market">
+    </div>
+    <div class="form-group">
+      <label>Supplied By</label>
+      <div class="chip-grid" style="margin-bottom:12px">
+        <span class="chip selected">Distributor</span>
+        <span class="chip">Dealer</span>
+        <span class="chip">Sub-Dealer</span>
+        <span class="chip">Unknown</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Distributor</label>
+      <select>
+        <option>Metro Manila Distribution Inc.</option>
+        <option>North Luzon Feeds Corp.</option>
+        <option>+ Add New Distributor</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-secondary" style="flex:1" onclick="nav('page-stores')">Back</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="nav('page-stores')">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- VISIT WIZARD                              -->
+<!-- ========================================= -->
+<div id="page-visit-wizard" class="page">
+  <div class="top-bar">
+    <button class="back-btn" onclick="nav('page-store-detail')">←</button>
+    <h1>Visit: Golden Feed</h1>
+  </div>
+  <div class="wizard-progress">
+    <div class="wizard-step done"></div>
+    <div class="wizard-step done"></div>
+    <div class="wizard-step current"></div>
+    <div class="wizard-step"></div>
+  </div>
+  <div class="wizard-content">
+    <h2>Step 3: Merchandising Audit</h2>
+    <p>Check which items are present at the store.</p>
+
+    <div class="card" style="margin:0 0 16px">
+      <div class="merch-item" onclick="this.querySelector('.merch-check').classList.toggle('checked')">
+        <div class="merch-check checked">✓</div>
+        <div><b style="font-size:13px">Signage</b></div>
+      </div>
+      <div class="merch-item" onclick="this.querySelector('.merch-check').classList.toggle('checked')">
+        <div class="merch-check checked">✓</div>
+        <div><b style="font-size:13px">Price Board</b></div>
+      </div>
+      <div class="merch-item" onclick="this.querySelector('.merch-check').classList.toggle('checked')">
+        <div class="merch-check checked">✓</div>
+        <div><b style="font-size:13px">Flyers</b></div>
+      </div>
+      <div class="merch-item" onclick="this.querySelector('.merch-check').classList.toggle('checked')">
+        <div class="merch-check">✓</div>
+        <div><b style="font-size:13px">Standee</b></div>
+      </div>
+      <div class="merch-item" onclick="this.querySelector('.merch-check').classList.toggle('checked')">
+        <div class="merch-check">✓</div>
+        <div><b style="font-size:13px">Price Talkers</b></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Competitor Activity Observed</label>
+      <div style="position:relative">
+        <textarea placeholder="Any new competitor brands, promos, or activity?">B-MEG rep left new pricing flyers. Cargill has a tasting event planned next week.</textarea>
+        <button style="position:absolute;right:8px;bottom:8px;background:none;border:none;font-size:20px;cursor:pointer">🎤</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" style="flex:1">← Back</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="nav('page-store-detail')">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- FARM LIST                                 -->
+<!-- ========================================= -->
+<div id="page-farms" class="page">
+  <div class="top-bar">
+    <div>
+      <h1>My Farms</h1>
+      <div class="subtitle">Quezon City South · 18 farms</div>
+    </div>
+    <button class="action-btn" onclick="nav('page-farm-detail')">+ New</button>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" placeholder="Search farms...">
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-chip active">All (18)</button>
+    <button class="filter-chip">🐖 Hog (8)</button>
+    <button class="filter-chip">🐔 Poultry (6)</button>
+    <button class="filter-chip">🐓 Gamefowl (3)</button>
+    <button class="filter-chip">🐟 Aqua (1)</button>
+  </div>
+
+  <div id="farm-list">
+    <!-- Populated by JS -->
+  </div>
+
+  <button class="fab" onclick="nav('page-farm-detail')">+</button>
+</div>
+
+<!-- ========================================= -->
+<!-- FARM DETAIL                               -->
+<!-- ========================================= -->
+<div id="page-farm-detail" class="page">
+  <div class="detail-header">
+    <button class="back-btn" onclick="nav('page-farms')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-bottom:8px">← Back</button>
+    <h1>Reyes Hog Farm</h1>
+    <div class="meta">Commercial Hog · Rodriguez, Rizal</div>
+    <div class="detail-badges">
+      <span class="badge badge-a" style="background:var(--green)">LARGE</span>
+      <span class="badge badge-b">MED SHARE</span>
+      <span class="badge-segment badge" style="background:rgba(245,131,32,0.15);color:#c75400">BATTLEGROUND</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px">
+      <div><span style="color:#888;font-size:10px">Herd Size</span><br><b style="font-size:20px;color:var(--navy)">620</b><br>heads</div>
+      <div><span style="color:#888;font-size:10px">Total Feed</span><br><b style="font-size:20px;color:var(--navy)">180</b><br>bags/mo</div>
+      <div><span style="color:#888;font-size:10px">Vienovo</span><br><b style="font-size:20px;color:var(--green)">95</b><br>bags/mo</div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:#888">
+      Vienovo Feed Share
+      <div class="progress-bar"><div class="progress-fill" style="width:53%;background:var(--orange)"></div></div>
+      <span style="font-weight:700;color:var(--orange)">53%</span> — target >70%
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">Contact</div>
+    <div style="font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><span style="color:#888">Owner</span><br><b>Roberto Reyes</b></div>
+      <div><span style="color:#888">Phone</span><br><b>+63 918 765 4321</b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">Brands Used</div>
+    <div style="font-size:12px;line-height:2">
+      <span class="badge" style="background:#e8f5e9;color:#2e7d32">ViePro Hog Grower</span>
+      <span class="badge" style="background:#e8f5e9;color:#2e7d32">ViePro Hog Finisher</span>
+      <span class="badge" style="background:#fff3e0;color:#e65100">B-MEG Premium</span>
+      <span class="badge" style="background:#fff3e0;color:#e65100">Cargill StarFeed</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px">Recent Visits</div>
+    <div style="font-size:12px">
+      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0">
+        <b>Apr 9, 2026</b> · Feed Delivery Check<br>
+        <span style="color:#888">Consumed 22 bags this week. Wants to try ViePro Lactating.</span>
+      </div>
+      <div style="padding:8px 0">
+        <b>Mar 30, 2026</b> · Sampling<br>
+        <span style="color:#888">Left 2 bags ViePro Prestarter. Owner willing to test.</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-primary" style="margin:16px">🎯 Start Farm Visit</button>
+</div>
+
+<!-- ========================================= -->
+<!-- MAP PAGE                                  -->
+<!-- ========================================= -->
+<div id="page-map" class="page">
+  <div class="top-bar">
+    <h1>Territory Map</h1>
+    <div class="subtitle">47 stores · 18 farms</div>
+  </div>
+  <div class="filter-row" style="padding-top:8px">
+    <button class="filter-chip active">All</button>
+    <button class="filter-chip">Stores</button>
+    <button class="filter-chip">Farms</button>
+    <button class="filter-chip" style="color:var(--pink)">Critical</button>
+  </div>
+  <div id="map-container"></div>
+</div>
+
+<!-- ========================================= -->
+<!-- DSM DASHBOARD                             -->
+<!-- ========================================= -->
+<div id="page-dashboard" class="page">
+  <div class="top-bar">
+    <div>
+      <h1>Pulse Dashboard</h1>
+      <div class="subtitle">DSM · Central Luzon Region</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="label">Total Stores</div>
+      <div class="value">312</div>
+      <div class="delta delta-up">↑ 8 this week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Total Farms</div>
+      <div class="value">89</div>
+      <div class="delta delta-up">↑ 3 this week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Critical Visits</div>
+      <div class="value" style="color:var(--pink)">24</div>
+      <div class="delta delta-down">↑ 6 from last week</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Visits This Week</div>
+      <div class="value" style="color:var(--green)">147</div>
+      <div class="delta delta-up">↑ 12% vs target</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Orders</div>
+      <div class="value">₱2.1M</div>
+      <div class="delta delta-up">↑ 18% MoM</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Avg Merch Score</div>
+      <div class="value">3.7</div>
+      <div class="delta">/5 across all POS</div>
+    </div>
+  </div>
+
+  <div class="section-title">Store Segment Matrix</div>
+  <div class="segment-matrix">
+    <div class="segment-cell" style="background:rgba(149,201,61,0.15)"><span class="count">42</span>CHAMPION<br>A×A</div>
+    <div class="segment-cell"><span class="count">28</span>GROW VOL<br>A×B</div>
+    <div class="segment-cell" style="background:rgba(229,28,144,0.08)"><span class="count">15</span>UNDERPERF<br>A×C</div>
+    <div class="segment-cell" style="background:rgba(241,177,29,0.15)"><span class="count">38</span>CROSS-SELL<br>B×A</div>
+    <div class="segment-cell"><span class="count">65</span>SOLID MID<br>B×B</div>
+    <div class="segment-cell"><span class="count">31</span>NURTURE<br>B×C</div>
+    <div class="segment-cell" style="background:rgba(0,166,206,0.1)"><span class="count">19</span>GOLDMINE<br>C×A</div>
+    <div class="segment-cell"><span class="count">44</span>ENTRY<br>C×B</div>
+    <div class="segment-cell" style="background:rgba(0,0,0,0.03)"><span class="count">30</span>MONITOR<br>C×C</div>
+  </div>
+
+  <div class="section-title">Product Penetration</div>
+  <div class="card">
+    <div style="font-size:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>🐖 Hog</span><b>89%</b></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:89%;background:var(--green)"></div></div>
+      <div style="display:flex;justify-content:space-between;margin:10px 0 4px"><span>🐔 Poultry</span><b>72%</b></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:72%;background:var(--green)"></div></div>
+      <div style="display:flex;justify-content:space-between;margin:10px 0 4px"><span>🐓 Gamefowl</span><b>54%</b></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:54%;background:var(--orange)"></div></div>
+      <div style="display:flex;justify-content:space-between;margin:10px 0 4px"><span>🐕 Pet</span><b>31%</b></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:31%;background:var(--orange)"></div></div>
+      <div style="display:flex;justify-content:space-between;margin:10px 0 4px"><span>🐟 Aqua</span><b>12%</b></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:12%;background:var(--pink)"></div></div>
+    </div>
+  </div>
+
+  <div class="section-title">Visit Trend (Last 4 Weeks)</div>
+  <div class="card">
+    <canvas id="visitChart" height="180"></canvas>
+  </div>
+
+  <div class="section-title">TSR Leaderboard</div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="list-row">
+      <div class="rank gold">1</div>
+      <div style="flex:1"><b style="font-size:13px">Juan dela Cruz</b><div style="font-size:11px;color:#888">QC South · 42 visits</div></div>
+      <div style="text-align:right;font-size:12px"><b style="color:var(--green)">₱680K</b><br><span style="font-size:10px;color:#888">orders</span></div>
+    </div>
+    <div class="list-row">
+      <div class="rank silver">2</div>
+      <div style="flex:1"><b style="font-size:13px">Maria Garcia</b><div style="font-size:11px;color:#888">Marikina · 38 visits</div></div>
+      <div style="text-align:right;font-size:12px"><b style="color:var(--green)">₱545K</b><br><span style="font-size:10px;color:#888">orders</span></div>
+    </div>
+    <div class="list-row">
+      <div class="rank bronze">3</div>
+      <div style="flex:1"><b style="font-size:13px">Pedro Reyes</b><div style="font-size:11px;color:#888">Pasig · 35 visits</div></div>
+      <div style="text-align:right;font-size:12px"><b style="color:var(--green)">₱498K</b><br><span style="font-size:10px;color:#888">orders</span></div>
+    </div>
+    <div class="list-row">
+      <div class="rank">4</div>
+      <div style="flex:1"><b style="font-size:13px">Ana Santos</b><div style="font-size:11px;color:#888">Antipolo · 31 visits</div></div>
+      <div style="text-align:right;font-size:12px"><b style="color:var(--green)">₱412K</b><br><span style="font-size:10px;color:#888">orders</span></div>
+    </div>
+    <div class="list-row">
+      <div class="rank">5</div>
+      <div style="flex:1"><b style="font-size:13px">Carlos Mendoza</b><div style="font-size:11px;color:#888">Caloocan · 28 visits</div></div>
+      <div style="text-align:right;font-size:12px"><b style="color:var(--green)">₱367K</b><br><span style="font-size:10px;color:#888">orders</span></div>
+    </div>
+    <div class="list-row">
+      <div class="rank">6</div>
+      <div style="flex:1"><b style="font-size:13px">Rosa Villanueva</b><div style="font-size:11px;color:#888">San Mateo · 24 visits</div></div>
+      <div style="text-align:right;font-size:12px"><b style="color:var(--navy)">₱289K</b><br><span style="font-size:10px;color:#888">orders</span></div>
+    </div>
+  </div>
+
+  <div class="section-title">Farm Segment Matrix</div>
+  <div class="segment-matrix">
+    <div class="segment-cell" style="background:rgba(149,201,61,0.15)"><span class="count">8</span>ANCHOR<br>L×H</div>
+    <div class="segment-cell"><span class="count">12</span>LOYAL<br>M×H</div>
+    <div class="segment-cell"><span class="count">5</span>ADVOCATE<br>S×H</div>
+    <div class="segment-cell" style="background:rgba(245,131,32,0.12)"><span class="count">11</span>BATTLE<br>L×M</div>
+    <div class="segment-cell"><span class="count">18</span>SWING<br>M×M</div>
+    <div class="segment-cell"><span class="count">7</span>TRIAL<br>S×M</div>
+    <div class="segment-cell" style="background:rgba(229,28,144,0.08)"><span class="count">6</span>CONQUEST<br>L×L</div>
+    <div class="segment-cell"><span class="count">14</span>OPPORT.<br>M×L</div>
+    <div class="segment-cell"><span class="count">8</span>SEED<br>S×L</div>
+  </div>
+
+  <div class="section-title">Critical Alerts</div>
+  <div class="card" style="border-left:3px solid var(--pink)">
+    <div style="font-size:12px">
+      <div style="padding:6px 0;border-bottom:1px solid #f0f0f0">
+        <b style="color:var(--pink)">⚠</b> <b>Lagro Agri Supply</b> — 18 days since last visit (Vol A)<br>
+        <span style="color:#888;font-size:11px">TSR: J. dela Cruz · Territory: QC North</span>
+      </div>
+      <div style="padding:6px 0;border-bottom:1px solid #f0f0f0">
+        <b style="color:var(--pink)">⚠</b> <b>Reyes Hog Farm</b> — Feed share dropped to 53%<br>
+        <span style="color:#888;font-size:11px">TSR: M. Garcia · Was 70% last month</span>
+      </div>
+      <div style="padding:6px 0;border-bottom:1px solid #f0f0f0">
+        <b style="color:var(--pink)">⚠</b> <b>SM Fairview Pet Corner</b> — 22 days overdue (Mega POS)<br>
+        <span style="color:#888;font-size:11px">TSR: P. Reyes · Territory: Fairview</span>
+      </div>
+      <div style="padding:6px 0">
+        <b style="color:var(--orange)">⚡</b> <b>B-MEG aggressive promo</b> in QC South area<br>
+        <span style="color:#888;font-size:11px">3 stores reported volume discount offers this week</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- REPORTS HUB                               -->
+<!-- ========================================= -->
+<div id="page-reports" class="page">
+  <div class="top-bar">
+    <h1>Reports</h1>
+  </div>
+
+  <div class="card clickable" onclick="nav('page-crosssell')">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:10px;background:rgba(241,177,29,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">⚡</div>
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Cross-Sell Opportunities</b>
+        <div style="font-size:12px;color:#888">68 stores with incomplete product coverage</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:10px;background:rgba(229,28,144,0.1);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🔴</div>
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Visit Compliance</b>
+        <div style="font-size:12px;color:#888">TSR visit frequency vs targets</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:10px;background:rgba(0,166,206,0.1);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📊</div>
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Volume Trend</b>
+        <div style="font-size:12px;color:#888">Monthly bag volume by product group</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:10px;background:rgba(149,201,61,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🏆</div>
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Competitor Intelligence</b>
+        <div style="font-size:12px;color:#888">Competitor brand presence & activity summary</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:44px;height:44px;border-radius:10px;background:rgba(0,77,113,0.08);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">🗺️</div>
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Territory Coverage</b>
+        <div style="font-size:12px;color:#888">Geographic coverage & white space analysis</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- CROSS-SELL REPORT                         -->
+<!-- ========================================= -->
+<div id="page-crosssell" class="page">
+  <div class="top-bar">
+    <button class="back-btn" onclick="nav('page-reports')">←</button>
+    <div>
+      <h1>Cross-Sell Opportunities</h1>
+      <div class="subtitle">68 stores · est. ₱1.2M incremental</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="label">Eligible Stores</div>
+      <div class="value">68</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Missing Lines</div>
+      <div class="value">142</div>
+    </div>
+  </div>
+
+  <div class="section-title">Top Opportunities</div>
+
+  <div class="opportunity-card">
+    <div style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Central Feeds Corp</b>
+        <div style="font-size:11px;color:#888">Marikina · Vol A (150 bags) · 2 groups</div>
+      </div>
+      <span class="badge badge-a">B×A</span>
+    </div>
+    <div class="missing-groups">
+      <span class="missing-chip">+ Gamefowl</span>
+      <span class="missing-chip">+ Pet</span>
+      <span class="missing-chip">+ Aqua</span>
+    </div>
+    <div style="font-size:11px;color:var(--green);margin-top:6px;font-weight:600">Est. +45 bags/mo · ₱67,500</div>
+  </div>
+
+  <div class="opportunity-card">
+    <div style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Quezon Agri Mart</b>
+        <div style="font-size:11px;color:#888">QC · Vol B (70 bags) · 1 group</div>
+      </div>
+      <span class="badge badge-b">C×B</span>
+    </div>
+    <div class="missing-groups">
+      <span class="missing-chip">+ Poultry</span>
+      <span class="missing-chip">+ Gamefowl</span>
+      <span class="missing-chip">+ Pet</span>
+      <span class="missing-chip">+ Aqua</span>
+    </div>
+    <div style="font-size:11px;color:var(--green);margin-top:6px;font-weight:600">Est. +30 bags/mo · ₱45,000</div>
+  </div>
+
+  <div class="opportunity-card">
+    <div style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Batasan Pet & Feed</b>
+        <div style="font-size:11px;color:#888">QC · Vol A (110 bags) · 3 groups</div>
+      </div>
+      <span class="badge badge-a">B×A</span>
+    </div>
+    <div class="missing-groups">
+      <span class="missing-chip">+ Gamefowl</span>
+      <span class="missing-chip">+ Aqua</span>
+    </div>
+    <div style="font-size:11px;color:var(--green);margin-top:6px;font-weight:600">Est. +20 bags/mo · ₱30,000</div>
+  </div>
+
+  <div class="opportunity-card">
+    <div style="display:flex;justify-content:space-between;align-items:start">
+      <div>
+        <b style="font-size:14px;color:var(--navy)">Lucky Farm Supplies</b>
+        <div style="font-size:11px;color:#888">Antipolo · Vol B (80 bags) · 2 groups</div>
+      </div>
+      <span class="badge badge-b">B×B</span>
+    </div>
+    <div class="missing-groups">
+      <span class="missing-chip">+ Pet</span>
+      <span class="missing-chip">+ Aqua</span>
+      <span class="missing-chip">+ Gamefowl</span>
+    </div>
+    <div style="font-size:11px;color:var(--green);margin-top:6px;font-weight:600">Est. +25 bags/mo · ₱37,500</div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- TEAM PAGE                                 -->
+<!-- ========================================= -->
+<div id="page-team" class="page">
+  <div class="top-bar">
+    <h1>My Team</h1>
+    <div class="subtitle">6 TSRs · Central Luzon</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="label">Active TSRs</div>
+      <div class="value">6</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Avg Visits/Week</div>
+      <div class="value">24.5</div>
+    </div>
+  </div>
+
+  <div class="section-title">Team Members</div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">JC</div>
+      <div style="flex:1">
+        <b style="font-size:14px">Juan dela Cruz</b>
+        <div style="font-size:11px;color:#888">TSR · QC South · 47 stores · 8 farms</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:var(--green)">42</div>
+        <div style="font-size:10px;color:#888">visits/wk</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;font-size:11px">
+      <span style="color:var(--green);font-weight:600">● 2 critical</span>
+      <span style="color:var(--orange);font-weight:600">● 5 warning</span>
+      <span style="color:#888">Last active: 2h ago</span>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">MG</div>
+      <div style="flex:1">
+        <b style="font-size:14px">Maria Garcia</b>
+        <div style="font-size:11px;color:#888">TSR · Marikina · 52 stores · 11 farms</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:var(--green)">38</div>
+        <div style="font-size:10px;color:#888">visits/wk</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;font-size:11px">
+      <span style="color:var(--green);font-weight:600">● 1 critical</span>
+      <span style="color:var(--orange);font-weight:600">● 8 warning</span>
+      <span style="color:#888">Last active: 30m ago</span>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--green);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">PR</div>
+      <div style="flex:1">
+        <b style="font-size:14px">Pedro Reyes</b>
+        <div style="font-size:11px;color:#888">TSR · Pasig · 41 stores · 6 farms</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:var(--navy)">35</div>
+        <div style="font-size:10px;color:#888">visits/wk</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;font-size:11px">
+      <span style="color:var(--pink);font-weight:600">● 4 critical</span>
+      <span style="color:var(--orange);font-weight:600">● 3 warning</span>
+      <span style="color:#888">Last active: 1d ago</span>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--gold);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">AS</div>
+      <div style="flex:1">
+        <b style="font-size:14px">Ana Santos</b>
+        <div style="font-size:11px;color:#888">TSR · Antipolo · 38 stores · 9 farms</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:var(--navy)">31</div>
+        <div style="font-size:10px;color:#888">visits/wk</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--orange);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">CM</div>
+      <div style="flex:1">
+        <b style="font-size:14px">Carlos Mendoza</b>
+        <div style="font-size:11px;color:#888">TSR · Caloocan · 44 stores · 7 farms</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:var(--navy)">28</div>
+        <div style="font-size:10px;color:#888">visits/wk</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card clickable">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--pink);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">RV</div>
+      <div style="flex:1">
+        <b style="font-size:14px">Rosa Villanueva</b>
+        <div style="font-size:11px;color:#888">TSR · San Mateo · 36 stores · 5 farms</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:18px;font-weight:800;color:var(--pink)">24</div>
+        <div style="font-size:10px;color:#888">visits/wk</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px;font-size:11px">
+      <span style="color:var(--pink);font-weight:600">● 7 critical ⚠</span>
+      <span style="color:#888">Last active: 3d ago — needs follow-up</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- PROFILE PAGE                              -->
+<!-- ========================================= -->
+<div id="page-profile" class="page">
+  <div class="top-bar">
+    <h1>Profile</h1>
+  </div>
+
+  <div style="text-align:center">
+    <div class="profile-avatar" id="profile-avatar">JC</div>
+    <h2 style="font-size:20px;font-weight:800;color:var(--navy)" id="profile-name">Juan dela Cruz</h2>
+    <p style="font-size:13px;color:#888" id="profile-role">Territory Sales Rep · QC South</p>
+  </div>
+
+  <div class="card" style="margin-top:24px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">My Stats</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px">
+      <div><div style="font-size:22px;font-weight:800;color:var(--navy)">47</div>Stores</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--navy)">8</div>Farms</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--green)">42</div>Visits/wk</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Account</div>
+    <div style="font-size:12px">
+      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+        <span style="color:#888">Phone</span><b>+63 917 845 2301</b>
+      </div>
+      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+        <span style="color:#888">Email</span><b>jdelacruz@vienovo.ph</b>
+      </div>
+      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+        <span style="color:#888">Territory</span><b>Quezon City South</b>
+      </div>
+      <div style="padding:8px 0;display:flex;justify-content:space-between">
+        <span style="color:#888">Role</span><b>TSR</b>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-secondary" style="margin:16px;color:var(--pink);border-color:var(--pink)" onclick="logout()">Sign Out</button>
+</div>
+
+<!-- ========================================= -->
+<!-- BOTTOM NAVIGATION                         -->
+<!-- ========================================= -->
+<div class="bottom-nav" id="bottom-nav" style="display:none">
+  <!-- TSR nav -->
+  <div id="nav-tsr" style="display:contents">
+    <button class="nav-item active" data-page="page-stores" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      Stores
+    </button>
+    <button class="nav-item" data-page="page-farms" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
+      Farms
+    </button>
+    <button class="nav-item" data-page="page-map" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Map
+    </button>
+    <button class="nav-item" data-page="page-dashboard" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" data-page="page-profile" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Profile
+    </button>
+  </div>
+  <!-- DSM nav -->
+  <div id="nav-dsm" style="display:none">
+    <button class="nav-item active" data-page="page-dashboard" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item" data-page="page-stores" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      Stores
+    </button>
+    <button class="nav-item" data-page="page-map" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      Map
+    </button>
+    <button class="nav-item" data-page="page-reports" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+      Reports
+    </button>
+    <button class="nav-item" data-page="page-team" onclick="navBtn(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Team
+    </button>
+  </div>
+</div>
+
+<script>
+// ===== FAKE DATA =====
+const stores = [
+  { name: "Golden Feed Supply", type: "pos", location: "Batasan Hills, QC", vol: "A", cov: "A", segment: "CHAMPION", health: "ok", bags: 120, lastVisit: "2d", lat: 14.6760, lng: 121.0870 },
+  { name: "SM Fairview Pet Corner", type: "mega_pos", location: "Fairview, QC", vol: "A", cov: "B", segment: "CROSS-SELL", health: "crit", bags: 200, lastVisit: "22d", lat: 14.7190, lng: 121.0570 },
+  { name: "Lagro Agri Supply", type: "pos", location: "Lagro, QC", vol: "A", cov: "A", segment: "CHAMPION", health: "crit", bags: 150, lastVisit: "18d", lat: 14.7130, lng: 121.0630 },
+  { name: "Tandang Sora Feeds", type: "pos", location: "Tandang Sora, QC", vol: "B", cov: "B", segment: "SOLID MID", health: "ok", bags: 65, lastVisit: "5d", lat: 14.6850, lng: 121.0490 },
+  { name: "Commonwealth Vet Supply", type: "pos", location: "Commonwealth, QC", vol: "B", cov: "A", segment: "GROW VOL", health: "warn", bags: 55, lastVisit: "12d", lat: 14.6920, lng: 121.0820 },
+  { name: "Payatas Farm Center", type: "pos", location: "Payatas, QC", vol: "C", cov: "C", segment: "MONITOR", health: "ok", bags: 20, lastVisit: "8d", lat: 14.7070, lng: 121.0990 },
+  { name: "Holy Spirit Pet Shop", type: "pos", location: "Holy Spirit, QC", vol: "C", cov: "B", segment: "NURTURE", health: "warn", bags: 30, lastVisit: "15d", lat: 14.6800, lng: 121.0690 },
+  { name: "Central Feeds Corp", type: "pos", location: "Marikina", vol: "A", cov: "B", segment: "CROSS-SELL", health: "ok", bags: 150, lastVisit: "3d", lat: 14.6507, lng: 121.1029 },
+  { name: "Novaliches Agri Hub", type: "pos", location: "Novaliches, QC", vol: "A", cov: "A", segment: "CHAMPION", health: "ok", bags: 130, lastVisit: "1d", lat: 14.7300, lng: 121.0350 },
+  { name: "Rodriguez Feed Supply", type: "pos", location: "Rodriguez, Rizal", vol: "B", cov: "C", segment: "ENTRY", health: "warn", bags: 70, lastVisit: "11d", lat: 14.7380, lng: 121.1190 },
+  { name: "Antipolo Pet World", type: "pos", location: "Antipolo", vol: "C", cov: "A", segment: "UNDERPERF", health: "crit", bags: 25, lastVisit: "20d", lat: 14.5886, lng: 121.1762 },
+  { name: "Montalban Livestock", type: "pos", location: "Montalban, Rizal", vol: "A", cov: "B", segment: "CROSS-SELL", health: "ok", bags: 110, lastVisit: "4d", lat: 14.7340, lng: 121.1430 },
+  { name: "QC North Feeds", type: "pos", location: "North Triangle, QC", vol: "B", cov: "B", segment: "SOLID MID", health: "ok", bags: 75, lastVisit: "6d", lat: 14.6440, lng: 121.0350 },
+  { name: "Lucky Farm Supplies", type: "pos", location: "Antipolo", vol: "B", cov: "B", segment: "SOLID MID", health: "warn", bags: 80, lastVisit: "13d", lat: 14.5920, lng: 121.1700 },
+  { name: "Quezon Agri Mart", type: "pos", location: "Quezon Ave, QC", vol: "B", cov: "C", segment: "ENTRY", health: "ok", bags: 70, lastVisit: "7d", lat: 14.6350, lng: 121.0160 },
+];
+
+const farms = [
+  { name: "Reyes Hog Farm", type: "🐖 Hog", location: "Rodriguez, Rizal", size: "Large", share: "Med", segment: "BATTLEGROUND", heads: 620, lat: 14.7400, lng: 121.1200 },
+  { name: "Santos Poultry Estate", type: "🐔 Poultry", location: "San Mateo, Rizal", size: "Large", share: "High", segment: "ANCHOR", heads: 8500, lat: 14.6990, lng: 121.1180 },
+  { name: "Garcia Gamefowl Breeding", type: "🐓 Gamefowl", location: "Antipolo", size: "Medium", share: "High", segment: "LOYAL", heads: 350, lat: 14.5950, lng: 121.1800 },
+  { name: "Villanueva Piggery", type: "🐖 Hog", location: "Marikina Heights", size: "Medium", share: "Low", segment: "OPPORTUNITY", heads: 180, lat: 14.6600, lng: 121.1100 },
+  { name: "Cruz Layer Farm", type: "🐔 Poultry", location: "Montalban", size: "Small", share: "High", segment: "ADVOCATE", heads: 2000, lat: 14.7350, lng: 121.1400 },
+  { name: "Aqua Fresh Tilapia", type: "🐟 Aqua", location: "Rodriguez", size: "Medium", share: "Med", segment: "SWING", heads: 5000, lat: 14.7450, lng: 121.1250 },
+  { name: "Mendoza Backyard Hogs", type: "🐖 Hog", location: "Payatas, QC", size: "Small", share: "Low", segment: "SEED", heads: 40, lat: 14.7100, lng: 121.1000 },
+  { name: "Del Rosario Ranch", type: "🐖 Hog", location: "Antipolo", size: "Large", share: "Low", segment: "CONQUEST", heads: 800, lat: 14.5800, lng: 121.1850 },
+];
+
+// ===== NAVIGATION =====
+let currentRole = 'tsr';
+
+function nav(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+
+  // Init map if switching to map page
+  if (pageId === 'page-map') initMap();
+
+  // Init chart if switching to dashboard
+  if (pageId === 'page-dashboard') setTimeout(initChart, 100);
+}
+
+function navBtn(btn) {
+  const parent = btn.closest('[id^="nav-"]');
+  parent.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  nav(btn.dataset.page);
+}
+
+function loginAs(role) {
+  currentRole = role;
+  document.getElementById('bottom-nav').style.display = 'flex';
+
+  if (role === 'dsm') {
+    document.getElementById('nav-tsr').style.display = 'none';
+    document.getElementById('nav-dsm').style.display = 'contents';
+    document.getElementById('profile-avatar').textContent = 'RD';
+    document.getElementById('profile-name').textContent = 'Roberto Dominguez';
+    document.getElementById('profile-role').textContent = 'District Sales Manager · Central Luzon';
+    nav('page-dashboard');
+  } else {
+    document.getElementById('nav-tsr').style.display = 'contents';
+    document.getElementById('nav-dsm').style.display = 'none';
+    nav('page-stores');
+  }
+}
+
+function logout() {
+  document.getElementById('bottom-nav').style.display = 'none';
+  nav('page-login');
+}
+
+// ===== STORE TAB SWITCHING =====
+function storeTab(tab) {
+  document.querySelectorAll('.store-tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById('store-tab-' + tab).style.display = 'block';
+  document.querySelectorAll('#store-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ===== POPULATE STORE LIST =====
+function renderStores() {
+  const list = document.getElementById('store-list');
+  list.innerHTML = stores.map(s => `
+    <div class="card clickable" onclick="nav('page-store-detail')" style="padding-left:20px">
+      <div class="health-bar health-${s.health}"></div>
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <b style="font-size:14px;color:var(--navy)">${s.name}</b>
+          <div style="font-size:11px;color:#888;margin-top:2px">${s.location}</div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <span class="badge badge-${s.vol.toLowerCase()}">Vol ${s.vol}</span>
+            <span class="badge badge-${s.cov.toLowerCase()}">Cov ${s.cov}</span>
+            <span class="badge badge-segment">${s.segment}</span>
+          </div>
+        </div>
+        <div style="text-align:right;font-size:11px">
+          <div style="font-size:16px;font-weight:800;color:var(--navy)">${s.bags}</div>
+          <div style="color:#888">bags/mo</div>
+          <div style="margin-top:4px;color:${s.health === 'ok' ? 'var(--green)' : s.health === 'warn' ? 'var(--orange)' : 'var(--pink)'};font-weight:600">${s.lastVisit} ago</div>
+        </div>
+      </div>
+      <div class="supply-chain" style="margin-top:8px">
+        <span class="node">Vienovo</span> <span class="arrow">→</span>
+        <span>Metro Manila Dist.</span> <span class="arrow">→</span>
+        <span>${s.name}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== POPULATE FARM LIST =====
+function renderFarms() {
+  const list = document.getElementById('farm-list');
+  list.innerHTML = farms.map(f => `
+    <div class="card clickable" onclick="nav('page-farm-detail')">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <b style="font-size:14px;color:var(--navy)">${f.name}</b>
+          <div style="font-size:11px;color:#888;margin-top:2px">${f.type} · ${f.location}</div>
+          <div style="display:flex;gap:4px;margin-top:6px">
+            <span class="badge" style="background:${f.size === 'Large' ? 'var(--green)' : f.size === 'Medium' ? 'var(--blue)' : 'var(--mid)'};color:${f.size === 'Large' || f.size === 'Medium' ? 'white' : 'var(--dark)'}">${f.size}</span>
+            <span class="badge badge-segment">${f.segment}</span>
+          </div>
+        </div>
+        <div style="text-align:right;font-size:11px">
+          <div style="font-size:16px;font-weight:800;color:var(--navy)">${f.heads.toLocaleString()}</div>
+          <div style="color:#888">${f.type.includes('Aqua') ? 'fish' : f.type.includes('Poultry') || f.type.includes('Game') ? 'birds' : 'heads'}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== MAP =====
+let map = null;
+function initMap() {
+  if (map) { map.invalidateSize(); return; }
+  setTimeout(() => {
+    map = L.map('map-container').setView([14.6900, 121.0900], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    // Store markers (blue)
+    stores.forEach(s => {
+      const color = s.health === 'ok' ? '#95C93D' : s.health === 'warn' ? '#F58320' : '#E21B90';
+      L.circleMarker([s.lat, s.lng], {
+        radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
+      }).addTo(map).bindPopup(`<b>${s.name}</b><br>${s.segment} · ${s.bags} bags/mo<br><span style="color:${color}">● ${s.health.toUpperCase()}</span>`);
+    });
+
+    // Farm markers (diamond shape using triangle)
+    farms.forEach(f => {
+      L.circleMarker([f.lat, f.lng], {
+        radius: 8, fillColor: '#004D71', color: '#F1B11D', weight: 2, fillOpacity: 0.9
+      }).addTo(map).bindPopup(`<b>${f.name}</b><br>${f.type} · ${f.segment}<br>${f.heads.toLocaleString()} ${f.type.includes('Aqua') ? 'fish' : 'heads'}`);
+    });
+  }, 200);
+}
+
+// ===== DASHBOARD CHART =====
+let chartInstance = null;
+function initChart() {
+  if (chartInstance) return;
+  const ctx = document.getElementById('visitChart');
+  if (!ctx) return;
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+      datasets: [
+        {
+          label: 'Store Visits',
+          data: [112, 128, 135, 147],
+          backgroundColor: 'rgba(0, 166, 206, 0.7)',
+          borderRadius: 4,
+        },
+        {
+          label: 'Farm Visits',
+          data: [34, 29, 41, 38],
+          backgroundColor: 'rgba(149, 201, 61, 0.7)',
+          borderRadius: 4,
+        },
+        {
+          label: 'Orders Taken',
+          data: [45, 52, 58, 63],
+          backgroundColor: 'rgba(241, 177, 29, 0.7)',
+          borderRadius: 4,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { family: 'Montserrat', size: 10 } } }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ===== INIT =====
+renderStores();
+renderFarms();
+</script>
+</body>
+</html>

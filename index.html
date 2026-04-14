@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VieForce Patrol — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/patrol.css">
+</head>
+<body>
+
+<div class="login-page">
+  <div class="logo">VP</div>
+  <h1>VieForce Patrol</h1>
+  <p>Vienovo Philippines Inc.</p>
+
+  <div class="login-box">
+    <label>Phone Number</label>
+    <input type="tel" id="login-phone" placeholder="09XX XXX XXXX">
+
+    <label>PIN Code</label>
+    <input type="password" id="login-pin" maxlength="6" placeholder="Enter PIN">
+
+    <button class="login-btn" id="login-btn">Sign In</button>
+
+    <div class="error-msg" id="login-error"></div>
+  </div>
+
+  <div class="login-footer">v1.0 — Vienovo Philippines Inc.</div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  document.getElementById('login-btn').addEventListener('click', async function() {
+    const phone = document.getElementById('login-phone').value.trim();
+    const pin = document.getElementById('login-pin').value.trim();
+    const errorEl = document.getElementById('login-error');
+    const btn = this;
+
+    errorEl.classList.remove('visible');
+    errorEl.textContent = '';
+
+    if (!phone || !pin) {
+      errorEl.textContent = 'Please enter phone number and PIN.';
+      errorEl.classList.add('visible');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+
+    try {
+      const result = await login(phone, pin);
+      if (result && result.success) {
+        window.location.href = 'app.html';
+      } else {
+        errorEl.textContent = (result && result.error) || 'Invalid phone number or PIN.';
+        errorEl.classList.add('visible');
+      }
+    } catch (err) {
+      errorEl.textContent = err.message || 'Login failed. Please try again.';
+      errorEl.classList.add('visible');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+
+  // If already logged in, redirect
+  if (getSession()) {
+    window.location.href = 'app.html';
+  }
+</script>
+
+</body>
+</html>

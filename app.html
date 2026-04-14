@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VieForce Patrol</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/patrol.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+</head>
+<body>
+
+<!-- ========================================= -->
+<!-- HOME PAGE                                 -->
+<!-- ========================================= -->
+<div id="page-home" class="page active">
+  <div class="top-bar">
+    <div style="flex:1">
+      <h1>My Territory</h1>
+      <div class="subtitle" id="home-subtitle">Loading from Supabase...</div>
+    </div>
+    <div class="sync-indicator" id="sync-status">
+      <span class="sync-dot online" id="sync-dot"></span>
+      <span id="sync-label">Synced</span>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="label">My Stores</div>
+      <div class="value" id="kpi-stores">--</div>
+      <div class="delta">Loading from Supabase...</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Visits This Week</div>
+      <div class="value" id="kpi-visits">--</div>
+      <div class="delta">Loading from Supabase...</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Critical</div>
+      <div class="value" id="kpi-critical" style="color:var(--pink)">--</div>
+      <div class="delta">Loading from Supabase...</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Orders</div>
+      <div class="value" id="kpi-orders">--</div>
+      <div class="delta">Loading from Supabase...</div>
+    </div>
+  </div>
+
+  <div class="section-title">Recent Activity</div>
+  <div class="card">
+    <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading from Supabase...</p>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- STORES PAGE                               -->
+<!-- ========================================= -->
+<div id="page-stores" class="page">
+  <div class="top-bar">
+    <div style="flex:1">
+      <h1>My Stores</h1>
+      <div class="subtitle" id="stores-subtitle">Loading from Supabase...</div>
+    </div>
+    <button class="action-btn" id="btn-new-store">+ New</button>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="store-search" placeholder="Search stores...">
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-chip active">All</button>
+    <button class="filter-chip" style="color:var(--pink)">Critical</button>
+    <button class="filter-chip" style="color:var(--orange)">Warning</button>
+    <button class="filter-chip" style="color:var(--green)">OK</button>
+  </div>
+
+  <div id="store-list">
+    <div class="card">
+      <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading from Supabase...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- MAP PAGE                                  -->
+<!-- ========================================= -->
+<div id="page-map" class="page">
+  <div class="top-bar">
+    <h1>Territory Map</h1>
+    <div class="subtitle">Loading from Supabase...</div>
+  </div>
+  <div class="filter-row" style="padding-top:8px">
+    <button class="filter-chip active">All</button>
+    <button class="filter-chip">Stores</button>
+    <button class="filter-chip">Farms</button>
+    <button class="filter-chip" style="color:var(--pink)">Critical</button>
+  </div>
+  <div id="map-container"></div>
+</div>
+
+<!-- ========================================= -->
+<!-- VISITS PAGE                               -->
+<!-- ========================================= -->
+<div id="page-visits" class="page">
+  <div class="top-bar">
+    <div style="flex:1">
+      <h1>My Visits</h1>
+      <div class="subtitle">Loading from Supabase...</div>
+    </div>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" placeholder="Search visits...">
+  </div>
+
+  <div class="filter-row">
+    <button class="filter-chip active">All</button>
+    <button class="filter-chip">This Week</button>
+    <button class="filter-chip">Orders</button>
+    <button class="filter-chip">Mapping</button>
+  </div>
+
+  <div id="visit-list">
+    <div class="card">
+      <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading from Supabase...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- PROFILE PAGE                              -->
+<!-- ========================================= -->
+<div id="page-profile" class="page">
+  <div class="top-bar">
+    <h1>Profile</h1>
+  </div>
+
+  <div style="text-align:center">
+    <div class="profile-avatar" id="profile-avatar">--</div>
+    <h2 style="font-size:20px;font-weight:800;color:var(--navy)" id="profile-name">Loading...</h2>
+    <p style="font-size:13px;color:#888" id="profile-role">Loading from Supabase...</p>
+  </div>
+
+  <div class="card" style="margin-top:24px">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">My Stats</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px">
+      <div><div style="font-size:22px;font-weight:800;color:var(--navy)" id="stat-stores">--</div>Stores</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--navy)" id="stat-farms">--</div>Farms</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--green)" id="stat-visits">--</div>Visits/wk</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Account</div>
+    <div style="font-size:12px">
+      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+        <span style="color:#888">Phone</span><b id="profile-phone">--</b>
+      </div>
+      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+        <span style="color:#888">Territory</span><b id="profile-territory">--</b>
+      </div>
+      <div style="padding:8px 0;display:flex;justify-content:space-between">
+        <span style="color:#888">Role</span><b id="profile-role-badge">--</b>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-secondary" style="margin:16px;color:var(--pink);border-color:var(--pink)" id="btn-logout">Sign Out</button>
+</div>
+
+<!-- ========================================= -->
+<!-- FAB BUTTON                                -->
+<!-- ========================================= -->
+<button class="fab" id="fab-btn">+</button>
+
+<!-- ========================================= -->
+<!-- BOTTOM NAVIGATION                         -->
+<!-- ========================================= -->
+<div class="bottom-nav" id="bottom-nav">
+  <button class="nav-item active" data-page="page-home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    Home
+  </button>
+  <button class="nav-item" data-page="page-stores">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
+    Stores
+  </button>
+  <button class="nav-item" data-page="page-map">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Map
+  </button>
+  <button class="nav-item" data-page="page-visits">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+    Visits
+  </button>
+  <button class="nav-item" data-page="page-profile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Profile
+  </button>
+</div>
+
+<!-- ========================================= -->
+<!-- SCRIPTS                                   -->
+<!-- ========================================= -->
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  // ===== Auth gate =====
+  requireAuth();
+
+  // ===== Populate profile from session =====
+  const session = getSession();
+  if (session) {
+    const initials = session.name ? session.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : '--';
+    document.getElementById('profile-avatar').textContent = initials;
+    document.getElementById('profile-name').textContent = session.name || 'Unknown';
+    document.getElementById('profile-role').textContent =
+      (session.role || '').toUpperCase() + (session.territory ? ' \u00B7 ' + session.territory : '');
+    document.getElementById('profile-phone').textContent = session.phone || '--';
+    document.getElementById('profile-territory').textContent = session.territory || session.district || '--';
+    document.getElementById('profile-role-badge').textContent = (session.role || '--').toUpperCase();
+    document.getElementById('home-subtitle').textContent = session.territory || session.district || 'My Territory';
+  }
+
+  // ===== Navigation =====
+  const navItems = document.querySelectorAll('.bottom-nav .nav-item');
+  const pages = document.querySelectorAll('.page');
+
+  navItems.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      navItems.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      pages.forEach(function(p) { p.classList.remove('active'); });
+      var target = document.getElementById(btn.dataset.page);
+      if (target) target.classList.add('active');
+    });
+  });
+
+  // ===== Logout =====
+  document.getElementById('btn-logout').addEventListener('click', function() {
+    logout();
+  });
+
+  // ===== Sync status =====
+  function updateSyncUI() {
+    var dot = document.getElementById('sync-dot');
+    var label = document.getElementById('sync-label');
+    if (navigator.onLine) {
+      dot.className = 'sync-dot online';
+      label.textContent = 'Synced';
+    } else {
+      dot.className = 'sync-dot offline';
+      label.textContent = 'Offline';
+    }
+  }
+  window.addEventListener('online', updateSyncUI);
+  window.addEventListener('offline', updateSyncUI);
+  updateSyncUI();
+</script>
+
+</body>
+</html>
