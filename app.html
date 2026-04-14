@@ -174,6 +174,274 @@
 </div>
 
 <!-- ========================================= -->
+<!-- STORE DETAIL                              -->
+<!-- ========================================= -->
+<div id="page-store-detail" class="page">
+  <div class="detail-header">
+    <button class="back-btn" onclick="nav('page-stores')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-bottom:8px">&larr; Back</button>
+    <h1 id="detail-store-name">Loading...</h1>
+    <div class="meta" id="detail-store-meta">--</div>
+    <div class="detail-badges">
+      <span class="badge badge-a" id="detail-vol-badge">Vol --</span>
+      <span class="badge badge-a" id="detail-cov-badge">Cov --</span>
+      <span class="badge-segment badge" id="detail-segment-badge" style="background:rgba(149,201,61,0.15);color:#5a8a0a">--</span>
+      <span class="badge" id="detail-health-badge" style="background:var(--green);color:white">--</span>
+    </div>
+  </div>
+
+  <div class="tab-bar" id="store-tabs">
+    <button class="tab-btn active" onclick="storeTab('profile')">Profile</button>
+    <button class="tab-btn" onclick="storeTab('products')">Products</button>
+    <button class="tab-btn" onclick="storeTab('competitors')">Competitors</button>
+    <button class="tab-btn" onclick="storeTab('merch')">Merch</button>
+    <button class="tab-btn" onclick="storeTab('history')">History</button>
+  </div>
+
+  <!-- Profile Tab -->
+  <div id="store-tab-profile" class="store-tab-content">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Contact</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div><span style="color:#888">Owner</span><br><b id="detail-owner">--</b></div>
+        <div><span style="color:#888">Phone</span><br><b id="detail-phone">--</b></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Supply Chain</div>
+      <div class="supply-chain" id="detail-supply-chain">
+        <span class="node">Vienovo</span> <span class="arrow">&rarr;</span>
+        <span class="node" style="color:var(--green)" id="detail-supply-store">--</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Commercial</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+        <div><span style="color:#888">Total Monthly Vol</span><br><b id="detail-bags-total">-- bags</b></div>
+        <div><span style="color:#888">Vienovo Monthly</span><br><b id="detail-bags-vienovo">-- bags</b></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#888">
+        Vienovo Share
+        <div class="progress-bar"><div class="progress-fill" id="detail-share-bar" style="width:0%;background:var(--green)"></div></div>
+        <span style="font-weight:700;color:var(--navy)" id="detail-share-pct">--%</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Visit Health</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;text-align:center">
+        <div><span style="color:#888">Last Visit</span><br><b style="color:var(--green)" id="detail-last-visit">--</b></div>
+        <div><span style="color:#888">Total Visits</span><br><b id="detail-total-visits">--</b></div>
+        <div><span style="color:#888">Target</span><br><b>4&times;/mo</b></div>
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-start-visit" style="margin:16px">Start Visit</button>
+  </div>
+
+  <!-- Products Tab -->
+  <div id="store-tab-products" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Product Groups</div>
+      <div id="detail-products-container" style="display:flex;flex-wrap:wrap;gap:6px">
+        <span style="font-size:12px;color:#888">Loading...</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Brands Carried</div>
+      <div id="detail-brands-container" style="font-size:12px;line-height:2">
+        <span style="font-size:12px;color:#888">Loading...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Competitors Tab -->
+  <div id="store-tab-competitors" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">Competitor Brands</div>
+        <span style="font-size:11px;color:#888" id="detail-competitors-count">--</span>
+      </div>
+      <div id="detail-competitors-container" style="margin-top:12px">
+        <div style="font-size:12px;color:#888;padding:12px 0;text-align:center">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Merch Tab -->
+  <div id="store-tab-merch" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">Merchandising Score</div>
+        <div style="font-size:24px;font-weight:800;color:var(--green)" id="detail-merch-score">--/5</div>
+      </div>
+      <div class="progress-bar" style="height:8px"><div class="progress-fill" id="detail-merch-bar" style="width:0%;background:var(--green)"></div></div>
+      <div id="detail-merch-checklist" style="margin-top:16px">
+        <div class="merch-item">
+          <div class="merch-check">?</div>
+          <div><b style="font-size:13px">Signage</b><div style="font-size:11px;color:#888">Vienovo signboard visible</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check">?</div>
+          <div><b style="font-size:13px">Price Board</b><div style="font-size:11px;color:#888">Updated price list displayed</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check">?</div>
+          <div><b style="font-size:13px">Flyers</b><div style="font-size:11px;color:#888">Product flyers available</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check">?</div>
+          <div><b style="font-size:13px">Standee</b><div style="font-size:11px;color:#888">Standing display present</div></div>
+        </div>
+        <div class="merch-item">
+          <div class="merch-check">?</div>
+          <div><b style="font-size:13px">Price Talkers</b><div style="font-size:11px;color:#888">Price tags on shelves</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div id="store-tab-history" class="store-tab-content" style="display:none">
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Recent Visits</div>
+      <div id="detail-history-container" style="font-size:12px">
+        <div style="color:#888;padding:12px 0;text-align:center">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- NEW STORE WIZARD                          -->
+<!-- ========================================= -->
+<div id="page-store-new" class="page">
+  <div class="top-bar">
+    <button class="back-btn" onclick="wizardBack()">&larr;</button>
+    <h1>New POS Registration</h1>
+  </div>
+  <div class="wizard-progress">
+    <div class="wizard-step current" id="wiz-step-1"></div>
+    <div class="wizard-step" id="wiz-step-2"></div>
+    <div class="wizard-step" id="wiz-step-3"></div>
+  </div>
+
+  <!-- Step 1: Basic Info -->
+  <div class="wizard-content" id="wizard-step1">
+    <h2>Step 1: Basic Info</h2>
+    <p>Enter the store details to begin registration.</p>
+
+    <div class="form-group">
+      <label>Store Name *</label>
+      <input type="text" id="new-store-name" placeholder="e.g. Golden Feed Supply" required>
+    </div>
+    <div class="form-group">
+      <label>Owner Name</label>
+      <input type="text" id="new-store-owner" placeholder="e.g. Ricardo Santos">
+    </div>
+    <div class="form-group">
+      <label>Phone</label>
+      <input type="tel" id="new-store-phone" placeholder="e.g. 09171234567">
+    </div>
+    <div class="form-group">
+      <label>Store Type</label>
+      <select id="new-store-type">
+        <option value="">Select type...</option>
+        <option value="feeds_dealer">Feeds Dealer</option>
+        <option value="farm_supply">Farm Supply</option>
+        <option value="pet_shop">Pet Shop</option>
+        <option value="veterinary">Veterinary</option>
+        <option value="supermarket">Supermarket</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-secondary" style="flex:1" onclick="nav('page-stores')">Cancel</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="wizardNext()">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Location -->
+  <div class="wizard-content" id="wizard-step2" style="display:none">
+    <h2>Step 2: Location</h2>
+    <p>Capture GPS and enter the store address.</p>
+
+    <div class="form-group">
+      <button class="btn-primary" id="btn-gps-capture" onclick="captureNewStoreGPS()" style="background:var(--blue);margin-top:0">
+        Capture GPS Location
+      </button>
+      <div id="new-store-gps-status" style="font-size:11px;color:#888;margin-top:6px">Tap button to capture GPS coordinates</div>
+    </div>
+
+    <div id="new-store-map" style="height:200px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--mid);margin-bottom:16px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888">
+      Map will appear after GPS capture
+    </div>
+
+    <div class="form-group">
+      <label>Province</label>
+      <input type="text" id="new-store-province" placeholder="e.g. Metro Manila">
+    </div>
+    <div class="form-group">
+      <label>City / Municipality</label>
+      <input type="text" id="new-store-city" placeholder="e.g. Quezon City">
+    </div>
+    <div class="form-group">
+      <label>Address / Landmark</label>
+      <input type="text" id="new-store-address" placeholder="e.g. Along IBP Road, near market">
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-secondary" style="flex:1" onclick="wizardBack()">Back</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="wizardNext()">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Photo + Submit -->
+  <div class="wizard-content" id="wizard-step3" style="display:none">
+    <h2>Step 3: Photo &amp; Submit</h2>
+    <p>Capture a photo and classify the store.</p>
+
+    <div class="form-group">
+      <button class="btn-primary" id="btn-photo-capture" onclick="captureNewStorePhoto()" style="background:var(--blue);margin-top:0">
+        Capture Store Photo
+      </button>
+      <div id="new-store-photo-preview" style="margin-top:8px;display:none">
+        <img id="new-store-photo-img" style="width:100%;border-radius:var(--radius);border:1px solid var(--mid)" alt="Store photo">
+      </div>
+      <div id="new-store-photo-status" style="font-size:11px;color:#888;margin-top:6px">No photo captured yet</div>
+    </div>
+
+    <div class="form-group">
+      <label>Volume Class</label>
+      <div class="chip-grid" id="new-store-vol-chips">
+        <span class="chip" data-value="A" onclick="selectChip(this,'new-store-vol-chips')">A</span>
+        <span class="chip" data-value="B" onclick="selectChip(this,'new-store-vol-chips')">B</span>
+        <span class="chip" data-value="C" onclick="selectChip(this,'new-store-vol-chips')">C</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Health Status</label>
+      <div class="chip-grid" id="new-store-health-chips">
+        <span class="chip" data-value="ok" onclick="selectChip(this,'new-store-health-chips')" style="color:var(--green)">OK</span>
+        <span class="chip" data-value="warn" onclick="selectChip(this,'new-store-health-chips')" style="color:var(--orange)">Warning</span>
+        <span class="chip" data-value="crit" onclick="selectChip(this,'new-store-health-chips')" style="color:var(--pink)">Critical</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Bags per Month (estimated)</label>
+      <input type="number" id="new-store-bags" placeholder="e.g. 100" min="0">
+    </div>
+
+    <div id="new-store-error" class="error-msg"></div>
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-secondary" style="flex:1" onclick="wizardBack()">Back</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" id="btn-wizard-submit" onclick="submitNewStore()">Register Store</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
 <!-- FAB BUTTON                                -->
 <!-- ========================================= -->
 <button class="fab" id="fab-btn">+</button>
@@ -212,6 +480,10 @@
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
 <script src="js/supabase.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/db.js"></script>
+<script src="js/gps.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/stores.js"></script>
 <script>
   // ===== Auth gate =====
   requireAuth();
@@ -230,19 +502,472 @@
     document.getElementById('home-subtitle').textContent = session.territory || session.district || 'My Territory';
   }
 
-  // ===== Navigation =====
-  const navItems = document.querySelectorAll('.bottom-nav .nav-item');
-  const pages = document.querySelectorAll('.page');
+  // ===== Page Navigation =====
+  var _mainPages = ['page-home','page-stores','page-map','page-visits','page-profile'];
 
+  function nav(pageId) {
+    var allPages = document.querySelectorAll('.page');
+    for (var i = 0; i < allPages.length; i++) {
+      allPages[i].classList.remove('active');
+    }
+    var target = document.getElementById(pageId);
+    if (target) target.classList.add('active');
+
+    // Update bottom-nav active state if navigating to a main page
+    if (_mainPages.indexOf(pageId) !== -1) {
+      var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
+      for (var j = 0; j < navBtns.length; j++) {
+        navBtns[j].classList.remove('active');
+        if (navBtns[j].dataset.page === pageId) {
+          navBtns[j].classList.add('active');
+        }
+      }
+    }
+  }
+
+  // Bottom-nav click handlers
+  var navItems = document.querySelectorAll('.bottom-nav .nav-item');
   navItems.forEach(function(btn) {
     btn.addEventListener('click', function() {
-      navItems.forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      pages.forEach(function(p) { p.classList.remove('active'); });
-      var target = document.getElementById(btn.dataset.page);
-      if (target) target.classList.add('active');
+      nav(btn.dataset.page);
     });
   });
+
+  // ===== Store Detail Page =====
+  var _currentStoreId = null;
+
+  async function openStoreDetail(storeId) {
+    _currentStoreId = storeId;
+    nav('page-store-detail');
+
+    // Reset tabs to profile
+    storeTab('profile');
+
+    // Set loading state
+    document.getElementById('detail-store-name').textContent = 'Loading...';
+    document.getElementById('detail-store-meta').textContent = '--';
+
+    try {
+      var store = await getStoreById(storeId);
+
+      // Header
+      document.getElementById('detail-store-name').textContent = store.name || '--';
+      var metaParts = [];
+      if (store.store_type) metaParts.push(formatStoreType(store.store_type));
+      if (store.city) metaParts.push(store.city);
+      if (store.province) metaParts.push(store.province);
+      document.getElementById('detail-store-meta').textContent = metaParts.join(' \u00b7 ') || '--';
+
+      // Badges
+      var volBadge = document.getElementById('detail-vol-badge');
+      volBadge.textContent = 'Vol ' + (store.vol_class || '--');
+      volBadge.className = 'badge ' + (store.vol_class === 'A' ? 'badge-a' : store.vol_class === 'B' ? 'badge-b' : 'badge-c');
+
+      var covBadge = document.getElementById('detail-cov-badge');
+      covBadge.textContent = 'Cov ' + (store.cov_class || '--');
+      covBadge.className = 'badge ' + (store.cov_class === 'A' ? 'badge-a' : store.cov_class === 'B' ? 'badge-b' : 'badge-c');
+
+      var segBadge = document.getElementById('detail-segment-badge');
+      segBadge.textContent = store.segment || '--';
+
+      var healthBadge = document.getElementById('detail-health-badge');
+      var hs = store.health_status || 'ok';
+      if (hs === 'ok') { healthBadge.style.background = 'var(--green)'; healthBadge.textContent = '\u25cf OK'; }
+      else if (hs === 'warn') { healthBadge.style.background = 'var(--orange)'; healthBadge.textContent = '\u25cf Warning'; }
+      else { healthBadge.style.background = 'var(--pink)'; healthBadge.textContent = '\u25cf Critical'; }
+
+      // Profile tab — Contact
+      document.getElementById('detail-owner').textContent = store.owner_name || '--';
+      document.getElementById('detail-phone').textContent = store.phone || '--';
+
+      // Supply chain
+      document.getElementById('detail-supply-store').textContent = store.name || '--';
+
+      // Commercial
+      var totalBags = store.bags_per_month || 0;
+      document.getElementById('detail-bags-total').textContent = totalBags + ' bags';
+
+      var vienBags = 0;
+      if (store.products) {
+        for (var p = 0; p < store.products.length; p++) {
+          if (store.products[p].is_vienovo) vienBags += (store.products[p].bags_per_month || 0);
+        }
+      }
+      document.getElementById('detail-bags-vienovo').textContent = vienBags + ' bags';
+
+      var sharePct = totalBags > 0 ? Math.round((vienBags / totalBags) * 100) : 0;
+      document.getElementById('detail-share-pct').textContent = sharePct + '%';
+      document.getElementById('detail-share-bar').style.width = sharePct + '%';
+
+      // Visit health
+      document.getElementById('detail-last-visit').textContent = formatRelativeTime(store.last_visit_at);
+
+      // Total visits
+      var visits = await getVisitsByStore(storeId);
+      document.getElementById('detail-total-visits').textContent = visits.length;
+
+      // Products tab
+      var prodContainer = document.getElementById('detail-products-container');
+      var brandsContainer = document.getElementById('detail-brands-container');
+      if (store.products && store.products.length > 0) {
+        var groupSet = {};
+        var brandsHtml = '';
+        for (var pi = 0; pi < store.products.length; pi++) {
+          var prod = store.products[pi];
+          groupSet[prod.product_group] = true;
+          var brandColors = prod.is_vienovo
+            ? 'background:#e8f5e9;color:#2e7d32'
+            : 'background:#fff3e0;color:#e65100';
+          brandsHtml += '<span class="badge" style="' + brandColors + '">' + _esc(prod.brand) + '</span> ';
+        }
+        var groupIcons = {hog:'\ud83d\udc16',poultry:'\ud83d\udc14',gamefowl:'\ud83d\udc13',aqua:'\ud83d\udc1f',pet:'\ud83d\udc15',dairy:'\ud83e\udd5b',other:'\ud83d\udce6'};
+        var allGroups = ['hog','poultry','gamefowl','aqua','pet','dairy','other'];
+        var chipsHtml = '';
+        for (var gi = 0; gi < allGroups.length; gi++) {
+          var g = allGroups[gi];
+          var icon = groupIcons[g] || '';
+          var sel = groupSet[g] ? ' selected' : '';
+          var opac = groupSet[g] ? '' : ' style="opacity:0.4"';
+          chipsHtml += '<span class="chip' + sel + '"' + opac + '>' + icon + ' ' + g.charAt(0).toUpperCase() + g.slice(1) + '</span>';
+        }
+        prodContainer.innerHTML = chipsHtml;
+        brandsContainer.innerHTML = brandsHtml || '<span style="color:#888">No brands recorded</span>';
+      } else {
+        prodContainer.innerHTML = '<span style="font-size:12px;color:#888">No products recorded yet</span>';
+        brandsContainer.innerHTML = '<span style="font-size:12px;color:#888">No brands recorded yet</span>';
+      }
+
+      // Competitors tab
+      var compContainer = document.getElementById('detail-competitors-container');
+      var compCount = document.getElementById('detail-competitors-count');
+      if (store.competitors && store.competitors.length > 0) {
+        compCount.textContent = store.competitors.length + ' brand' + (store.competitors.length !== 1 ? 's' : '');
+        var compHtml = '';
+        for (var ci = 0; ci < store.competitors.length; ci++) {
+          var comp = store.competitors[ci];
+          var isLast = ci === store.competitors.length - 1;
+          compHtml += '<div style="padding:10px 0;' + (isLast ? '' : 'border-bottom:1px solid #f0f0f0;') + '">' +
+            '<div style="display:flex;justify-content:space-between;font-size:13px">' +
+              '<b>' + _esc(comp.brand_name) + '</b>' +
+              (comp.product_group ? '<span class="badge" style="background:#fff3e0;color:#e65100">' + _esc(comp.product_group) + '</span>' : '') +
+            '</div>' +
+            '<div style="font-size:11px;color:#888;margin-top:4px">Est. ' + (comp.est_bags_per_month || 0) + ' bags/mo' +
+              (comp.notes ? ' \u00b7 ' + _esc(comp.notes) : '') +
+            '</div>' +
+          '</div>';
+        }
+        compContainer.innerHTML = compHtml;
+      } else {
+        compCount.textContent = '0 brands';
+        compContainer.innerHTML = '<div style="font-size:12px;color:#888;padding:12px 0;text-align:center">No competitor data yet</div>';
+      }
+
+      // History tab
+      var histContainer = document.getElementById('detail-history-container');
+      if (visits.length > 0) {
+        var histHtml = '';
+        for (var vi = 0; vi < visits.length; vi++) {
+          var v = visits[vi];
+          var vDate = v.visited_at ? new Date(v.visited_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : '--';
+          var vType = (v.visit_type || 'regular').charAt(0).toUpperCase() + (v.visit_type || 'regular').slice(1);
+          var isLastV = vi === visits.length - 1;
+          var vBadgeBg = v.order_taken ? 'background:#e8f5e9;color:#2e7d32' : 'background:#e3f2fd;color:#1565c0';
+          var vBadgeIcon = v.order_taken ? '\u2713' : '\u25cf';
+          histHtml += '<div style="padding:10px 0;' + (isLastV ? '' : 'border-bottom:1px solid #f0f0f0;') + 'display:flex;justify-content:space-between">' +
+            '<div><b>' + vDate + '</b> \u00b7 ' + _esc(vType) +
+              (v.notes ? '<div style="color:#888;font-size:11px">' + _esc(v.notes) + '</div>' : '') +
+              (v.order_taken ? '<div style="color:#888;font-size:11px">\u20b1 ' + (parseFloat(v.order_amount) || 0).toLocaleString() + '</div>' : '') +
+            '</div>' +
+            '<span class="badge" style="' + vBadgeBg + '">' + vBadgeIcon + '</span>' +
+          '</div>';
+        }
+        histContainer.innerHTML = histHtml;
+      } else {
+        histContainer.innerHTML = '<div style="color:#888;padding:12px 0;text-align:center">No visits recorded yet</div>';
+      }
+
+    } catch (err) {
+      document.getElementById('detail-store-name').textContent = 'Error';
+      document.getElementById('detail-store-meta').textContent = err.message;
+    }
+  }
+
+  // ===== Store Detail Tabs =====
+  function storeTab(tabName) {
+    var tabs = document.querySelectorAll('#store-tabs .tab-btn');
+    var contents = document.querySelectorAll('.store-tab-content');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.remove('active');
+    }
+    for (var j = 0; j < contents.length; j++) {
+      contents[j].style.display = 'none';
+    }
+    var tabNames = ['profile','products','competitors','merch','history'];
+    var idx = tabNames.indexOf(tabName);
+    if (idx !== -1 && tabs[idx]) tabs[idx].classList.add('active');
+    var target = document.getElementById('store-tab-' + tabName);
+    if (target) target.style.display = 'block';
+  }
+
+  // ===== New Store Wizard =====
+  var _wizardStep = 1;
+  var newStoreData = {
+    name: '', owner_name: '', phone: '', store_type: '',
+    lat: null, lng: null, accuracy: null,
+    province: '', city: '', address: '',
+    photo: null, photo_url: null,
+    vol_class: null, health_status: 'ok', bags_per_month: 0
+  };
+  var _newStoreMap = null;
+  var _newStoreMarker = null;
+
+  function showWizardStep(step) {
+    _wizardStep = step;
+    document.getElementById('wizard-step1').style.display = step === 1 ? 'block' : 'none';
+    document.getElementById('wizard-step2').style.display = step === 2 ? 'block' : 'none';
+    document.getElementById('wizard-step3').style.display = step === 3 ? 'block' : 'none';
+
+    // Update progress bar
+    for (var i = 1; i <= 3; i++) {
+      var el = document.getElementById('wiz-step-' + i);
+      el.className = 'wizard-step';
+      if (i < step) el.classList.add('done');
+      else if (i === step) el.classList.add('current');
+    }
+  }
+
+  function wizardNext() {
+    if (_wizardStep === 1) {
+      // Validate step 1
+      var name = document.getElementById('new-store-name').value.trim();
+      if (!name) {
+        alert('Store name is required');
+        return;
+      }
+      newStoreData.name = name;
+      newStoreData.owner_name = document.getElementById('new-store-owner').value.trim();
+      newStoreData.phone = document.getElementById('new-store-phone').value.trim();
+      newStoreData.store_type = document.getElementById('new-store-type').value;
+      showWizardStep(2);
+    } else if (_wizardStep === 2) {
+      newStoreData.province = document.getElementById('new-store-province').value.trim();
+      newStoreData.city = document.getElementById('new-store-city').value.trim();
+      newStoreData.address = document.getElementById('new-store-address').value.trim();
+      showWizardStep(3);
+    }
+  }
+
+  function wizardBack() {
+    if (_wizardStep > 1) {
+      showWizardStep(_wizardStep - 1);
+    } else {
+      nav('page-stores');
+    }
+  }
+
+  function openNewStoreWizard() {
+    // Reset form
+    newStoreData = {
+      name: '', owner_name: '', phone: '', store_type: '',
+      lat: null, lng: null, accuracy: null,
+      province: '', city: '', address: '',
+      photo: null, photo_url: null,
+      vol_class: null, health_status: 'ok', bags_per_month: 0
+    };
+    document.getElementById('new-store-name').value = '';
+    document.getElementById('new-store-owner').value = '';
+    document.getElementById('new-store-phone').value = '';
+    document.getElementById('new-store-type').value = '';
+    document.getElementById('new-store-province').value = '';
+    document.getElementById('new-store-city').value = '';
+    document.getElementById('new-store-address').value = '';
+    document.getElementById('new-store-bags').value = '';
+    document.getElementById('new-store-gps-status').textContent = 'Tap button to capture GPS coordinates';
+    document.getElementById('new-store-photo-status').textContent = 'No photo captured yet';
+    document.getElementById('new-store-photo-preview').style.display = 'none';
+    document.getElementById('new-store-error').style.display = 'none';
+    document.getElementById('new-store-error').textContent = '';
+
+    // Reset map container
+    var mapEl = document.getElementById('new-store-map');
+    mapEl.innerHTML = 'Map will appear after GPS capture';
+    mapEl.style.display = 'flex';
+    _newStoreMap = null;
+    _newStoreMarker = null;
+
+    // Reset chip selections
+    var allChips = document.querySelectorAll('#new-store-vol-chips .chip, #new-store-health-chips .chip');
+    for (var i = 0; i < allChips.length; i++) allChips[i].classList.remove('selected');
+
+    showWizardStep(1);
+    nav('page-store-new');
+  }
+
+  function selectChip(chipEl, groupId) {
+    var group = document.getElementById(groupId);
+    var chips = group.querySelectorAll('.chip');
+    for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected');
+    chipEl.classList.add('selected');
+  }
+
+  function getSelectedChip(groupId) {
+    var group = document.getElementById(groupId);
+    var sel = group.querySelector('.chip.selected');
+    return sel ? sel.getAttribute('data-value') : null;
+  }
+
+  async function captureNewStoreGPS() {
+    var statusEl = document.getElementById('new-store-gps-status');
+    statusEl.textContent = 'Acquiring GPS...';
+    document.getElementById('btn-gps-capture').disabled = true;
+
+    var pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+
+    document.getElementById('btn-gps-capture').disabled = false;
+
+    if (pos) {
+      newStoreData.lat = pos.lat;
+      newStoreData.lng = pos.lng;
+      newStoreData.accuracy = pos.accuracy;
+
+      var accColor = pos.accuracy <= 30 ? 'var(--green)' : pos.accuracy <= 100 ? 'var(--orange)' : 'var(--pink)';
+      statusEl.innerHTML = '<span style="color:' + accColor + '">\u25cf</span> ' +
+        formatCoords(pos.lat, pos.lng) + ' (accuracy: ' + Math.round(pos.accuracy) + 'm)';
+
+      if (pos.accuracy > 100) {
+        statusEl.innerHTML += '<br><span style="color:var(--pink);font-weight:600">Low accuracy \u2014 move to an open area</span>';
+      }
+
+      // Show Leaflet map preview
+      var mapEl = document.getElementById('new-store-map');
+      mapEl.innerHTML = '';
+      mapEl.style.display = 'block';
+
+      if (_newStoreMap) {
+        _newStoreMap.remove();
+      }
+
+      _newStoreMap = L.map('new-store-map', { zoomControl: false, attributionControl: false })
+        .setView([pos.lat, pos.lng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(_newStoreMap);
+      _newStoreMarker = L.marker([pos.lat, pos.lng]).addTo(_newStoreMap);
+
+      // Fix Leaflet rendering in hidden/dynamic containers
+      setTimeout(function() { _newStoreMap.invalidateSize(); }, 200);
+    } else {
+      statusEl.innerHTML = '<span style="color:var(--pink)">GPS unavailable \u2014 check permissions</span>';
+    }
+  }
+
+  async function captureNewStorePhoto() {
+    document.getElementById('new-store-photo-status').textContent = 'Opening camera...';
+
+    try {
+      var blob = await capturePhoto();
+      if (blob) {
+        newStoreData.photo = blob;
+        var url = URL.createObjectURL(blob);
+        document.getElementById('new-store-photo-img').src = url;
+        document.getElementById('new-store-photo-preview').style.display = 'block';
+        document.getElementById('new-store-photo-status').textContent = 'Photo captured (' + Math.round(blob.size / 1024) + ' KB)';
+      } else {
+        document.getElementById('new-store-photo-status').textContent = 'Photo capture cancelled';
+      }
+    } catch (err) {
+      document.getElementById('new-store-photo-status').textContent = 'Error: ' + err.message;
+    }
+  }
+
+  async function submitNewStore() {
+    var errorEl = document.getElementById('new-store-error');
+    var submitBtn = document.getElementById('btn-wizard-submit');
+    errorEl.style.display = 'none';
+
+    // Collect step 3 data
+    newStoreData.vol_class = getSelectedChip('new-store-vol-chips');
+    newStoreData.health_status = getSelectedChip('new-store-health-chips') || 'ok';
+    newStoreData.bags_per_month = parseInt(document.getElementById('new-store-bags').value) || 0;
+
+    // Validate
+    if (!newStoreData.name) {
+      errorEl.textContent = 'Store name is required.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    try {
+      // Upload photo if captured
+      if (newStoreData.photo) {
+        var session = getSession();
+        var photoPath = (session ? session.id : 'unknown') + '/' +
+          new Date().toISOString().slice(0, 10) + '/' + Date.now() + '_store.jpg';
+        newStoreData.photo_url = await uploadPhoto(newStoreData.photo, photoPath);
+      }
+
+      // Build payload (exclude photo blob)
+      var payload = {
+        name: newStoreData.name,
+        owner_name: newStoreData.owner_name || null,
+        phone: newStoreData.phone || null,
+        store_type: newStoreData.store_type || null,
+        lat: newStoreData.lat,
+        lng: newStoreData.lng,
+        province: newStoreData.province || null,
+        city: newStoreData.city || null,
+        address: newStoreData.address || null,
+        photo_url: newStoreData.photo_url || null,
+        vol_class: newStoreData.vol_class || null,
+        health_status: newStoreData.health_status,
+        bags_per_month: newStoreData.bags_per_month
+      };
+
+      var created = await createStore(payload);
+
+      // Success — navigate to the new store detail
+      nav('page-stores');
+      renderStoreList();
+      updateHomeKPIs();
+
+      if (created && created.id) {
+        setTimeout(function() { openStoreDetail(created.id); }, 300);
+      }
+
+    } catch (err) {
+      errorEl.textContent = 'Failed to register store: ' + err.message;
+      errorEl.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Register Store';
+    }
+  }
+
+  // ===== FAB + New Store Button Wiring =====
+  document.getElementById('fab-btn').addEventListener('click', function() {
+    openNewStoreWizard();
+  });
+
+  var btnNewStore = document.getElementById('btn-new-store');
+  if (btnNewStore) {
+    btnNewStore.addEventListener('click', function() {
+      openNewStoreWizard();
+    });
+  }
+
+  // ===== Start Visit button wiring =====
+  var btnStartVisit = document.getElementById('btn-start-visit');
+  if (btnStartVisit) {
+    btnStartVisit.addEventListener('click', function() {
+      // Will navigate to visit wizard when it exists; for now show alert
+      if (typeof nav === 'function' && document.getElementById('page-visit-wizard')) {
+        nav('page-visit-wizard');
+      } else {
+        alert('Visit wizard coming soon. Store ID: ' + _currentStoreId);
+      }
+    });
+  }
 
   // ===== Logout =====
   document.getElementById('btn-logout').addEventListener('click', function() {
@@ -264,6 +989,12 @@
   window.addEventListener('online', updateSyncUI);
   window.addEventListener('offline', updateSyncUI);
   updateSyncUI();
+
+  // ===== Initialize stores + KPIs on load =====
+  renderStoreList();
+  updateHomeKPIs();
+  initStoreSearch();
+  initStoreFilters();
 </script>
 
 </body>
