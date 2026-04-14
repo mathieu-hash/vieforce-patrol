@@ -723,6 +723,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
 <script src="js/supabase.js"></script>
+<script src="js/validate.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/db.js"></script>
 <script src="js/gps.js"></script>
@@ -1013,6 +1014,10 @@
         alert('Store name is required');
         return;
       }
+      if (name.length > 100) {
+        alert('Store name must be under 100 characters');
+        return;
+      }
       newStoreData.name = name;
       newStoreData.owner_name = document.getElementById('new-store-owner').value.trim();
       newStoreData.phone = document.getElementById('new-store-phone').value.trim();
@@ -1153,15 +1158,36 @@
     errorEl.style.display = 'none';
 
     // Collect step 3 data
-    newStoreData.vol_class = getSelectedChip('new-store-vol-chips');
-    newStoreData.health_status = getSelectedChip('new-store-health-chips') || 'ok';
-    newStoreData.bags_per_month = parseInt(document.getElementById('new-store-bags').value) || 0;
+    var rawVolClass = getSelectedChip('new-store-vol-chips');
+    var rawHealthStatus = getSelectedChip('new-store-health-chips') || 'ok';
+    newStoreData.vol_class = ['A','B','C'].indexOf(rawVolClass) !== -1 ? rawVolClass : null;
+    newStoreData.health_status = ['ok','warn','crit'].indexOf(rawHealthStatus) !== -1 ? rawHealthStatus : 'ok';
+    newStoreData.bags_per_month = Math.max(0, Math.min(99999, parseInt(document.getElementById('new-store-bags').value) || 0));
 
     // Validate
     if (!newStoreData.name) {
       errorEl.textContent = 'Store name is required.';
       errorEl.style.display = 'block';
       return;
+    }
+    if (newStoreData.name.length > 100) {
+      errorEl.textContent = 'Store name must be under 100 characters.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    if (newStoreData.address && newStoreData.address.length > 200) {
+      errorEl.textContent = 'Address must be under 200 characters.';
+      errorEl.style.display = 'block';
+      return;
+    }
+    if (newStoreData.phone) {
+      var phoneClean = newStoreData.phone.replace(/[\s\-()]/g, '');
+      if (!/^0\d{9,11}$/.test(phoneClean) && !/^\+?\d{10,13}$/.test(phoneClean)) {
+        errorEl.textContent = 'Phone number format is invalid (e.g. 09171234567).';
+        errorEl.style.display = 'block';
+        return;
+      }
+      newStoreData.phone = phoneClean;
     }
 
     submitBtn.disabled = true;

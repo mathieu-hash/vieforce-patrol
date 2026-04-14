@@ -200,6 +200,10 @@ async function submitAddUser() {
     showToast('Name is required.', 'error');
     return;
   }
+  if (name.trim().length > 100) {
+    showToast('Name must be under 100 characters.', 'error');
+    return;
+  }
 
   // Validate phone: 11 digits starting with 09
   var phoneClean = phone.replace(/\s/g, '');
@@ -211,6 +215,19 @@ async function submitAddUser() {
   // Validate PIN: 4-6 digits
   if (!/^\d{4,6}$/.test(pin)) {
     showToast('PIN must be 4-6 digits.', 'error');
+    return;
+  }
+
+  // Validate optional fields
+  if (region.length > 100 || district.length > 100 || territory.length > 100) {
+    showToast('Region, district, and territory must each be under 100 characters.', 'error');
+    return;
+  }
+
+  // Validate role enum
+  var validRoles = ['tsr', 'dsm', 'rsm', 'admin'];
+  if (validRoles.indexOf(role) === -1) {
+    showToast('Invalid role selected.', 'error');
     return;
   }
 
@@ -297,10 +314,25 @@ async function submitEditUser() {
     showToast('Name is required.', 'error');
     return;
   }
+  if (name.trim().length > 100) {
+    showToast('Name must be under 100 characters.', 'error');
+    return;
+  }
 
   var phoneClean = phone.replace(/\s/g, '');
   if (!/^09\d{9}$/.test(phoneClean)) {
     showToast('Phone must be 11 digits starting with 09.', 'error');
+    return;
+  }
+
+  if (region.length > 100 || district.length > 100 || territory.length > 100) {
+    showToast('Region, district, and territory must each be under 100 characters.', 'error');
+    return;
+  }
+
+  var validRoles = ['tsr', 'dsm', 'rsm', 'admin'];
+  if (validRoles.indexOf(role) === -1) {
+    showToast('Invalid role selected.', 'error');
     return;
   }
 

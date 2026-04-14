@@ -102,7 +102,8 @@ function visitNext() {
   } else if (_visitStep === 2) {
     // Collect order data
     _visitData.order_taken = document.getElementById('visit-order-taken').checked;
-    _visitData.order_amount = parseFloat(document.getElementById('visit-order-amount').value) || 0;
+    var rawAmount = parseFloat(document.getElementById('visit-order-amount').value) || 0;
+    _visitData.order_amount = Math.max(0, Math.min(9999999999, rawAmount));
     showVisitStep(3);
   } else if (_visitStep === 3) {
     // Collect merch data
@@ -237,6 +238,23 @@ async function submitVisit() {
   _visitData.notes = document.getElementById('visit-extra-notes').value.trim();
   _visitData.competitor_notes = document.getElementById('visit-competitor-notes').value.trim();
 
+  // Validate input lengths
+  if (_visitData.notes.length > 1000) {
+    errorEl.textContent = 'Notes must be under 1000 characters.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (_visitData.competitor_notes.length > 1000) {
+    errorEl.textContent = 'Competitor notes must be under 1000 characters.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (_visitData.order_taken && _visitData.order_amount < 0) {
+    errorEl.textContent = 'Order amount cannot be negative.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
   submitBtn.disabled = true;
   submitBtn.textContent = 'Saving...';
 
@@ -261,7 +279,7 @@ async function submitVisit() {
     var visitPayload = {
       store_id: _visitData.storeId,
       tsr_id: session ? session.id : null,
-      visit_type: _visitData.visit_type,
+      visit_type: ['mapping','regular','order','merch','farm'].indexOf(_visitData.visit_type) !== -1 ? _visitData.visit_type : 'regular',
       lat: _visitData.lat,
       lng: _visitData.lng,
       photo_url: _visitData.photo_url || null,
