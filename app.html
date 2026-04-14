@@ -87,20 +87,49 @@
 </div>
 
 <!-- ========================================= -->
-<!-- MAP PAGE                                  -->
+<!-- MAP PAGE — OBSIDIAN EXECUTIVE             -->
 <!-- ========================================= -->
-<div id="page-map" class="page">
-  <div class="top-bar">
-    <h1>Territory Map</h1>
-    <div class="subtitle">Loading from Supabase...</div>
+<div id="page-map" class="page map-dark-theme">
+  <!-- Dark overlay top bar with glass effect -->
+  <div class="map-top-bar">
+    <div class="map-title-group">
+      <h1 class="map-title">Territory Map</h1>
+      <div class="map-subtitle" id="map-subtitle">Loading stores...</div>
+    </div>
+    <div class="map-stats-pill" id="map-stats-pill">
+      <span class="map-stat"><span class="map-stat-dot dot-ok"></span><span id="map-count-ok">0</span></span>
+      <span class="map-stat"><span class="map-stat-dot dot-warn"></span><span id="map-count-warn">0</span></span>
+      <span class="map-stat"><span class="map-stat-dot dot-crit"></span><span id="map-count-crit">0</span></span>
+    </div>
   </div>
-  <div class="filter-row" style="padding-top:8px">
-    <button class="filter-chip active">All</button>
-    <button class="filter-chip">Stores</button>
-    <button class="filter-chip">Farms</button>
-    <button class="filter-chip" style="color:var(--pink)">Critical</button>
+
+  <!-- Floating glass filter bar -->
+  <div class="map-filter-bar">
+    <button class="map-filter-chip active" data-filter="all">All</button>
+    <button class="map-filter-chip" data-filter="ok">OK</button>
+    <button class="map-filter-chip" data-filter="warn">Warning</button>
+    <button class="map-filter-chip" data-filter="crit">Critical</button>
   </div>
+
+  <!-- Full-bleed map container -->
   <div id="map-container"></div>
+
+  <!-- Floating glass legend -->
+  <div class="map-legend" id="map-legend">
+    <div class="map-legend-title">Store Health</div>
+    <div class="map-legend-item"><span class="map-stat-dot dot-ok"></span> OK — On track</div>
+    <div class="map-legend-item"><span class="map-stat-dot dot-warn"></span> Warning — Needs attention</div>
+    <div class="map-legend-item"><span class="map-stat-dot dot-crit"></span> Critical — Action required</div>
+    <div class="map-legend-divider"></div>
+    <div class="map-legend-item"><span style="font-size:14px">●</span> Vol A &nbsp; <span style="font-size:10px">●</span> Vol B &nbsp; <span style="font-size:7px">●</span> Vol C</div>
+  </div>
+
+  <!-- My Location FAB -->
+  <button class="map-locate-btn" id="btn-my-location" title="My Location">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+    </svg>
+  </button>
 </div>
 
 <!-- ========================================= -->
@@ -622,6 +651,7 @@
 <script src="js/stores.js"></script>
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js"></script>
+<script src="js/map.js"></script>
 <script>
   // ===== Auth gate =====
   requireAuth();
@@ -1122,6 +1152,26 @@
   renderVisitList();
   initVisitSearch();
   initVisitFilters();
+
+  // ===== Initialize map when map page is first shown =====
+  var _mapInitialized = false;
+  var _origNav = nav;
+  nav = function(pageId) {
+    _origNav(pageId);
+    if (pageId === 'page-map' && !_mapInitialized) {
+      _mapInitialized = true;
+      setTimeout(function() {
+        initMap();
+        loadMapMarkers();
+        initMapFilters();
+      }, 100);
+    }
+  };
+
+  // ===== My Location button =====
+  document.getElementById('btn-my-location').addEventListener('click', function() {
+    addUserLocationMarker();
+  });
 </script>
 
 </body>
