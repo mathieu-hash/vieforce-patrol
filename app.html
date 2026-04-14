@@ -275,6 +275,7 @@
     </div>
   </div>
 
+  <a href="admin.html" id="admin-link" class="btn-primary" style="margin:16px;display:none;text-align:center;text-decoration:none">Admin Panel</a>
   <button class="btn-secondary" style="margin:16px;color:var(--pink);border-color:var(--pink)" id="btn-logout">Sign Out</button>
 </div>
 
@@ -744,6 +745,9 @@
     document.getElementById('profile-phone').textContent = session.phone || '--';
     document.getElementById('profile-territory').textContent = session.territory || session.district || '--';
     document.getElementById('profile-role-badge').textContent = (session.role || '--').toUpperCase();
+    if (session.role === 'admin') {
+      document.getElementById('admin-link').style.display = 'block';
+    }
     document.getElementById('home-subtitle').textContent = session.territory || session.district || 'My Territory';
   }
 
