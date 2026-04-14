@@ -110,12 +110,12 @@
   <div class="top-bar">
     <div style="flex:1">
       <h1>My Visits</h1>
-      <div class="subtitle">Loading from Supabase...</div>
+      <div class="subtitle" id="visits-subtitle">Loading from Supabase...</div>
     </div>
   </div>
 
   <div class="search-bar">
-    <input type="text" placeholder="Search visits...">
+    <input type="text" id="visit-search" placeholder="Search visits...">
   </div>
 
   <div class="filter-row">
@@ -442,6 +442,141 @@
 </div>
 
 <!-- ========================================= -->
+<!-- VISIT WIZARD                              -->
+<!-- ========================================= -->
+<div id="page-visit-wizard" class="page">
+  <div class="top-bar">
+    <button class="back-btn" id="visit-wiz-back-nav" onclick="visitBack()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-right:8px">&larr;</button>
+    <h1 id="visit-wiz-title">Visit: Store Name</h1>
+  </div>
+  <div class="wizard-progress">
+    <div class="wizard-step current" id="visit-wiz-step-1"></div>
+    <div class="wizard-step" id="visit-wiz-step-2"></div>
+    <div class="wizard-step" id="visit-wiz-step-3"></div>
+    <div class="wizard-step" id="visit-wiz-step-4"></div>
+  </div>
+
+  <!-- Step 1: Visit Type -->
+  <div id="visit-step1" class="wizard-content">
+    <h2>Step 1: Visit Type</h2>
+    <p>Select the type of visit you are performing.</p>
+
+    <div class="form-group">
+      <label>Visit Type</label>
+      <div class="chip-grid" id="visit-type-chips">
+        <span class="chip" data-value="mapping" onclick="selectVisitType(this)">Mapping</span>
+        <span class="chip selected" data-value="regular" onclick="selectVisitType(this)">Regular</span>
+        <span class="chip" data-value="order" onclick="selectVisitType(this)">Order</span>
+        <span class="chip" data-value="merch" onclick="selectVisitType(this)">Merch</span>
+        <span class="chip" data-value="farm" onclick="selectVisitType(this)">Farm</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Cancel</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="visitNext()">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Order Details -->
+  <div id="visit-step2" class="wizard-content" style="display:none">
+    <h2>Step 2: Order Details</h2>
+    <p>Record order information for this visit.</p>
+
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="visit-order-taken" onchange="_toggleOrderAmountField()" style="width:18px;height:18px;accent-color:var(--navy)">
+        <span>Order taken?</span>
+      </label>
+    </div>
+
+    <div class="form-group" id="visit-order-amount-group" style="display:none">
+      <label>Order Amount (PHP)</label>
+      <input type="number" id="visit-order-amount" placeholder="e.g. 25000" min="0" step="100">
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Back</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="visitNext()">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Merchandising Audit + Photo -->
+  <div id="visit-step3" class="wizard-content" style="display:none">
+    <h2>Step 3: Merch Audit</h2>
+    <p>Check merchandising items present in the store.</p>
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Merch Checklist</div>
+      <div id="visit-merch-list">
+        <div class="merch-check-item" data-item="signage" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
+          <div><b style="font-size:13px">Signage</b><div style="font-size:11px;color:#888">Vienovo signboard visible</div></div>
+        </div>
+        <div class="merch-check-item" data-item="price_board" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
+          <div><b style="font-size:13px">Price Board</b><div style="font-size:11px;color:#888">Updated price list displayed</div></div>
+        </div>
+        <div class="merch-check-item" data-item="flyers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
+          <div><b style="font-size:13px">Flyers</b><div style="font-size:11px;color:#888">Product flyers available</div></div>
+        </div>
+        <div class="merch-check-item" data-item="standee" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
+          <div><b style="font-size:13px">Standee</b><div style="font-size:11px;color:#888">Standing display present</div></div>
+        </div>
+        <div class="merch-check-item" data-item="price_talkers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
+          <div><b style="font-size:13px">Price Talkers</b><div style="font-size:11px;color:#888">Price tags on shelves</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Competitor Notes</label>
+      <textarea id="visit-competitor-notes" rows="3" placeholder="Any competitor activity or notes..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <button class="btn-primary" onclick="captureVisitPhoto()" style="background:var(--blue);margin-top:0">
+        Capture Photo
+      </button>
+      <div id="visit-photo-preview" style="margin-top:8px;display:none">
+        <img id="visit-photo-img" style="width:100%;border-radius:var(--radius);border:1px solid var(--mid)" alt="Visit photo">
+      </div>
+      <div id="visit-photo-status" style="font-size:11px;color:#888;margin-top:6px">No photo captured yet</div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Back</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="visitNext()">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Confirm & Submit -->
+  <div id="visit-step4" class="wizard-content" style="display:none">
+    <h2>Step 4: Confirm &amp; Submit</h2>
+    <p>Review your visit details before submitting.</p>
+
+    <div class="card" id="visit-summary-card" style="margin-bottom:16px">
+      <!-- Populated by _buildVisitSummary() -->
+    </div>
+
+    <div class="form-group">
+      <label>Additional Notes</label>
+      <textarea id="visit-extra-notes" rows="3" placeholder="Any additional notes for this visit..."></textarea>
+    </div>
+
+    <div id="visit-submit-error" class="error-msg" style="display:none"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Back</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" id="btn-visit-submit" onclick="submitVisit()">Record Visit</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
 <!-- FAB BUTTON                                -->
 <!-- ========================================= -->
 <button class="fab" id="fab-btn">+</button>
@@ -483,7 +618,10 @@
 <script src="js/db.js"></script>
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
+<script src="js/offline.js"></script>
 <script src="js/stores.js"></script>
+<script src="js/visits.js"></script>
+<script src="js/visit-wizard.js"></script>
 <script>
   // ===== Auth gate =====
   requireAuth();
@@ -960,12 +1098,7 @@
   var btnStartVisit = document.getElementById('btn-start-visit');
   if (btnStartVisit) {
     btnStartVisit.addEventListener('click', function() {
-      // Will navigate to visit wizard when it exists; for now show alert
-      if (typeof nav === 'function' && document.getElementById('page-visit-wizard')) {
-        nav('page-visit-wizard');
-      } else {
-        alert('Visit wizard coming soon. Store ID: ' + _currentStoreId);
-      }
+      openVisitWizard(_currentStoreId, document.getElementById('detail-store-name').textContent);
     });
   }
 
@@ -975,26 +1108,20 @@
   });
 
   // ===== Sync status =====
-  function updateSyncUI() {
-    var dot = document.getElementById('sync-dot');
-    var label = document.getElementById('sync-label');
-    if (navigator.onLine) {
-      dot.className = 'sync-dot online';
-      label.textContent = 'Synced';
-    } else {
-      dot.className = 'sync-dot offline';
-      label.textContent = 'Offline';
-    }
-  }
-  window.addEventListener('online', updateSyncUI);
-  window.addEventListener('offline', updateSyncUI);
-  updateSyncUI();
+  window.addEventListener('online', function () { autoSync(); });
+  window.addEventListener('offline', function () { enhancedSyncStatus(); });
+  enhancedSyncStatus();
 
   // ===== Initialize stores + KPIs on load =====
   renderStoreList();
   updateHomeKPIs();
   initStoreSearch();
   initStoreFilters();
+
+  // ===== Initialize visits =====
+  renderVisitList();
+  initVisitSearch();
+  initVisitFilters();
 </script>
 
 </body>

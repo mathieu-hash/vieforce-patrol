@@ -300,6 +300,7 @@ body {
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .merch-check.checked { background: var(--green); border-color: var(--green); color: white; }
+.merch-check-item.checked .merch-check { background: var(--green); border-color: var(--green); color: white; }
 
 /* ===== MAP ===== */
 #map-container { height: calc(100vh - 130px); width: 100%; }
