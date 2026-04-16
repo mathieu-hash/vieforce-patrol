@@ -15,11 +15,12 @@ function initMap() {
   var container = document.getElementById('map-container');
   if (!container || _map) return _map;
 
-  mapboxgl.accessToken = window.MAPBOX_TOKEN || '';
+  // OpenFreeMap — no token needed, free forever
+  mapboxgl.accessToken = '';
 
   _map = new mapboxgl.Map({
     container: 'map-container',
-    style: 'mapbox://styles/mapbox/streets-v12',
+    style: 'https://tiles.openfreemap.org/styles/liberty',
     center: [121.0900, 14.6900],
     zoom: 12,
     attributionControl: false,
