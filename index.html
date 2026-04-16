@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/patrol.css?v=10">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1C2B3A">
+<meta name="theme-color" content="#0F1923">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <script>
 // Kill any existing service worker permanently
@@ -25,9 +25,9 @@ if ('serviceWorker' in navigator) {
 </script>
 <style>
 /* Login page dark navy + flower watermark — inlined to bypass CSS cache */
-body { background: #1C2B3A !important; margin: 0; }
+body { background: #0F1923 !important; margin: 0; }
 .login-page {
-  background: #1C2B3A !important;
+  background: #0F1923 !important;
   min-height: 100vh; display: flex;
   flex-direction: column; align-items: center; justify-content: center;
   padding: 40px 24px;
@@ -42,8 +42,8 @@ body { background: #1C2B3A !important; margin: 0; }
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  opacity: 0.08;
-  filter: brightness(100);
+  opacity: 0.1;
+  filter: brightness(0) invert(1);
   pointer-events: none;
   z-index: 0;
 }
@@ -102,7 +102,7 @@ body { background: #1C2B3A !important; margin: 0; }
     <button onclick="switchLoginLang('EN')" id="pill-EN" class="lang-pill login-lang-btn" data-lang="EN">EN</button>
   </div>
 
-  <div class="logo" style="background:none;width:auto;height:auto;font-size:0;box-shadow:none"><img src="icons/patrol-logo.png" style="width:80px;height:80px;object-fit:contain" alt="VIEPro Elite Patrol"></div>
+  <div class="logo" style="background:none;width:auto;height:auto;font-size:0;box-shadow:none;margin-bottom:24px"><img src="icons/patrol-logo.png" style="width:200px;height:200px;object-fit:contain" alt="VIEPro Elite Patrol"></div>
   <h1>VieForce Patrol</h1>
   <p>Vienovo Philippines Inc.</p>
 
