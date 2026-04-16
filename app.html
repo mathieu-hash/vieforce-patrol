@@ -396,10 +396,10 @@
   </div>
 
   <div class="filter-row">
-    <button class="filter-chip active">Lahat</button>
-    <button class="filter-chip" style="color:var(--status-crit)">Critical</button>
-    <button class="filter-chip" style="color:var(--status-warn)">Warning</button>
-    <button class="filter-chip" style="color:var(--status-ok)">OK</button>
+    <button class="filter-chip active" data-filter-label="all">Lahat</button>
+    <button class="filter-chip" data-filter-label="crit" style="color:var(--status-crit)">Critical</button>
+    <button class="filter-chip" data-filter-label="warn" style="color:var(--status-warn)">Babala</button>
+    <button class="filter-chip" data-filter-label="ok" style="color:var(--status-ok)">OK</button>
   </div>
 
   <div id="store-list" style="background:var(--bg-main)">
@@ -414,8 +414,8 @@
   <!-- Dark overlay top bar with glass effect -->
   <div class="map-top-bar">
     <div class="map-title-group">
-      <h1 class="map-title">Territory Map</h1>
-      <div class="map-subtitle" id="map-subtitle">Loading stores...</div>
+      <h1 class="map-title" id="map-title">Mapa ng Teritoryo</h1>
+      <div class="map-subtitle" id="map-subtitle">Nilo-load ang mga tindahan...</div>
     </div>
     <div class="map-stats-pill" id="map-stats-pill">
       <span class="map-stat"><span class="map-stat-dot dot-ok"></span><span id="map-count-ok">0</span></span>
@@ -426,9 +426,9 @@
 
   <!-- Floating glass filter bar -->
   <div class="map-filter-bar">
-    <button class="map-filter-chip active" data-filter="all">All</button>
+    <button class="map-filter-chip active" data-filter="all">Lahat</button>
     <button class="map-filter-chip" data-filter="ok">OK</button>
-    <button class="map-filter-chip" data-filter="warn">Warning</button>
+    <button class="map-filter-chip" data-filter="warn">Babala</button>
     <button class="map-filter-chip" data-filter="crit">Critical</button>
   </div>
 
@@ -437,16 +437,16 @@
 
   <!-- Floating glass legend -->
   <div class="map-legend" id="map-legend">
-    <div class="map-legend-title">Store Health</div>
-    <div class="map-legend-item"><span class="map-stat-dot dot-ok"></span> OK — On track</div>
-    <div class="map-legend-item"><span class="map-stat-dot dot-warn"></span> Warning — Needs attention</div>
-    <div class="map-legend-item"><span class="map-stat-dot dot-crit"></span> Critical — Action required</div>
+    <div class="map-legend-title">Kalusugan ng Tindahan</div>
+    <div class="map-legend-item"><span class="map-stat-dot dot-ok"></span> OK — Nasa tamang direksyon</div>
+    <div class="map-legend-item"><span class="map-stat-dot dot-warn"></span> Babala — Kailangan ng atensiyon</div>
+    <div class="map-legend-item"><span class="map-stat-dot dot-crit"></span> Critical — Kailangan ng aksyon</div>
     <div class="map-legend-divider"></div>
     <div class="map-legend-item"><span style="font-size:14px">●</span> Vol A &nbsp; <span style="font-size:10px">●</span> Vol B &nbsp; <span style="font-size:7px">●</span> Vol C</div>
   </div>
 
   <!-- My Location FAB -->
-  <button class="map-locate-btn" id="btn-my-location" title="My Location">
+  <button class="map-locate-btn" id="btn-my-location" title="Lokasyon ko">
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
     </svg>
@@ -487,7 +487,7 @@
 <!-- ========================================= -->
 <div id="page-profile" class="page" style="background:var(--bg-chat)">
   <div class="top-bar">
-    <h1>Profile ko</h1>
+    <h1 data-t="profile">Profile ko</h1>
   </div>
 
   <div style="text-align:center">
@@ -497,31 +497,48 @@
   </div>
 
   <div class="card" style="margin-top:24px">
-    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px">Mga Stats ko</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px" data-t="myStats">Mga Stats ko</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px">
-      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-stores">--</div>Tindahan</div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-farms">--</div>Bukid</div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--status-ok)" id="stat-visits">--</div>Bisita/linggo</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-stores">--</div><span data-t="storesMapped">Tindahan</span></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-farms">--</div><span data-t="farmsLabel">Bukid</span></div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--status-ok)" id="stat-visits">--</div><span data-t="visitsWeek">Bisita/linggo</span></div>
+    </div>
+  </div>
+
+  <!-- Language Switcher -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px" data-t="language">Wika / Language</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px" data-t="langHint">Pipiliin mo ang wika ng app.</div>
+    <div style="display:flex;gap:8px">
+      <button class="lang-pill" data-lang="TL" onclick="setLanguage('TL')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--accent-dark,#004D71);background:white;color:var(--accent-dark,#004D71);min-height:44px;transition:all 0.2s">
+        TL Tagalog
+      </button>
+      <button class="lang-pill" data-lang="BIS" onclick="setLanguage('BIS')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--accent-dark,#004D71);background:white;color:var(--accent-dark,#004D71);min-height:44px;transition:all 0.2s">
+        BIS Bisaya
+      </button>
+      <button class="lang-pill" data-lang="EN" onclick="setLanguage('EN')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid var(--accent-dark,#004D71);background:white;color:var(--accent-dark,#004D71);min-height:44px;transition:all 0.2s">
+        EN English
+      </button>
     </div>
   </div>
 
   <div class="card">
-    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px">Account</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px" data-t="account">Account</div>
     <div style="font-size:12px">
       <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
-        <span style="color:#888">Phone</span><b id="profile-phone">--</b>
+        <span style="color:#888" data-t="phone">Telepono</span><b id="profile-phone">--</b>
       </div>
       <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
-        <span style="color:#888">Territory</span><b id="profile-territory">--</b>
+        <span style="color:#888" data-t="territory">Teritoryo</span><b id="profile-territory">--</b>
       </div>
       <div style="padding:8px 0;display:flex;justify-content:space-between">
-        <span style="color:#888">Role</span><b id="profile-role-badge">--</b>
+        <span style="color:#888" data-t="role">Tungkulin</span><b id="profile-role-badge">--</b>
       </div>
     </div>
   </div>
 
-  <a href="admin.html" id="admin-link" class="btn-primary" style="margin:16px;display:none;text-align:center;text-decoration:none">Admin Panel</a>
-  <button class="btn-secondary" style="margin:16px;color:var(--sync-error);border-color:var(--sync-error)" id="btn-logout">Mag-sign out</button>
+  <a href="admin.html" id="admin-link" class="btn-primary" style="margin:16px;display:none;text-align:center;text-decoration:none" data-t="adminPanel">Admin Panel</a>
+  <button class="btn-secondary" style="margin:16px;color:var(--sync-error);border-color:var(--sync-error)" id="btn-logout" data-t="signOut">Mag-sign out</button>
 </div>
 
 <!-- ========================================= -->
@@ -529,7 +546,7 @@
 <!-- ========================================= -->
 <div id="page-store-detail" class="page">
   <div class="detail-header">
-    <button class="back-btn" onclick="nav('page-stores')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-bottom:8px">&larr; Back</button>
+    <button class="back-btn" onclick="nav('page-stores')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-bottom:8px">&larr; Bumalik</button>
     <h1 id="detail-store-name">Loading...</h1>
     <div class="meta" id="detail-store-meta">--</div>
     <div class="detail-badges">
@@ -541,7 +558,7 @@
   </div>
 
   <div class="tab-bar" id="store-tabs">
-    <button class="tab-btn active" onclick="storeTab('profile')">Profile</button>
+    <button class="tab-btn active" onclick="storeTab('profile')">Profile ko</button>
     <button class="tab-btn" onclick="storeTab('products')">Produkto</button>
     <button class="tab-btn" onclick="storeTab('competitors')">Kakumpitensya</button>
     <button class="tab-btn" onclick="storeTab('merch')">Merch</button>
@@ -723,7 +740,7 @@
     </div>
 
     <div id="new-store-map" style="height:200px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--mid);margin-bottom:16px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888">
-      Map will appear after GPS capture
+      Lalabas ang mapa pagkatapos kumuha ng GPS
     </div>
 
     <div class="form-group">
@@ -849,7 +866,7 @@
     <div id="visit-order-panel" style="display:none">
       <div class="form-group">
         <label style="font-size:14px;font-weight:600;color:var(--text-secondary)">Halaga ng order (PHP)</label>
-        <input type="number" id="visit-order-amount" placeholder="e.g. 25000" min="0" step="100"
+        <input type="number" id="visit-order-amount" placeholder="hal. 25000" min="0" step="100"
                style="min-height:56px;font-size:16px;border-radius:12px">
       </div>
     </div>
@@ -872,7 +889,7 @@
     <!-- Merch quick-check (collapsed by default) -->
     <details style="margin:12px 0">
       <summary style="font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:8px 0">
-        Merch Checklist (optional)
+        Merch Checklist (opsyonal)
       </summary>
       <div id="visit-merch-list" style="margin-top:8px">
         <div class="merch-check-item" data-item="signage" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
@@ -962,6 +979,22 @@
   // ===== Auth gate =====
   requireAuth();
 
+  // ===== Init language pills — mark active on load =====
+  (function() {
+    var lang = localStorage.getItem('patrol_lang') || 'TL';
+    document.querySelectorAll('.lang-pill').forEach(function(pill) {
+      if (pill.dataset.lang === lang) pill.classList.add('active');
+      else pill.classList.remove('active');
+    });
+    // Apply data-t labels on load
+    document.querySelectorAll('[data-t]').forEach(function(el) {
+      var key = el.dataset.t;
+      if (T[key] && typeof T[key] === 'string') {
+        el.textContent = T[key];
+      }
+    });
+  })();
+
   // ===== Populate profile from session =====
   const session = getSession();
   if (session) {
@@ -979,7 +1012,7 @@
     // Taglish greeting with name
     var firstName = (session.name || '').split(' ')[0] || '';
     document.getElementById('home-greeting').textContent = getGreeting() + ', ' + firstName + '!';
-    document.getElementById('home-subtitle').textContent = session.territory || session.district || 'My Territory';
+    document.getElementById('home-subtitle').textContent = session.territory || session.district || T.myTerritory;
   }
 
   // Manual sync function (tappable sync indicator)
@@ -1134,10 +1167,10 @@
           chipsHtml += '<span class="chip' + sel + '"' + opac + '>' + icon + ' ' + g.charAt(0).toUpperCase() + g.slice(1) + '</span>';
         }
         prodContainer.innerHTML = chipsHtml;
-        brandsContainer.innerHTML = brandsHtml || '<span style="color:#888">No brands recorded</span>';
+        brandsContainer.innerHTML = brandsHtml || '<span style="color:#888">' + T.noBrands + '</span>';
       } else {
-        prodContainer.innerHTML = '<span style="font-size:12px;color:#888">No products recorded yet</span>';
-        brandsContainer.innerHTML = '<span style="font-size:12px;color:#888">No brands recorded yet</span>';
+        prodContainer.innerHTML = '<span style="font-size:12px;color:#888">' + T.noProducts + '</span>';
+        brandsContainer.innerHTML = '<span style="font-size:12px;color:#888">' + T.noBrands + '</span>';
       }
 
       // Competitors tab
@@ -1162,7 +1195,7 @@
         compContainer.innerHTML = compHtml;
       } else {
         compCount.textContent = '0 brands';
-        compContainer.innerHTML = '<div style="font-size:12px;color:#888;padding:12px 0;text-align:center">No competitor data yet</div>';
+        compContainer.innerHTML = '<div style="font-size:12px;color:#888;padding:12px 0;text-align:center">' + T.noCompetitors + '</div>';
       }
 
       // History tab
@@ -1186,7 +1219,7 @@
         }
         histContainer.innerHTML = histHtml;
       } else {
-        histContainer.innerHTML = '<div style="color:#888;padding:12px 0;text-align:center">No visits recorded yet</div>';
+        histContainer.innerHTML = '<div style="color:#888;padding:12px 0;text-align:center">' + T.noVisitsYet + '</div>';
       }
 
     } catch (err) {
@@ -1244,11 +1277,11 @@
       // Validate step 1
       var name = document.getElementById('new-store-name').value.trim();
       if (!name) {
-        alert('Store name is required');
+        alert(T.storeNameReq);
         return;
       }
       if (name.length > 100) {
-        alert('Store name must be under 100 characters');
+        alert(T.storeNameMax);
         return;
       }
       newStoreData.name = name;
@@ -1289,15 +1322,15 @@
     document.getElementById('new-store-city').value = '';
     document.getElementById('new-store-address').value = '';
     document.getElementById('new-store-bags').value = '';
-    document.getElementById('new-store-gps-status').textContent = 'Tap button to capture GPS coordinates';
-    document.getElementById('new-store-photo-status').textContent = 'No photo captured yet';
+    document.getElementById('new-store-gps-status').textContent = T.gpsTapHint;
+    document.getElementById('new-store-photo-status').textContent = T.noPhoto;
     document.getElementById('new-store-photo-preview').style.display = 'none';
     document.getElementById('new-store-error').style.display = 'none';
     document.getElementById('new-store-error').textContent = '';
 
     // Reset map container
     var mapEl = document.getElementById('new-store-map');
-    mapEl.innerHTML = 'Map will appear after GPS capture';
+    mapEl.innerHTML = T.mapAfterGPS;
     mapEl.style.display = 'flex';
     _newStoreMap = null;
     _newStoreMarker = null;
@@ -1325,7 +1358,7 @@
 
   async function captureNewStoreGPS() {
     var statusEl = document.getElementById('new-store-gps-status');
-    statusEl.textContent = 'Acquiring GPS...';
+    statusEl.textContent = T.gpsCapturing;
     document.getElementById('btn-gps-capture').disabled = true;
 
     var pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
@@ -1339,10 +1372,10 @@
 
       var accColor = pos.accuracy <= 30 ? 'var(--green)' : pos.accuracy <= 100 ? 'var(--orange)' : 'var(--pink)';
       statusEl.innerHTML = '<span style="color:' + accColor + '">\u25cf</span> ' +
-        formatCoords(pos.lat, pos.lng) + ' (accuracy: ' + Math.round(pos.accuracy) + 'm)';
+        formatCoords(pos.lat, pos.lng) + ' (' + T.accuracy + ': ' + Math.round(pos.accuracy) + 'm)';
 
       if (pos.accuracy > 100) {
-        statusEl.innerHTML += '<br><span style="color:var(--pink);font-weight:600">Low accuracy \u2014 move to an open area</span>';
+        statusEl.innerHTML += '<br><span style="color:var(--pink);font-weight:600">' + T.lowAccuracy + '</span>';
       }
 
       // Show Leaflet map preview
@@ -1362,12 +1395,12 @@
       // Fix Leaflet rendering in hidden/dynamic containers
       setTimeout(function() { _newStoreMap.invalidateSize(); }, 200);
     } else {
-      statusEl.innerHTML = '<span style="color:var(--pink)">GPS unavailable \u2014 check permissions</span>';
+      statusEl.innerHTML = '<span style="color:var(--pink)">' + T.gpsUnavailable + '</span>';
     }
   }
 
   async function captureNewStorePhoto() {
-    document.getElementById('new-store-photo-status').textContent = 'Opening camera...';
+    document.getElementById('new-store-photo-status').textContent = T.openingCamera;
 
     try {
       var blob = await capturePhoto();
@@ -1376,9 +1409,9 @@
         var url = URL.createObjectURL(blob);
         document.getElementById('new-store-photo-img').src = url;
         document.getElementById('new-store-photo-preview').style.display = 'block';
-        document.getElementById('new-store-photo-status').textContent = 'Photo captured (' + Math.round(blob.size / 1024) + ' KB)';
+        document.getElementById('new-store-photo-status').textContent = T.photoCaptured(Math.round(blob.size / 1024));
       } else {
-        document.getElementById('new-store-photo-status').textContent = 'Photo capture cancelled';
+        document.getElementById('new-store-photo-status').textContent = T.photoCancelled;
       }
     } catch (err) {
       document.getElementById('new-store-photo-status').textContent = 'Error: ' + err.message;
@@ -1399,24 +1432,24 @@
 
     // Validate
     if (!newStoreData.name) {
-      errorEl.textContent = 'Store name is required.';
+      errorEl.textContent = T.storeNameReq;
       errorEl.style.display = 'block';
       return;
     }
     if (newStoreData.name.length > 100) {
-      errorEl.textContent = 'Store name must be under 100 characters.';
+      errorEl.textContent = T.storeNameMax;
       errorEl.style.display = 'block';
       return;
     }
     if (newStoreData.address && newStoreData.address.length > 200) {
-      errorEl.textContent = 'Address must be under 200 characters.';
+      errorEl.textContent = T.addressMax;
       errorEl.style.display = 'block';
       return;
     }
     if (newStoreData.phone) {
       var phoneClean = newStoreData.phone.replace(/[\s\-()]/g, '');
       if (!/^0\d{9,11}$/.test(phoneClean) && !/^\+?\d{10,13}$/.test(phoneClean)) {
-        errorEl.textContent = 'Phone number format is invalid (e.g. 09171234567).';
+        errorEl.textContent = T.phoneInvalid;
         errorEl.style.display = 'block';
         return;
       }
@@ -1424,7 +1457,7 @@
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Saving...';
+    submitBtn.textContent = T.saving;
 
     try {
       // Upload photo if captured

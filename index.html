@@ -12,16 +12,23 @@
 </head>
 <body>
 
-<div class="login-page">
+<div class="login-page" style="position:relative">
+  <!-- Language switcher — top-right corner -->
+  <div class="login-lang-bar">
+    <button class="login-lang-btn" data-lang="TL" onclick="switchLoginLang('TL')">TL</button>
+    <button class="login-lang-btn" data-lang="BIS" onclick="switchLoginLang('BIS')">BIS</button>
+    <button class="login-lang-btn" data-lang="EN" onclick="switchLoginLang('EN')">EN</button>
+  </div>
+
   <div class="logo">VP</div>
   <h1>VieForce Patrol</h1>
   <p>Vienovo Philippines Inc.</p>
 
   <div class="login-box">
-    <label>Phone Number</label>
+    <label id="lbl-phone">Phone Number</label>
     <input type="tel" id="login-phone" placeholder="09XX XXX XXXX">
 
-    <label>PIN Code</label>
+    <label id="lbl-pin">PIN Code</label>
     <input type="password" id="login-pin" maxlength="6" placeholder="Enter PIN">
 
     <button class="login-btn" id="login-btn">Sign In</button>
@@ -32,13 +39,39 @@
   <div class="login-footer">v1.0 — Vienovo Philippines Inc.</div>
 </div>
 
+<script src="js/labels.js"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script src="js/validate.js"></script>
 <script src="js/auth.js"></script>
 <script>
+  // Apply saved language to login screen
+  function applyLoginLang() {
+    var lang = localStorage.getItem('patrol_lang') || 'TL';
+    var L = LABELS[lang] || LABELS['TL'];
+    document.getElementById('lbl-phone').textContent = L.phoneLabel;
+    document.getElementById('lbl-pin').textContent = L.pinLabel;
+    document.getElementById('login-btn').textContent = L.signIn;
+    // Mark active pill
+    document.querySelectorAll('.login-lang-btn').forEach(function(btn) {
+      if (btn.dataset.lang === lang) btn.classList.add('active');
+      else btn.classList.remove('active');
+    });
+  }
+
+  function switchLoginLang(lang) {
+    if (['TL','BIS','EN'].indexOf(lang) === -1) return;
+    localStorage.setItem('patrol_lang', lang);
+    currentLang = lang;
+    applyLoginLang();
+  }
+
+  applyLoginLang();
+
   document.getElementById('login-btn').addEventListener('click', async function() {
+    var lang = localStorage.getItem('patrol_lang') || 'TL';
+    var L = LABELS[lang] || LABELS['TL'];
     const phone = document.getElementById('login-phone').value.trim();
     const pin = document.getElementById('login-pin').value.trim();
     const errorEl = document.getElementById('login-error');
@@ -48,28 +81,28 @@
     errorEl.textContent = '';
 
     if (!phone || !pin) {
-      errorEl.textContent = 'Please enter phone number and PIN.';
+      errorEl.textContent = L.enterPhonePin;
       errorEl.classList.add('visible');
       return;
     }
 
     btn.disabled = true;
-    btn.textContent = 'Signing in...';
+    btn.textContent = L.signingIn;
 
     try {
       const result = await login(phone, pin);
       if (result && result.success) {
         window.location.href = 'app.html';
       } else {
-        errorEl.textContent = (result && result.error) || 'Invalid phone number or PIN.';
+        errorEl.textContent = (result && result.error) || L.invalidLogin;
         errorEl.classList.add('visible');
       }
     } catch (err) {
-      errorEl.textContent = err.message || 'Login failed. Please try again.';
+      errorEl.textContent = err.message || L.loginFailed;
       errorEl.classList.add('visible');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Sign In';
+      btn.textContent = L.signIn;
     }
   });
 

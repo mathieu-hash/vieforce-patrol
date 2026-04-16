@@ -942,3 +942,36 @@ body {
   background: rgba(10,10,15,0.7) !important;
   color: #555570 !important; font-size: 9px !important;
 }
+
+/* Language Switcher Pills */
+.lang-pill.active {
+  background: var(--accent-dark, #004D71) !important;
+  color: white !important;
+  border-color: var(--accent-dark, #004D71) !important;
+}
+
+/* Login page language switcher (compact) */
+.login-lang-bar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+.login-lang-btn {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #ccc;
+  background: transparent;
+  color: #888;
+  transition: all 0.2s;
+}
+.login-lang-btn.active {
+  background: var(--accent-dark, #004D71);
+  color: white;
+  border-color: var(--accent-dark, #004D71);
+}
