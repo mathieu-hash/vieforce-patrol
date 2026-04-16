@@ -736,21 +736,40 @@ var LABELS = {
 // Active language — read from localStorage, default Tagalog
 var currentLang = localStorage.getItem('patrol_lang') || 'TL';
 
-// T object — Proxy that resolves to current language, falls back to TL
-var T = new Proxy({}, {
-  get: function(_, key) {
-    if (LABELS[currentLang] && LABELS[currentLang][key] !== undefined) {
-      return LABELS[currentLang][key];
-    }
-    return LABELS['TL'][key] || key;
+// Build T as plain object for current language — no Proxy (fails on slow mobile)
+function getT() {
+  var lang = localStorage.getItem('patrol_lang') || 'TL';
+  var src = LABELS[lang] || LABELS['TL'];
+  var fallback = LABELS['TL'];
+  var obj = {};
+  // Copy all keys from TL as base, then overlay current lang
+  for (var k in fallback) {
+    if (fallback.hasOwnProperty(k)) obj[k] = fallback[k];
   }
-});
+  if (src !== fallback) {
+    for (var k2 in src) {
+      if (src.hasOwnProperty(k2)) obj[k2] = src[k2];
+    }
+  }
+  return obj;
+}
+
+// var hoists — available immediately even on slow mobile parsers
+var T = getT();
+window.T = T;
 
 // Switch language and re-render
 function setLanguage(lang) {
-  if (['TL','BIS','EN'].indexOf(lang) === -1) return;
+  if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') return;
   currentLang = lang;
   localStorage.setItem('patrol_lang', lang);
+  // Rebuild T in-place — keeps same reference for all scripts
+  var newT = getT();
+  var keys = Object.keys(newT);
+  for (var i = 0; i < keys.length; i++) {
+    T[keys[i]] = newT[keys[i]];
+  }
+  window.T = T;
   rerenderCurrentPage();
   showLangToast();
 }
