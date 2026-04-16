@@ -62,7 +62,7 @@ if ('serviceWorker' in navigator) {
 <script>
   // Apply saved language to login screen
   function applyLoginLang() {
-    var lang = localStorage.getItem('patrol_lang') || 'TL';
+    var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
     var L = LABELS[lang] || LABELS['TL'];
     document.getElementById('lbl-phone').textContent = L.phoneLabel;
     document.getElementById('lbl-pin').textContent = L.pinLabel;
@@ -75,16 +75,17 @@ if ('serviceWorker' in navigator) {
   }
 
   function switchLoginLang(lang) {
-    if (['TL','BIS','EN'].indexOf(lang) === -1) return;
+    lang = String(lang).toUpperCase();
+    if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') return;
     localStorage.setItem('patrol_lang', lang);
-    currentLang = lang;
+    window.currentLang = lang;
     applyLoginLang();
   }
 
   applyLoginLang();
 
   document.getElementById('login-btn').addEventListener('click', async function() {
-    var lang = localStorage.getItem('patrol_lang') || 'TL';
+    var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
     var L = LABELS[lang] || LABELS['TL'];
     const phone = document.getElementById('login-phone').value.trim();
     const pin = document.getElementById('login-pin').value.trim();
