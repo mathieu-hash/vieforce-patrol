@@ -12,19 +12,29 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
 <!-- ========================================= -->
+<!-- SYNC BAR (always visible when needed)     -->
+<!-- ========================================= -->
+<div class="sync-bar sync-hidden" id="global-sync-bar">
+  <span id="sync-bar-icon"></span>
+  <span id="sync-bar-text"></span>
+  <button class="sync-btn" id="sync-bar-btn" style="display:none" onclick="manualSync()"></button>
+</div>
+
+<!-- ========================================= -->
 <!-- HOME PAGE                                 -->
 <!-- ========================================= -->
-<div id="page-home" class="page active">
+<div id="page-home" class="page active" style="background:var(--bg-chat)">
   <div class="top-bar">
     <div style="flex:1">
-      <h1>My Territory</h1>
-      <div class="subtitle" id="home-subtitle">Loading from Supabase...</div>
+      <h1 id="home-greeting">Magandang araw</h1>
+      <div class="subtitle" id="home-subtitle">Loading...</div>
     </div>
-    <div class="sync-indicator" id="sync-status">
+    <div class="sync-indicator" id="sync-status" onclick="manualSync()" style="cursor:pointer">
       <span class="sync-dot online" id="sync-dot"></span>
       <span id="sync-label">Synced</span>
     </div>
@@ -32,30 +42,47 @@
 
   <div class="kpi-grid">
     <div class="kpi-card">
-      <div class="label">My Stores</div>
+      <div class="label">Mga Tindahan</div>
       <div class="value" id="kpi-stores">--</div>
-      <div class="delta">Loading from Supabase...</div>
+      <div class="delta" id="kpi-stores-delta">...</div>
     </div>
     <div class="kpi-card">
-      <div class="label">Visits This Week</div>
+      <div class="label">Bisita/Linggo</div>
       <div class="value" id="kpi-visits">--</div>
-      <div class="delta">Loading from Supabase...</div>
+      <div class="delta" id="kpi-visits-delta">...</div>
     </div>
     <div class="kpi-card">
       <div class="label">Critical</div>
-      <div class="value" id="kpi-critical" style="color:var(--pink)">--</div>
-      <div class="delta">Loading from Supabase...</div>
+      <div class="value" id="kpi-critical" style="color:var(--status-crit)">--</div>
+      <div class="delta" id="kpi-critical-delta">...</div>
     </div>
     <div class="kpi-card">
       <div class="label">Orders</div>
       <div class="value" id="kpi-orders">--</div>
-      <div class="delta">Loading from Supabase...</div>
+      <div class="delta" id="kpi-orders-delta">...</div>
     </div>
   </div>
 
-  <div class="section-title">Recent Activity</div>
-  <div class="card">
-    <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading from Supabase...</p>
+  <!-- Manual sync button (visible when pending items) -->
+  <div id="home-sync-section" style="display:none;padding:0 16px;margin-bottom:8px">
+    <button class="big-button" id="btn-sync-now" onclick="manualSync()" style="background:var(--sync-pending);color:var(--text-primary)">
+      &#8635; I-sync ngayon
+    </button>
+  </div>
+
+  <!-- Champion Team Widget (visible only for is_champion TSRs) -->
+  <div id="home-champion-widget" style="display:none;margin:0 16px 12px">
+    <!-- Populated by JS: champion team progress bars -->
+  </div>
+
+  <!-- Weekly Leaderboard Widget (visible for all TSRs) -->
+  <div id="home-leaderboard-widget" style="display:none;margin:0 16px 12px">
+    <!-- Populated by JS: top 3 + own rank -->
+  </div>
+
+  <div class="section-title">Mga Huling Bisita</div>
+  <div id="home-recent-activity" style="background:var(--bg-main);border-radius:var(--radius);margin:0 16px">
+    <!-- Populated by JS -->
   </div>
 </div>
 
@@ -123,7 +150,10 @@
   </div>
 
   <!-- TSR Leaderboard -->
-  <div class="section-title">TSR Leaderboard</div>
+  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
+    TSR Leaderboard
+    <button onclick="nav('page-assign')" style="background:#004D71;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">I-assign ang Stores</button>
+  </div>
   <div class="card" style="padding:0;overflow:hidden" id="dsm-leaderboard">
     <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading...</p>
   </div>
@@ -133,35 +163,247 @@
   <div class="card" style="border-left:3px solid var(--pink)" id="dsm-alerts">
     <p style="font-size:12px;color:#888;text-align:center;padding:12px 0">Loading...</p>
   </div>
+
+  <!-- Export Section (DSM/Admin only) -->
+  <div class="section-title">Export Data</div>
+  <div class="card" id="dsm-export-section">
+    <div id="export-status" style="display:none;font-size:13px;color:var(--accent);text-align:center;padding:8px 0;margin-bottom:8px;font-weight:600"></div>
+    <button class="big-button" style="background:var(--accent-dark);margin-bottom:8px" onclick="ExportModule.exportVisits()">
+      &#128229; I-download ang Visits (Excel)
+    </button>
+    <button class="big-button" style="background:var(--accent-dark);margin-bottom:8px" onclick="ExportModule.exportStores()">
+      &#128229; I-download ang Stores (Excel)
+    </button>
+    <button class="big-button" style="background:var(--accent-dark)" onclick="ExportModule.exportSummary()">
+      &#128229; I-download ang Summary (Excel)
+    </button>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- STORE ASSIGNMENT PAGE (DSM/Admin only)    -->
+<!-- ========================================= -->
+<style>
+  /* Assignment page styles — Vienovo navy design */
+  .assign-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: calc(100vh - 160px);
+  }
+  @media (max-width: 600px) {
+    .assign-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+  .assign-panel {
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .assign-panel-header {
+    background: #004D71;
+    color: #fff;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .assign-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 60vh;
+  }
+  .assign-tsr-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .assign-tsr-row:hover {
+    background: #f5f8fa;
+  }
+  .assign-tsr-row.selected {
+    background: rgba(0, 77, 113, 0.08);
+    border-left: 3px solid #004D71;
+  }
+  .assign-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #004D71;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .assign-count-badge {
+    background: #00A6CE;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .assign-store-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .assign-store-row:hover {
+    background: #f0fdf4;
+  }
+  .assign-store-row.assigned {
+    background: #f9fafb;
+    cursor: default;
+  }
+  .assign-store-row.assigned:hover {
+    background: #f0f2f5;
+  }
+  .assign-remove-btn {
+    background: none;
+    border: 1px solid #E21B90;
+    color: #E21B90;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .assign-remove-btn:hover {
+    background: #E21B90;
+    color: #fff;
+  }
+  .assign-search {
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-bottom: 1px solid #eee;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  .assign-search:focus {
+    border-bottom-color: #00A6CE;
+  }
+  .assign-bulk-btn {
+    display: none;
+    margin: 12px 16px;
+    padding: 12px;
+    background: #004D71;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+  }
+  .assign-bulk-btn:hover {
+    background: #003a56;
+  }
+  .assign-stats-bar {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: #65676B;
+    background: #f5f8fa;
+    border-bottom: 1px solid #eee;
+  }
+</style>
+
+<div id="page-assign" class="page">
+  <div class="top-bar">
+    <button onclick="nav('page-dashboard')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-right:8px">&larr;</button>
+    <div style="flex:1">
+      <h1>I-assign ang Stores</h1>
+      <div class="subtitle" id="assign-selected-label">Pumili muna ng TSR</div>
+    </div>
+  </div>
+
+  <div class="assign-stats-bar" id="assign-stats">Loading...</div>
+
+  <div class="assign-layout">
+    <!-- Left: TSR List -->
+    <div class="assign-panel">
+      <div class="assign-panel-header">
+        <span>Mga TSR</span>
+        <span id="assign-tsr-count">--</span>
+      </div>
+      <div class="assign-panel-body" id="assign-tsr-list">
+        <div style="text-align:center;color:#888;padding:24px;font-size:13px">Loading...</div>
+      </div>
+      <!-- Assigned stores for selected TSR appear below -->
+      <div id="assign-stores-assigned" style="border-top:2px solid #004D71;max-height:30vh;overflow-y:auto"></div>
+    </div>
+
+    <!-- Right: Unassigned Stores -->
+    <div class="assign-panel">
+      <div class="assign-panel-header">
+        <span>Mga Unassigned Stores</span>
+        <span id="assign-unassigned-count">--</span>
+      </div>
+      <input type="text" class="assign-search" placeholder="Hanapin ang store..." oninput="searchAssignStores(this.value)">
+      <div class="assign-panel-body" id="assign-stores-unassigned">
+        <div style="text-align:center;color:#888;padding:24px;font-size:13px">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="assign-bulk-btn" id="assign-bulk-btn" onclick="bulkAssignAll()"></button>
 </div>
 
 <!-- ========================================= -->
 <!-- STORES PAGE                               -->
 <!-- ========================================= -->
-<div id="page-stores" class="page">
+<div id="page-stores" class="page" style="background:var(--bg-chat)">
   <div class="top-bar">
     <div style="flex:1">
-      <h1>My Stores</h1>
-      <div class="subtitle" id="stores-subtitle">Loading from Supabase...</div>
+      <h1 id="stores-title">Mga Tindahan</h1>
+      <div class="subtitle" id="stores-subtitle">Loading...</div>
     </div>
-    <button class="action-btn" id="btn-new-store">+ New</button>
+    <button class="action-btn" id="btn-new-store">+ Bago</button>
   </div>
 
   <div class="search-bar">
-    <input type="text" id="store-search" placeholder="Search stores...">
+    <input type="text" id="store-search" placeholder="Hanapin ang tindahan...">
   </div>
 
   <div class="filter-row">
-    <button class="filter-chip active">All</button>
-    <button class="filter-chip" style="color:var(--pink)">Critical</button>
-    <button class="filter-chip" style="color:var(--orange)">Warning</button>
-    <button class="filter-chip" style="color:var(--green)">OK</button>
+    <button class="filter-chip active">Lahat</button>
+    <button class="filter-chip" style="color:var(--status-crit)">Critical</button>
+    <button class="filter-chip" style="color:var(--status-warn)">Warning</button>
+    <button class="filter-chip" style="color:var(--status-ok)">OK</button>
   </div>
 
-  <div id="store-list">
-    <div class="card">
-      <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading from Supabase...</p>
-    </div>
+  <div id="store-list" style="background:var(--bg-main)">
+    <!-- Skeleton rows rendered by JS (Rule 7: no spinners) -->
   </div>
 </div>
 
@@ -214,22 +456,22 @@
 <!-- ========================================= -->
 <!-- VISITS PAGE                               -->
 <!-- ========================================= -->
-<div id="page-visits" class="page">
+<div id="page-visits" class="page" style="background:var(--bg-chat)">
   <div class="top-bar">
     <div style="flex:1">
-      <h1>My Visits</h1>
-      <div class="subtitle" id="visits-subtitle">Loading from Supabase...</div>
+      <h1>Mga Bisita</h1>
+      <div class="subtitle" id="visits-subtitle">Loading...</div>
     </div>
   </div>
 
   <div class="search-bar">
-    <input type="text" id="visit-search" placeholder="Search visits...">
+    <input type="text" id="visit-search" placeholder="Hanapin ang bisita...">
   </div>
 
   <div class="filter-row">
-    <button class="filter-chip active">All</button>
-    <button class="filter-chip">This Week</button>
-    <button class="filter-chip">Orders</button>
+    <button class="filter-chip active">Lahat</button>
+    <button class="filter-chip">Ngayong Linggo</button>
+    <button class="filter-chip">May Order</button>
     <button class="filter-chip">Mapping</button>
   </div>
 
@@ -243,28 +485,28 @@
 <!-- ========================================= -->
 <!-- PROFILE PAGE                              -->
 <!-- ========================================= -->
-<div id="page-profile" class="page">
+<div id="page-profile" class="page" style="background:var(--bg-chat)">
   <div class="top-bar">
-    <h1>Profile</h1>
+    <h1>Profile ko</h1>
   </div>
 
   <div style="text-align:center">
     <div class="profile-avatar" id="profile-avatar">--</div>
-    <h2 style="font-size:20px;font-weight:800;color:var(--navy)" id="profile-name">Loading...</h2>
-    <p style="font-size:13px;color:#888" id="profile-role">Loading from Supabase...</p>
+    <h2 style="font-size:20px;font-weight:800;color:var(--text-primary)" id="profile-name">Loading...</h2>
+    <p style="font-size:13px;color:var(--text-secondary)" id="profile-role">Loading...</p>
   </div>
 
   <div class="card" style="margin-top:24px">
-    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">My Stats</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px">Mga Stats ko</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px">
-      <div><div style="font-size:22px;font-weight:800;color:var(--navy)" id="stat-stores">--</div>Stores</div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--navy)" id="stat-farms">--</div>Farms</div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--green)" id="stat-visits">--</div>Visits/wk</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-stores">--</div>Tindahan</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-farms">--</div>Bukid</div>
+      <div><div style="font-size:22px;font-weight:800;color:var(--status-ok)" id="stat-visits">--</div>Bisita/linggo</div>
     </div>
   </div>
 
   <div class="card">
-    <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Account</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px">Account</div>
     <div style="font-size:12px">
       <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
         <span style="color:#888">Phone</span><b id="profile-phone">--</b>
@@ -279,7 +521,7 @@
   </div>
 
   <a href="admin.html" id="admin-link" class="btn-primary" style="margin:16px;display:none;text-align:center;text-decoration:none">Admin Panel</a>
-  <button class="btn-secondary" style="margin:16px;color:var(--pink);border-color:var(--pink)" id="btn-logout">Sign Out</button>
+  <button class="btn-secondary" style="margin:16px;color:var(--sync-error);border-color:var(--sync-error)" id="btn-logout">Mag-sign out</button>
 </div>
 
 <!-- ========================================= -->
@@ -300,19 +542,19 @@
 
   <div class="tab-bar" id="store-tabs">
     <button class="tab-btn active" onclick="storeTab('profile')">Profile</button>
-    <button class="tab-btn" onclick="storeTab('products')">Products</button>
-    <button class="tab-btn" onclick="storeTab('competitors')">Competitors</button>
+    <button class="tab-btn" onclick="storeTab('products')">Produkto</button>
+    <button class="tab-btn" onclick="storeTab('competitors')">Kakumpitensya</button>
     <button class="tab-btn" onclick="storeTab('merch')">Merch</button>
-    <button class="tab-btn" onclick="storeTab('history')">History</button>
+    <button class="tab-btn" onclick="storeTab('history')">Kasaysayan</button>
   </div>
 
   <!-- Profile Tab -->
   <div id="store-tab-profile" class="store-tab-content">
     <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Contact</div>
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Kontak</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-        <div><span style="color:#888">Owner</span><br><b id="detail-owner">--</b></div>
-        <div><span style="color:#888">Phone</span><br><b id="detail-phone">--</b></div>
+        <div><span style="color:#888">May-ari</span><br><b id="detail-owner">--</b></div>
+        <div><span style="color:#888">Telepono</span><br><b id="detail-phone">--</b></div>
       </div>
     </div>
     <div class="card">
@@ -323,13 +565,13 @@
       </div>
     </div>
     <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Commercial</div>
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Komersyal</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-        <div><span style="color:#888">Total Monthly Vol</span><br><b id="detail-bags-total">-- bags</b></div>
-        <div><span style="color:#888">Vienovo Monthly</span><br><b id="detail-bags-vienovo">-- bags</b></div>
+        <div><span style="color:#888">Kabuuang buwanan</span><br><b id="detail-bags-total">-- bags</b></div>
+        <div><span style="color:#888">Vienovo buwanan</span><br><b id="detail-bags-vienovo">-- bags</b></div>
       </div>
       <div style="margin-top:10px;font-size:11px;color:#888">
-        Vienovo Share
+        Bahagi ng Vienovo
         <div class="progress-bar"><div class="progress-fill" id="detail-share-bar" style="width:0%;background:var(--green)"></div></div>
         <span style="font-weight:700;color:var(--navy)" id="detail-share-pct">--%</span>
       </div>
@@ -337,24 +579,24 @@
     <div class="card">
       <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Visit Health</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;text-align:center">
-        <div><span style="color:#888">Last Visit</span><br><b style="color:var(--green)" id="detail-last-visit">--</b></div>
-        <div><span style="color:#888">Total Visits</span><br><b id="detail-total-visits">--</b></div>
-        <div><span style="color:#888">Target</span><br><b>4&times;/mo</b></div>
+        <div><span style="color:#888">Huling bisita</span><br><b style="color:var(--green)" id="detail-last-visit">--</b></div>
+        <div><span style="color:#888">Kabuuang bisita</span><br><b id="detail-total-visits">--</b></div>
+        <div><span style="color:#888">Target</span><br><b>4&times;/buwan</b></div>
       </div>
     </div>
-    <button class="btn-primary" id="btn-start-visit" style="margin:16px">Start Visit</button>
+    <button class="big-button" id="btn-start-visit">Simulan ang Bisita</button>
   </div>
 
   <!-- Products Tab -->
   <div id="store-tab-products" class="store-tab-content" style="display:none">
     <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Product Groups</div>
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Mga Produkto</div>
       <div id="detail-products-container" style="display:flex;flex-wrap:wrap;gap:6px">
         <span style="font-size:12px;color:#888">Loading...</span>
       </div>
     </div>
     <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Brands Carried</div>
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Mga Brand</div>
       <div id="detail-brands-container" style="font-size:12px;line-height:2">
         <span style="font-size:12px;color:#888">Loading...</span>
       </div>
@@ -365,7 +607,7 @@
   <div id="store-tab-competitors" class="store-tab-content" style="display:none">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">Competitor Brands</div>
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">Mga Kakumpitensya</div>
         <span style="font-size:11px;color:#888" id="detail-competitors-count">--</span>
       </div>
       <div id="detail-competitors-container" style="margin-top:12px">
@@ -410,7 +652,7 @@
   <!-- History Tab -->
   <div id="store-tab-history" class="store-tab-content" style="display:none">
     <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Recent Visits</div>
+      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Mga Huling Bisita</div>
       <div id="detail-history-container" style="font-size:12px">
         <div style="color:#888;padding:12px 0;text-align:center">Loading...</div>
       </div>
@@ -424,7 +666,7 @@
 <div id="page-store-new" class="page">
   <div class="top-bar">
     <button class="back-btn" onclick="wizardBack()">&larr;</button>
-    <h1>New POS Registration</h1>
+    <h1>Bagong Tindahan</h1>
   </div>
   <div class="wizard-progress">
     <div class="wizard-step current" id="wiz-step-1"></div>
@@ -434,50 +676,50 @@
 
   <!-- Step 1: Basic Info -->
   <div class="wizard-content" id="wizard-step1">
-    <h2>Step 1: Basic Info</h2>
-    <p>Enter the store details to begin registration.</p>
+    <h2>Hakbang 1: Basic Info</h2>
+    <p>I-lagay ang detalye ng tindahan.</p>
 
     <div class="form-group">
-      <label>Store Name *</label>
-      <input type="text" id="new-store-name" placeholder="e.g. Golden Feed Supply" required>
+      <label>Pangalan ng Tindahan *</label>
+      <input type="text" id="new-store-name" placeholder="hal. Golden Feed Supply" required>
     </div>
     <div class="form-group">
-      <label>Owner Name</label>
-      <input type="text" id="new-store-owner" placeholder="e.g. Ricardo Santos">
+      <label>Pangalan ng May-ari</label>
+      <input type="text" id="new-store-owner" placeholder="hal. Ricardo Santos">
     </div>
     <div class="form-group">
-      <label>Phone</label>
-      <input type="tel" id="new-store-phone" placeholder="e.g. 09171234567">
+      <label>Telepono</label>
+      <input type="tel" id="new-store-phone" placeholder="hal. 09171234567">
     </div>
     <div class="form-group">
-      <label>Store Type</label>
+      <label>Uri ng Tindahan</label>
       <select id="new-store-type">
-        <option value="">Select type...</option>
+        <option value="">Pumili ng uri...</option>
         <option value="feeds_dealer">Feeds Dealer</option>
         <option value="farm_supply">Farm Supply</option>
         <option value="pet_shop">Pet Shop</option>
         <option value="veterinary">Veterinary</option>
         <option value="supermarket">Supermarket</option>
-        <option value="other">Other</option>
+        <option value="other">Iba pa</option>
       </select>
     </div>
 
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn-secondary" style="flex:1" onclick="nav('page-stores')">Cancel</button>
-      <button class="btn-primary" style="flex:2;margin-top:0" onclick="wizardNext()">Next &rarr;</button>
+      <button class="btn-secondary" style="flex:1" onclick="nav('page-stores')">Kanselahin</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="wizardNext()">Susunod &rarr;</button>
     </div>
   </div>
 
   <!-- Step 2: Location -->
   <div class="wizard-content" id="wizard-step2" style="display:none">
-    <h2>Step 2: Location</h2>
-    <p>Capture GPS and enter the store address.</p>
+    <h2>Hakbang 2: Lokasyon</h2>
+    <p>Kunin ang GPS at i-lagay ang address.</p>
 
     <div class="form-group">
       <button class="btn-primary" id="btn-gps-capture" onclick="captureNewStoreGPS()" style="background:var(--blue);margin-top:0">
-        Capture GPS Location
+        Kunin ang GPS Lokasyon
       </button>
-      <div id="new-store-gps-status" style="font-size:11px;color:#888;margin-top:6px">Tap button to capture GPS coordinates</div>
+      <div id="new-store-gps-status" style="font-size:11px;color:#888;margin-top:6px">I-tap ang button para kunin ang GPS</div>
     </div>
 
     <div id="new-store-map" style="height:200px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--mid);margin-bottom:16px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#888">
@@ -485,37 +727,39 @@
     </div>
 
     <div class="form-group">
-      <label>Province</label>
-      <input type="text" id="new-store-province" placeholder="e.g. Metro Manila">
+      <label>Lalawigan</label>
+      <input type="text" id="new-store-province" placeholder="hal. Metro Manila">
     </div>
     <div class="form-group">
-      <label>City / Municipality</label>
-      <input type="text" id="new-store-city" placeholder="e.g. Quezon City">
+      <label>Lungsod / Munisipyo</label>
+      <input type="text" id="new-store-city" placeholder="hal. Quezon City">
     </div>
     <div class="form-group">
       <label>Address / Landmark</label>
-      <input type="text" id="new-store-address" placeholder="e.g. Along IBP Road, near market">
+      <input type="text" id="new-store-address" placeholder="hal. Sa tabi ng palengke">
     </div>
 
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn-secondary" style="flex:1" onclick="wizardBack()">Back</button>
-      <button class="btn-primary" style="flex:2;margin-top:0" onclick="wizardNext()">Next &rarr;</button>
+      <button class="btn-secondary" style="flex:1" onclick="wizardBack()">Bumalik</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" onclick="wizardNext()">Susunod &rarr;</button>
     </div>
   </div>
 
   <!-- Step 3: Photo + Submit -->
   <div class="wizard-content" id="wizard-step3" style="display:none">
-    <h2>Step 3: Photo &amp; Submit</h2>
-    <p>Capture a photo and classify the store.</p>
+    <h2>Hakbang 3: Litrato at I-submit</h2>
+    <p>Kumuha ng litrato at i-classify ang tindahan.</p>
 
     <div class="form-group">
       <button class="btn-primary" id="btn-photo-capture" onclick="captureNewStorePhoto()" style="background:var(--blue);margin-top:0">
-        Capture Store Photo
+        Kumuha ng Litrato
       </button>
-      <div id="new-store-photo-preview" style="margin-top:8px;display:none">
-        <img id="new-store-photo-img" style="width:100%;border-radius:var(--radius);border:1px solid var(--mid)" alt="Store photo">
+      <div id="new-store-photo-preview" style="margin-top:8px;display:none" onclick="captureNewStorePhoto()">
+        <img id="new-store-photo-img" style="width:100%;border-radius:var(--radius);border:1px solid var(--mid);cursor:pointer" alt="Store photo">
+        <div id="new-store-photo-label" style="text-align:center;font-size:13px;color:var(--status-ok);font-weight:600;margin-top:4px">Litrato: &#10003; Handa na</div>
+        <div style="text-align:center;font-size:11px;color:#888;margin-top:2px">I-tap para palitan</div>
       </div>
-      <div id="new-store-photo-status" style="font-size:11px;color:#888;margin-top:6px">No photo captured yet</div>
+      <div id="new-store-photo-status" style="font-size:11px;color:#888;margin-top:6px">Wala pang litrato</div>
     </div>
 
     <div class="form-group">
@@ -537,15 +781,15 @@
     </div>
 
     <div class="form-group">
-      <label>Bags per Month (estimated)</label>
-      <input type="number" id="new-store-bags" placeholder="e.g. 100" min="0">
+      <label>Bags bawat buwan (tantiya)</label>
+      <input type="number" id="new-store-bags" placeholder="hal. 100" min="0">
     </div>
 
     <div id="new-store-error" class="error-msg"></div>
 
     <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn-secondary" style="flex:1" onclick="wizardBack()">Back</button>
-      <button class="btn-primary" style="flex:2;margin-top:0" id="btn-wizard-submit" onclick="submitNewStore()">Register Store</button>
+      <button class="btn-secondary" style="flex:1" onclick="wizardBack()">Bumalik</button>
+      <button class="btn-primary" style="flex:2;margin-top:0" id="btn-wizard-submit" onclick="submitNewStore()">I-register ang Tindahan</button>
     </div>
   </div>
 </div>
@@ -553,135 +797,114 @@
 <!-- ========================================= -->
 <!-- VISIT WIZARD                              -->
 <!-- ========================================= -->
-<div id="page-visit-wizard" class="page">
+<div id="page-visit-wizard" class="page" style="background:var(--bg-chat)">
   <div class="top-bar">
     <button class="back-btn" id="visit-wiz-back-nav" onclick="visitBack()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-right:8px">&larr;</button>
-    <h1 id="visit-wiz-title">Visit: Store Name</h1>
-  </div>
-  <div class="wizard-progress">
-    <div class="wizard-step current" id="visit-wiz-step-1"></div>
-    <div class="wizard-step" id="visit-wiz-step-2"></div>
-    <div class="wizard-step" id="visit-wiz-step-3"></div>
-    <div class="wizard-step" id="visit-wiz-step-4"></div>
+    <h1 id="visit-wiz-title">Visit</h1>
+    <span id="visit-wiz-call" style="cursor:pointer;font-size:20px;padding:8px" onclick="callStoreOwner()">&#128222;</span>
   </div>
 
-  <!-- Step 1: Visit Type -->
-  <div id="visit-step1" class="wizard-content">
-    <h2>Step 1: Visit Type</h2>
-    <p>Select the type of visit you are performing.</p>
+  <!-- Store info bubble (blue, right-aligned like sent message) -->
+  <div class="info-bubble" id="visit-store-info">
+    <!-- Populated by JS: store name, location, bags, VPI share -->
+  </div>
 
-    <div class="form-group">
-      <label>Visit Type</label>
-      <div class="chip-grid" id="visit-type-chips">
-        <span class="chip" data-value="mapping" onclick="selectVisitType(this)">Mapping</span>
-        <span class="chip selected" data-value="regular" onclick="selectVisitType(this)">Regular</span>
-        <span class="chip" data-value="order" onclick="selectVisitType(this)">Order</span>
-        <span class="chip" data-value="merch" onclick="selectVisitType(this)">Merch</span>
-        <span class="chip" data-value="farm" onclick="selectVisitType(this)">Farm</span>
+  <!-- Previous visit bubble (gray, left-aligned like received message) -->
+  <div id="visit-prev-container">
+    <!-- Populated by JS if there's a previous visit -->
+  </div>
+
+  <!-- Section divider -->
+  <div class="section-divider" id="visit-log-divider">I-log ang visit ngayon</div>
+
+  <!-- Outcome chips: 3 big tappable buttons (the core UX) -->
+  <div class="outcome-grid" id="visit-outcome-grid">
+    <button class="outcome-chip" data-outcome="order" onclick="selectOutcome('order')">
+      <span class="outcome-chip-icon">&#128722;</span>
+      <span class="outcome-chip-label">May Order</span>
+    </button>
+    <button class="outcome-chip" data-outcome="no-order" onclick="selectOutcome('no-order')">
+      <span class="outcome-chip-icon">&#128172;</span>
+      <span class="outcome-chip-label">Walang Order</span>
+    </button>
+    <button class="outcome-chip" data-outcome="comeback" onclick="selectOutcome('comeback')">
+      <span class="outcome-chip-icon">&#128197;</span>
+      <span class="outcome-chip-label">Bukas ulit</span>
+    </button>
+  </div>
+
+  <!-- GPS warning banner (non-blocking, shown if GPS fails) -->
+  <div id="visit-gps-warning" style="display:none;margin:8px 16px;padding:12px 16px;background:#FFF3E0;border-radius:12px;border-left:4px solid var(--status-warn);font-size:13px;color:#E65100;line-height:1.5">
+    <b>&#9888;&#65039; Hindi ma-locate ang GPS mo.</b><br>
+    I-allow ang location sa settings.<br>
+    <span style="color:var(--text-muted)">Maaari ka pa ring mag-submit.</span>
+  </div>
+
+  <!-- GPS status indicator (shown during acquisition) -->
+  <div id="visit-gps-status" style="display:none;margin:4px 16px;font-size:12px;color:var(--text-muted);text-align:center"></div>
+
+  <!-- Expandable mini-form (shows after outcome selection) -->
+  <div id="visit-details-panel" style="display:none;padding:0 16px">
+    <!-- Order details (shown if "May Order") -->
+    <div id="visit-order-panel" style="display:none">
+      <div class="form-group">
+        <label style="font-size:14px;font-weight:600;color:var(--text-secondary)">Halaga ng order (PHP)</label>
+        <input type="number" id="visit-order-amount" placeholder="e.g. 25000" min="0" step="100"
+               style="min-height:56px;font-size:16px;border-radius:12px">
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Cancel</button>
-      <button class="btn-primary" style="flex:2;margin-top:0" onclick="visitNext()">Next &rarr;</button>
-    </div>
-  </div>
-
-  <!-- Step 2: Order Details -->
-  <div id="visit-step2" class="wizard-content" style="display:none">
-    <h2>Step 2: Order Details</h2>
-    <p>Record order information for this visit.</p>
-
-    <div class="form-group">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="visit-order-taken" onchange="_toggleOrderAmountField()" style="width:18px;height:18px;accent-color:var(--navy)">
-        <span>Order taken?</span>
-      </label>
+    <!-- Photo capture (Messenger camera button style) -->
+    <button class="photo-capture-btn" id="visit-photo-btn" onclick="captureVisitPhoto()">
+      &#128247; Kumuha ng litrato
+    </button>
+    <div id="visit-photo-preview" style="margin:8px 0;display:none" onclick="captureVisitPhoto()">
+      <img id="visit-photo-img" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;cursor:pointer" alt="Visit photo">
+      <div id="visit-photo-label" style="text-align:center;font-size:13px;color:var(--status-ok);font-weight:600;margin-top:4px">Litrato: &#10003; Handa na</div>
+      <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:2px">I-tap para palitan</div>
     </div>
 
-    <div class="form-group" id="visit-order-amount-group" style="display:none">
-      <label>Order Amount (PHP)</label>
-      <input type="number" id="visit-order-amount" placeholder="e.g. 25000" min="0" step="100">
+    <!-- Notes input (Messenger input bar style) -->
+    <div class="notes-input-bar">
+      <textarea id="visit-extra-notes" rows="1" placeholder="Dagdag ng notes..."></textarea>
     </div>
 
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Back</button>
-      <button class="btn-primary" style="flex:2;margin-top:0" onclick="visitNext()">Next &rarr;</button>
-    </div>
-  </div>
-
-  <!-- Step 3: Merchandising Audit + Photo -->
-  <div id="visit-step3" class="wizard-content" style="display:none">
-    <h2>Step 3: Merch Audit</h2>
-    <p>Check merchandising items present in the store.</p>
-
-    <div class="card" style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Merch Checklist</div>
-      <div id="visit-merch-list">
-        <div class="merch-check-item" data-item="signage" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
-          <div><b style="font-size:13px">Signage</b><div style="font-size:11px;color:#888">Vienovo signboard visible</div></div>
+    <!-- Merch quick-check (collapsed by default) -->
+    <details style="margin:12px 0">
+      <summary style="font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:8px 0">
+        Merch Checklist (optional)
+      </summary>
+      <div id="visit-merch-list" style="margin-top:8px">
+        <div class="merch-check-item" data-item="signage" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
+          <div><b style="font-size:14px">Signage</b></div>
         </div>
-        <div class="merch-check-item" data-item="price_board" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
-          <div><b style="font-size:13px">Price Board</b><div style="font-size:11px;color:#888">Updated price list displayed</div></div>
+        <div class="merch-check-item" data-item="price_board" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
+          <div><b style="font-size:14px">Price Board</b></div>
         </div>
-        <div class="merch-check-item" data-item="flyers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
-          <div><b style="font-size:13px">Flyers</b><div style="font-size:11px;color:#888">Product flyers available</div></div>
+        <div class="merch-check-item" data-item="flyers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
+          <div><b style="font-size:14px">Flyers</b></div>
         </div>
-        <div class="merch-check-item" data-item="standee" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
-          <div><b style="font-size:13px">Standee</b><div style="font-size:11px;color:#888">Standing display present</div></div>
+        <div class="merch-check-item" data-item="standee" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
+          <div><b style="font-size:14px">Standee</b></div>
         </div>
-        <div class="merch-check-item" data-item="price_talkers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--green);flex-shrink:0"></div>
-          <div><b style="font-size:13px">Price Talkers</b><div style="font-size:11px;color:#888">Price tags on shelves</div></div>
+        <div class="merch-check-item" data-item="price_talkers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer;min-height:48px">
+          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
+          <div><b style="font-size:14px">Price Talkers</b></div>
         </div>
       </div>
-    </div>
+    </details>
 
-    <div class="form-group">
-      <label>Competitor Notes</label>
-      <textarea id="visit-competitor-notes" rows="3" placeholder="Any competitor activity or notes..."></textarea>
-    </div>
-
-    <div class="form-group">
-      <button class="btn-primary" onclick="captureVisitPhoto()" style="background:var(--blue);margin-top:0">
-        Capture Photo
-      </button>
-      <div id="visit-photo-preview" style="margin-top:8px;display:none">
-        <img id="visit-photo-img" style="width:100%;border-radius:var(--radius);border:1px solid var(--mid)" alt="Visit photo">
-      </div>
-      <div id="visit-photo-status" style="font-size:11px;color:#888;margin-top:6px">No photo captured yet</div>
-    </div>
-
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Back</button>
-      <button class="btn-primary" style="flex:2;margin-top:0" onclick="visitNext()">Next &rarr;</button>
-    </div>
-  </div>
-
-  <!-- Step 4: Confirm & Submit -->
-  <div id="visit-step4" class="wizard-content" style="display:none">
-    <h2>Step 4: Confirm &amp; Submit</h2>
-    <p>Review your visit details before submitting.</p>
-
-    <div class="card" id="visit-summary-card" style="margin-bottom:16px">
-      <!-- Populated by _buildVisitSummary() -->
-    </div>
-
-    <div class="form-group">
-      <label>Additional Notes</label>
-      <textarea id="visit-extra-notes" rows="3" placeholder="Any additional notes for this visit..."></textarea>
-    </div>
-
+    <!-- Error display -->
     <div id="visit-submit-error" class="error-msg" style="display:none"></div>
 
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn-secondary" style="flex:1" onclick="visitBack()">Back</button>
-      <button class="btn-primary" style="flex:2;margin-top:0" id="btn-visit-submit" onclick="submitVisit()">Record Visit</button>
-    </div>
+    <!-- Big submit button (64px, Messenger blue) -->
+    <button class="big-button" id="btn-visit-submit" onclick="submitVisit()">
+      I-SUBMIT ANG VISIT
+    </button>
   </div>
 </div>
 
@@ -694,23 +917,19 @@
 <!-- BOTTOM NAVIGATION                         -->
 <!-- ========================================= -->
 <div class="bottom-nav" id="bottom-nav">
-  <button class="nav-item active" data-page="page-home">
+  <button class="nav-item active" data-page="page-home" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-    Home
+    Bahay
   </button>
-  <button class="nav-item" data-page="page-stores">
+  <button class="nav-item" data-page="page-stores" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
-    Stores
+    Tindahan
   </button>
-  <button class="nav-item" data-page="page-map">
+  <button class="nav-item" data-page="page-map" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-    Map
+    Mapa
   </button>
-  <button class="nav-item" data-page="page-visits">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-    Visits
-  </button>
-  <button class="nav-item" data-page="page-profile">
+  <button class="nav-item" data-page="page-profile" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Profile
   </button>
@@ -723,6 +942,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
 <script src="js/supabase.js"></script>
+<script src="js/labels.js"></script>
 <script src="js/validate.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/db.js"></script>
@@ -734,6 +954,10 @@
 <script src="js/visit-wizard.js"></script>
 <script src="js/map.js"></script>
 <script src="js/dashboard.js"></script>
+<script src="js/assign.js"></script>
+<script src="js/champion.js"></script>
+<script src="js/export.js"></script>
+<script src="js/ux-polish.js"></script>
 <script>
   // ===== Auth gate =====
   requireAuth();
@@ -752,7 +976,15 @@
     if (session.role === 'admin') {
       document.getElementById('admin-link').style.display = 'block';
     }
+    // Taglish greeting with name
+    var firstName = (session.name || '').split(' ')[0] || '';
+    document.getElementById('home-greeting').textContent = getGreeting() + ', ' + firstName + '!';
     document.getElementById('home-subtitle').textContent = session.territory || session.district || 'My Territory';
+  }
+
+  // Manual sync function (tappable sync indicator)
+  function manualSync() {
+    if (typeof autoSync === 'function') autoSync();
   }
 
   // ===== Role-based home page: DSM/RSM/Admin see dashboard, TSR sees home =====
@@ -773,7 +1005,8 @@
   }
 
   // ===== Page Navigation =====
-  var _mainPages = ['page-home','page-dashboard','page-stores','page-map','page-visits','page-profile'];
+  var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile'];
+  // Note: page-visits still exists but is accessed from home/stores, not bottom nav
 
   function nav(pageId) {
     var allPages = document.querySelectorAll('.page');
@@ -1219,23 +1452,39 @@
         bags_per_month: newStoreData.bags_per_month
       };
 
-      var created = await createStore(payload);
+      // RULE 1: ALWAYS write to IndexedDB FIRST, then sync
+      await queueStore(payload);
 
-      // Success — navigate to the new store detail
-      nav('page-stores');
-      renderStoreList();
-      updateHomeKPIs();
+      // Immediately show success — data is safe in IndexedDB
+      submitBtn.textContent = '\u2713 ' + T.submitOk;
 
-      if (created && created.id) {
-        setTimeout(function() { openStoreDetail(created.id); }, 300);
+      // Update sync bar
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+
+      // Attempt server sync in background (non-blocking)
+      if (navigator.onLine) {
+        syncPending().then(function () {
+          if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+          renderStoreList();
+          updateHomeKPIs();
+        }).catch(function () {
+          if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+        });
       }
 
+      // Navigate back
+      setTimeout(function () {
+        nav('page-stores');
+        renderStoreList();
+        updateHomeKPIs();
+      }, 1000);
+
     } catch (err) {
-      errorEl.textContent = 'Failed to register store: ' + err.message;
+      errorEl.textContent = T.submitFail + ' ' + err.message;
       errorEl.style.display = 'block';
     } finally {
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Register Store';
+      submitBtn.textContent = 'I-register ang Tindahan';
     }
   }
 
@@ -1275,6 +1524,11 @@
   initStoreSearch();
   initStoreFilters();
 
+  // ===== Initialize champion team + leaderboard widgets (TSR home) =====
+  if (session && session.role === 'tsr') {
+    initChampionWidgets();
+  }
+
   // ===== Initialize visits =====
   renderVisitList();
   initVisitSearch();
@@ -1293,13 +1547,149 @@
         initMapFilters();
       }, 100);
     }
+    if (pageId === 'page-assign') {
+      initAssignPage();
+    }
   };
 
   // ===== My Location button =====
   document.getElementById('btn-my-location').addEventListener('click', function() {
     addUserLocationMarker();
   });
+
+  // ===== UX Polish Init (action sheet, onboarding, etc.) =====
+  if (typeof initUXPolish === 'function') initUXPolish();
+
+  // ===== Service Worker Registration =====
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      console.log('[SW] Registered:', reg.scope);
+    }).catch(function(err) {
+      console.warn('[SW] Registration failed:', err);
+    });
+  }
+
+  // ===== Add to Home Screen Prompt (2nd session, non-blocking) =====
+  (function() {
+    var _a2hsEvent = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      _a2hsEvent = e;
+
+      // Only show on 2nd+ session
+      var visitCount = parseInt(localStorage.getItem('patrol_session_count') || '0', 10);
+      localStorage.setItem('patrol_session_count', String(visitCount + 1));
+
+      if (visitCount < 1) return; // skip 1st session
+      if (localStorage.getItem('patrol_a2hs_dismissed') === '1') return;
+
+      // Show bottom sheet after 3s delay
+      setTimeout(function() {
+        var sheet = document.getElementById('a2hs-sheet');
+        if (sheet) sheet.classList.add('visible');
+      }, 3000);
+    });
+
+    window._a2hsInstall = function() {
+      if (!_a2hsEvent) return;
+      _a2hsEvent.prompt();
+      _a2hsEvent.userChoice.then(function() {
+        var sheet = document.getElementById('a2hs-sheet');
+        if (sheet) sheet.classList.remove('visible');
+        _a2hsEvent = null;
+      });
+    };
+
+    window._a2hsDismiss = function() {
+      localStorage.setItem('patrol_a2hs_dismissed', '1');
+      var sheet = document.getElementById('a2hs-sheet');
+      if (sheet) sheet.classList.remove('visible');
+    };
+  })();
 </script>
+
+<!-- ========================================= -->
+<!-- ACTION SHEET (long-press on store row)  -->
+<!-- ========================================= -->
+<div class="action-sheet-overlay" id="action-sheet-overlay" onclick="closeActionSheet()">
+  <div class="action-sheet" id="action-sheet" onclick="event.stopPropagation()">
+    <div class="action-sheet-handle"></div>
+    <div class="action-sheet-title" id="action-sheet-title">Store</div>
+    <button class="action-sheet-btn" onclick="actionSheetCall()">
+      <span class="as-icon">&#128222;</span> Tawagan ang may-ari
+    </button>
+    <button class="action-sheet-btn" onclick="actionSheetDirections()">
+      <span class="as-icon">&#128506;</span> Direksyon papunta
+    </button>
+    <button class="action-sheet-btn" onclick="actionSheetMarkVisited()">
+      <span class="as-icon">&#9989;</span> I-log ang bisita ngayon
+    </button>
+    <button class="action-sheet-cancel" onclick="closeActionSheet()">Kanselahin</button>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- ONBOARDING (first login only, 3 screens) -->
+<!-- ========================================= -->
+<div class="onboarding-overlay" id="onboarding-overlay">
+  <button class="onboard-skip" onclick="onboardingDone()">Laktawan</button>
+
+  <!-- Screen 1 -->
+  <div class="onboard-screen" id="onboard-screen-1">
+    <div class="onboard-emoji">&#128075;</div>
+    <div class="onboard-title">Kamusta! Ako si Patrol.</div>
+    <div class="onboard-desc">I-tap ang tindahan para mag-log ng bisita mo. Madali lang!</div>
+    <button class="onboard-btn" onclick="onboardingNext()">Susunod &rarr;</button>
+    <div class="onboard-dots">
+      <span class="onboard-dot active"></span>
+      <span class="onboard-dot"></span>
+      <span class="onboard-dot"></span>
+    </div>
+  </div>
+
+  <!-- Screen 2 -->
+  <div class="onboard-screen" id="onboard-screen-2">
+    <div class="onboard-emoji">&#128248;</div>
+    <div class="onboard-title">Madali lang!</div>
+    <div class="onboard-desc">Kumuha ng litrato. Piliin ang nangyari. Tapos na.</div>
+    <button class="onboard-btn" onclick="onboardingNext()">Susunod &rarr;</button>
+    <div class="onboard-dots">
+      <span class="onboard-dot"></span>
+      <span class="onboard-dot active"></span>
+      <span class="onboard-dot"></span>
+    </div>
+  </div>
+
+  <!-- Screen 3 -->
+  <div class="onboard-screen" id="onboard-screen-3">
+    <div class="onboard-emoji">&#9989;</div>
+    <div class="onboard-title">Kahit walang signal</div>
+    <div class="onboard-desc">Sine-save namin lahat. Mag-sync kapag may signal na.</div>
+    <button class="onboard-btn" onclick="onboardingDone()">Magsimula na!</button>
+    <div class="onboard-dots">
+      <span class="onboard-dot"></span>
+      <span class="onboard-dot"></span>
+      <span class="onboard-dot active"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Add to Home Screen Bottom Sheet -->
+<div id="a2hs-sheet" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;transform:translateY(100%);transition:transform 0.3s ease;pointer-events:none">
+  <div style="background:white;border-radius:16px 16px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,0.15);padding:20px 16px 24px;pointer-events:auto;max-width:480px;margin:0 auto">
+    <div style="width:40px;height:4px;background:#DDD;border-radius:2px;margin:0 auto 16px"></div>
+    <div style="font-size:17px;font-weight:700;color:#050505;margin-bottom:4px">I-save ang Patrol sa iyong phone! &#128241;</div>
+    <div style="font-size:14px;color:#65676B;margin-bottom:16px">Mas mabilis mag-open. Libre lang!</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="_a2hsInstall()" style="flex:2;padding:14px;font-size:16px;font-weight:700;border:none;border-radius:12px;background:#00A6CE;color:white;cursor:pointer;min-height:56px">I-save ngayon</button>
+      <button onclick="_a2hsDismiss()" style="flex:1;padding:14px;font-size:14px;font-weight:600;border:1px solid #DDD;border-radius:12px;background:white;color:#65676B;cursor:pointer;min-height:56px">Mamaya na</button>
+    </div>
+  </div>
+</div>
+<style>
+#a2hs-sheet.visible { transform: translateY(0); pointer-events: auto; }
+</style>
 
 </body>
 </html>

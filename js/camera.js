@@ -29,9 +29,10 @@ function capturePhoto() {
   });
 }
 
-function compressImage(file, maxWidth, quality) {
-  maxWidth = maxWidth || 1200;
-  quality = quality || 0.75;
+function compressImage(file, maxWidth, maxHeight, quality) {
+  maxWidth = maxWidth || 640;
+  maxHeight = maxHeight || 480;
+  quality = quality || 0.5;
 
   return new Promise(function (resolve, reject) {
     var reader = new FileReader();
@@ -42,10 +43,10 @@ function compressImage(file, maxWidth, quality) {
         var w = img.width;
         var h = img.height;
 
-        if (w > maxWidth) {
-          h = Math.round((h * maxWidth) / w);
-          w = maxWidth;
-        }
+        // Scale down to fit within maxWidth x maxHeight box
+        var scale = Math.min(maxWidth / w, maxHeight / h, 1);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
 
         canvas.width = w;
         canvas.height = h;
@@ -88,5 +89,25 @@ async function uploadPhoto(blob, path) {
     .from('patrol-photos')
     .getPublicUrl(path);
 
+  // Show data usage indicator (once per session)
+  _showDataUsage(blob.size);
+
   return urlData.publicUrl;
+}
+
+// Data usage indicator — shown once per session to reassure TSRs
+var _dataUsageShown = false;
+function _showDataUsage(bytes) {
+  if (_dataUsageShown) return;
+  _dataUsageShown = true;
+  var kb = Math.round(bytes / 1024);
+  var toast = document.createElement('div');
+  toast.className = 'data-usage-toast';
+  toast.textContent = '\uD83D\uDCF7 Ginamit: ' + kb + 'KB lang para sa litrato';
+  document.body.appendChild(toast);
+  setTimeout(function () { toast.classList.add('visible'); }, 50);
+  setTimeout(function () {
+    toast.classList.remove('visible');
+    setTimeout(function () { toast.remove(); }, 400);
+  }, 4000);
 }

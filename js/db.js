@@ -7,9 +7,9 @@ async function getStores(filters) {
   var session = getSession();
   var query = supabaseClient.from('stores').select('*');
 
-  // TSR auto-filter: only see own stores
+  // TSR auto-filter: see stores they created OR were assigned to them
   if (session && session.role === 'tsr') {
-    query = query.eq('assigned_tsr', session.id);
+    query = query.or('created_by.eq.' + session.id + ',assigned_tsr.eq.' + session.id);
   }
 
   if (f.territory) query = query.eq('territory', f.territory);
@@ -199,7 +199,7 @@ async function getDSMSummary(district, dateFrom) {
 async function getUsers() {
   var { data, error } = await supabaseClient
     .from('users')
-    .select('*')
+    .select('id,name,phone,role,region,district,territory,is_active,is_champion,created_at,updated_at')
     .order('name', { ascending: true });
 
   if (error) throw new Error('getUsers: ' + error.message);
@@ -227,4 +227,219 @@ async function updateUser(id, data) {
 
   if (error) throw new Error('updateUser: ' + error.message);
   return updated;
+}
+
+// ── Store Assignment (DSM → TSR) ──
+
+async function getTSRsByDistrict(district) {
+  var query = supabaseClient
+    .from('users')
+    .select('*')
+    .eq('role', 'tsr')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (district) query = query.eq('district', district);
+
+  var { data, error } = await query;
+  if (error) throw new Error('getTSRsByDistrict: ' + error.message);
+  return data || [];
+}
+
+async function getUnassignedStores(district) {
+  var query = supabaseClient
+    .from('stores')
+    .select('*')
+    .is('assigned_tsr', null)
+    .order('name', { ascending: true });
+
+  if (district) query = query.eq('region', district);
+
+  var { data, error } = await query;
+  if (error) throw new Error('getUnassignedStores: ' + error.message);
+  return data || [];
+}
+
+async function getStoresByTSR(tsrId) {
+  var { data, error } = await supabaseClient
+    .from('stores')
+    .select('*')
+    .eq('assigned_tsr', tsrId)
+    .order('name', { ascending: true });
+
+  if (error) throw new Error('getStoresByTSR: ' + error.message);
+  return data || [];
+}
+
+async function assignStores(storeIds, tsrId) {
+  if (!storeIds || storeIds.length === 0) return;
+
+  var { error } = await supabaseClient
+    .from('stores')
+    .update({ assigned_tsr: tsrId, updated_at: new Date().toISOString() })
+    .in('id', storeIds);
+
+  if (error) throw new Error('assignStores: ' + error.message);
+}
+
+async function unassignStores(storeIds) {
+  if (!storeIds || storeIds.length === 0) return;
+
+  var { error } = await supabaseClient
+    .from('stores')
+    .update({ assigned_tsr: null, updated_at: new Date().toISOString() })
+    .in('id', storeIds);
+
+  if (error) throw new Error('unassignStores: ' + error.message);
+}
+
+async function getAssignmentCounts() {
+  var { data, error } = await supabaseClient
+    .from('stores')
+    .select('assigned_tsr')
+    .not('assigned_tsr', 'is', null)
+    .limit(1000);
+
+  if (error) throw new Error('getAssignmentCounts: ' + error.message);
+
+  var counts = {};
+  for (var i = 0; i < (data || []).length; i++) {
+    var tid = data[i].assigned_tsr;
+    if (tid) {
+      counts[tid] = (counts[tid] || 0) + 1;
+    }
+  }
+  return counts;
+}
+
+// ── Champion Team + Leaderboard ──
+
+async function getChampionTeam(district) {
+  // Get active TSRs in same district as the champion
+  var query = supabaseClient
+    .from('users')
+    .select('id, name, territory, district')
+    .eq('role', 'tsr')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (district) query = query.eq('district', district);
+
+  var { data: tsrs, error: tErr } = await query;
+  if (tErr) throw new Error('getChampionTeam: ' + tErr.message);
+  tsrs = tsrs || [];
+
+  if (tsrs.length === 0) return [];
+
+  // Get assignment counts
+  var assignCounts = await getAssignmentCounts();
+
+  // Get visits from start of current week (Monday)
+  var now = new Date();
+  var dayOfWeek = now.getDay(); // 0=Sun
+  var mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset);
+  var weekStart = monday.toISOString();
+
+  var tsrIds = tsrs.map(function (t) { return t.id; });
+  var { data: visits, error: vErr } = await supabaseClient
+    .from('visits')
+    .select('tsr_id')
+    .in('tsr_id', tsrIds)
+    .gte('visited_at', weekStart);
+
+  if (vErr) throw new Error('getChampionTeam visits: ' + vErr.message);
+  visits = visits || [];
+
+  // Count visits per TSR
+  var visitCounts = {};
+  for (var i = 0; i < visits.length; i++) {
+    var tid = visits[i].tsr_id;
+    visitCounts[tid] = (visitCounts[tid] || 0) + 1;
+  }
+
+  // Build result
+  var team = [];
+  for (var t = 0; t < tsrs.length; t++) {
+    var tsr = tsrs[t];
+    var assigned = assignCounts[tsr.id] || 0;
+    // Target: assigned stores count, minimum 1 to avoid /0
+    var target = assigned > 0 ? assigned : 8;
+    team.push({
+      id: tsr.id,
+      name: tsr.name,
+      territory: tsr.territory || tsr.district || '--',
+      visitsThisWeek: visitCounts[tsr.id] || 0,
+      targetVisits: target,
+      assignedStores: assigned
+    });
+  }
+
+  return team;
+}
+
+async function getWeeklyLeaderboard(currentUserId) {
+  // Get all active TSRs
+  var { data: tsrs, error: tErr } = await supabaseClient
+    .from('users')
+    .select('id, name, territory, district')
+    .eq('role', 'tsr')
+    .eq('is_active', true);
+
+  if (tErr) throw new Error('getWeeklyLeaderboard: ' + tErr.message);
+  tsrs = tsrs || [];
+
+  // Week start (Monday)
+  var now = new Date();
+  var dayOfWeek = now.getDay();
+  var mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset);
+  var weekStart = monday.toISOString();
+
+  // Get all visits this week
+  var { data: visits, error: vErr } = await supabaseClient
+    .from('visits')
+    .select('tsr_id')
+    .gte('visited_at', weekStart);
+
+  if (vErr) throw new Error('getWeeklyLeaderboard visits: ' + vErr.message);
+  visits = visits || [];
+
+  // Count per TSR
+  var visitCounts = {};
+  for (var i = 0; i < visits.length; i++) {
+    var tid = visits[i].tsr_id;
+    visitCounts[tid] = (visitCounts[tid] || 0) + 1;
+  }
+
+  // Build ranked list
+  var ranked = [];
+  for (var t = 0; t < tsrs.length; t++) {
+    ranked.push({
+      id: tsrs[t].id,
+      name: tsrs[t].name,
+      territory: tsrs[t].territory || tsrs[t].district || '--',
+      visits: visitCounts[tsrs[t].id] || 0
+    });
+  }
+
+  ranked.sort(function (a, b) { return b.visits - a.visits; });
+
+  // Find current user's rank
+  var myRank = -1;
+  var myEntry = null;
+  for (var r = 0; r < ranked.length; r++) {
+    if (ranked[r].id === currentUserId) {
+      myRank = r + 1;
+      myEntry = ranked[r];
+      break;
+    }
+  }
+
+  return {
+    top3: ranked.slice(0, 3),
+    myRank: myRank,
+    myEntry: myEntry,
+    totalTSRs: ranked.length
+  };
 }

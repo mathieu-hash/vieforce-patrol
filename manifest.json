@@ -1,17 +1,16 @@
 {
   "name": "VieForce Patrol",
   "short_name": "Patrol",
-  "description": "Vienovo Philippines Field CRM & POS Mapping",
-  "start_url": "/app.html",
+  "description": "Vienovo Philippines — Field Sales Tool",
+  "start_url": "https://patrol.vienovo.ph/",
   "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#00A6CE",
+  "lang": "fil",
   "orientation": "portrait",
-  "background_color": "#004D71",
-  "theme_color": "#004D71",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
-  "categories": ["business", "productivity"],
-  "lang": "en",
-  "dir": "ltr"
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

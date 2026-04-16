@@ -8,16 +8,20 @@ offlineDb.version(1).stores({
   cachedStores: 'id, updated_at'
 });
 
-function queueVisit(visitData) {
+async function queueVisit(visitData) {
   visitData.offline_id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   visitData.created_at = new Date().toISOString();
-  return offlineDb.pendingVisits.add(visitData);
+  await offlineDb.pendingVisits.add(visitData);
+  // Update sync UI immediately after queue write
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 }
 
-function queueStore(storeData) {
+async function queueStore(storeData) {
   storeData.offline_id = 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   storeData.created_at = new Date().toISOString();
-  return offlineDb.pendingStores.add(storeData);
+  await offlineDb.pendingStores.add(storeData);
+  // Update sync UI immediately after queue write
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 }
 
 async function syncPending() {
@@ -28,15 +32,22 @@ async function syncPending() {
   for (var i = 0; i < pendingStores.length; i++) {
     var s = pendingStores[i];
     var localId = s.id;
-    delete s.id;
-    delete s.offline_id;
-    delete s.created_at;
+    // Clone to avoid mutating IndexedDB record (keep offline_id for dedup)
+    var payload = {};
+    for (var k in s) {
+      if (k !== 'id' && k !== 'created_at') {
+        payload[k] = s[k];
+      }
+    }
     try {
-      await createStore(s);
+      await createStore(payload);
       await offlineDb.pendingStores.delete(localId);
       results.stores++;
+      // Update UI after each successful sync
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
     } catch (e) {
       results.errors.push('Store: ' + e.message);
+      break; // Stop on first failure, retry next time
     }
   }
 
@@ -45,15 +56,33 @@ async function syncPending() {
   for (var j = 0; j < pendingVisits.length; j++) {
     var v = pendingVisits[j];
     var vId = v.id;
-    delete v.id;
-    delete v.offline_id;
-    delete v.created_at;
+    var vPayload = {};
+    var photoB64 = null;
+    for (var vk in v) {
+      if (vk === 'id' || vk === 'created_at') continue;
+      if (vk === 'photo_base64') { photoB64 = v[vk]; continue; }
+      vPayload[vk] = v[vk];
+    }
     try {
-      await createVisit(v);
+      // Upload offline photo if present and no URL yet
+      if (photoB64 && !vPayload.photo_url && typeof uploadPhoto === 'function') {
+        try {
+          var blob = _base64ToBlob(photoB64);
+          var session = getSession ? getSession() : null;
+          var path = (session ? session.id : 'unknown') + '/' +
+            new Date().toISOString().slice(0, 10) + '/' + Date.now() + '_visit.jpg';
+          vPayload.photo_url = await uploadPhoto(blob, path);
+        } catch (pe) {
+          // Photo upload failed during sync — submit visit without photo
+        }
+      }
+      await createVisit(vPayload);
       await offlineDb.pendingVisits.delete(vId);
       results.visits++;
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
     } catch (e) {
       results.errors.push('Visit: ' + e.message);
+      break; // Stop on first failure, retry next time
     }
   }
 
@@ -75,4 +104,14 @@ function cacheStores(stores) {
 
 function getCachedStores() {
   return offlineDb.cachedStores.toArray();
+}
+
+// Convert base64 data URL back to Blob for upload during sync
+function _base64ToBlob(dataUrl) {
+  var parts = dataUrl.split(',');
+  var mime = parts[0].match(/:(.*?);/)[1];
+  var raw = atob(parts[1]);
+  var arr = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return new Blob([arr], { type: mime });
 }

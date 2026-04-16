@@ -56,18 +56,18 @@ async function login(phone, pin) {
   // Client-side throttle check
   var throttle = getThrottleSecondsRemaining();
   if (throttle > 0) {
-    return { success: false, error: 'Too many attempts. Try again in ' + throttle + ' seconds.', throttled: true, secondsRemaining: throttle };
+    return { success: false, error: T.errorThrottled(throttle), throttled: true, secondsRemaining: throttle };
   }
 
   // Input sanitization
   var cleanPhone = sanitizePhone(phone);
   if (!cleanPhone) {
-    return { success: false, error: 'Invalid phone number — must be 10-13 digits' };
+    return { success: false, error: T.errorInvalidPhone };
   }
 
   var cleanPin = validatePin(pin);
   if (!cleanPin) {
-    return { success: false, error: 'Invalid PIN — must be 4-6 digits' };
+    return { success: false, error: T.errorInvalidPin };
   }
 
   // Try edge function first
@@ -92,6 +92,7 @@ async function login(phone, pin) {
           region: data.region || null,
           district: data.district || null,
           territory: data.territory || null,
+          is_champion: data.is_champion || false,
           loggedInAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
         };
@@ -100,7 +101,7 @@ async function login(phone, pin) {
       }
       var errData = await res.json().catch(function() { return data; });
       recordFailedAttempt();
-      return { success: false, error: (errData && errData.error) || data.error || 'Invalid credentials' };
+      return { success: false, error: (errData && errData.error) || data.error || T.errorWrongPin };
     }
 
     // Non-OK response (401, 429, etc.)
@@ -109,40 +110,13 @@ async function login(phone, pin) {
     recordFailedAttempt();
 
     if (res.status === 429) {
-      return { success: false, error: (errBody && errBody.error) || 'Too many attempts. Try again later.', throttled: true };
+      return { success: false, error: (errBody && errBody.error) || T.errorThrottledGeneric, throttled: true };
     }
-    return { success: false, error: (errBody && errBody.error) || 'Invalid credentials' };
+    return { success: false, error: (errBody && errBody.error) || T.errorWrongPin };
   } catch (e) {
-    // Edge function not deployed — fall through to direct query
+    // Edge function unreachable (no internet)
+    return { success: false, error: T.errorNetworkLogin };
   }
-
-  // V1 fallback: direct Supabase query (plain text PIN)
-  var result = await supabaseClient
-    .from('users')
-    .select('*')
-    .eq('phone', cleanPhone)
-    .eq('pin_hash', cleanPin)
-    .eq('is_active', true)
-    .single();
-
-  if (result.error || !result.data) {
-    recordFailedAttempt();
-    return { success: false, error: 'Invalid phone or PIN' };
-  }
-
-  resetLoginAttempts();
-  var session = {
-    id: result.data.id,
-    name: result.data.name,
-    role: result.data.role,
-    region: result.data.region || null,
-    district: result.data.district || null,
-    territory: result.data.territory || null,
-    loggedInAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
-  };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return { success: true, session: session };
 }
 
 // --- Session Management ---

@@ -45,11 +45,15 @@ async function loadDashboardKPIs() {
     weekAgo.setDate(weekAgo.getDate() - 7);
     var weekAgoISO = weekAgo.toISOString();
 
-    // Fetch all visits (no TSR filter — DSM sees all)
+    // Fetch visits from current month (no TSR filter — DSM sees all)
+    var monthStart = new Date();
+    monthStart.setDate(1); monthStart.setHours(0,0,0,0);
     var { data: allVisits, error: vErr } = await supabaseClient
       .from('visits')
-      .select('*')
-      .order('visited_at', { ascending: false });
+      .select('visited_at,order_taken,order_amount,merch_score,tsr_id')
+      .gte('visited_at', monthStart.toISOString())
+      .order('visited_at', { ascending: false })
+      .limit(2000);
 
     if (vErr) throw new Error(vErr.message);
     allVisits = allVisits || [];
@@ -273,8 +277,15 @@ async function loadTSRLeaderboard() {
   if (!container) return;
 
   try {
-    // Get all TSR users
-    var users = await getUsers();
+    // Get all TSR users + assignment counts in parallel
+    var results = await Promise.all([
+      getUsers(),
+      getAssignmentCounts()
+    ]);
+
+    var users = results[0];
+    var assignCounts = results[1];
+
     var tsrUsers = [];
     for (var i = 0; i < users.length; i++) {
       if (users[i].role === 'tsr' && users[i].is_active) {
@@ -301,7 +312,8 @@ async function loadTSRLeaderboard() {
       tsrMap[tsrUsers[t].id] = {
         user: tsrUsers[t],
         visitCount: 0,
-        orderTotal: 0
+        orderTotal: 0,
+        assignedStores: assignCounts[tsrUsers[t].id] || 0
       };
     }
 
@@ -338,12 +350,14 @@ async function loadTSRLeaderboard() {
       var pos = r + 1;
       var rankClass = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : '';
       var territory = entry.user.territory || entry.user.district || entry.user.region || '--';
+      var storeLabel = entry.assignedStores + ' store' + (entry.assignedStores !== 1 ? 's' : '') + ' na-assign';
 
-      html += '<div class="list-row">' +
+      html += '<div class="list-row" style="cursor:pointer" onclick="showTSRAssignedStores(\'' + entry.user.id + '\',\'' + _esc(entry.user.name).replace(/'/g, "\\'") + '\')">' +
         '<div class="rank ' + rankClass + '">' + pos + '</div>' +
         '<div style="flex:1">' +
           '<b style="font-size:13px">' + _esc(entry.user.name) + '</b>' +
           '<div style="font-size:11px;color:#888">' + _esc(territory) + ' \u00b7 ' + entry.visitCount + ' visits</div>' +
+          '<div style="font-size:10px;color:#00A6CE;margin-top:2px">' + storeLabel + '</div>' +
         '</div>' +
         '<div style="text-align:right;font-size:12px">' +
           '<b style="color:var(--green)">' + formatCurrency(entry.orderTotal) + '</b><br>' +
@@ -357,6 +371,55 @@ async function loadTSRLeaderboard() {
   } catch (err) {
     console.error('loadTSRLeaderboard:', err);
     if (container) container.innerHTML = '<div style="color:var(--pink);font-size:12px;padding:10px">Error loading leaderboard</div>';
+  }
+}
+
+// ── Show TSR's assigned stores in a modal overlay ──
+
+async function showTSRAssignedStores(tsrId, tsrName) {
+  try {
+    var stores = await getStoresByTSR(tsrId);
+
+    // Remove existing modal
+    var existing = document.getElementById('tsr-stores-modal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'tsr-stores-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);';
+    modal.onclick = function (e) { if (e.target === modal) modal.remove(); };
+
+    var card = '<div style="background:#fff;max-width:400px;width:90%;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.2);overflow:hidden;max-height:80vh;display:flex;flex-direction:column" onclick="event.stopPropagation()">';
+    card += '<div style="background:#004D71;color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">';
+    card += '<div><div style="font-size:14px;font-weight:700">' + tsrName + '</div><div style="font-size:11px;opacity:0.8">' + stores.length + ' assigned stores</div></div>';
+    card += '<button onclick="this.closest(\'#tsr-stores-modal\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">&times;</button>';
+    card += '</div>';
+    card += '<div style="overflow-y:auto;flex:1">';
+
+    if (stores.length === 0) {
+      card += '<div style="text-align:center;color:#888;padding:24px;font-size:13px">Walang assigned stores</div>';
+    } else {
+      for (var i = 0; i < stores.length; i++) {
+        var s = stores[i];
+        var loc = s.city || s.province || s.region || '--';
+        var hColor = s.health_status === 'crit' ? '#FA383E' : s.health_status === 'warn' ? '#F7B928' : '#31A24C';
+        card += '<div style="padding:10px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:8px">';
+        card += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + hColor + ';flex-shrink:0"></span>';
+        card += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _esc(s.name) + '</div>';
+        card += '<div style="font-size:11px;color:#888">' + _esc(loc) + '</div></div>';
+        if (s.vol_class) {
+          card += '<span style="background:#004D71;color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700">Vol ' + s.vol_class + '</span>';
+        }
+        card += '</div>';
+      }
+    }
+
+    card += '</div></div>';
+    modal.innerHTML = card;
+    document.body.appendChild(modal);
+
+  } catch (err) {
+    console.error('showTSRAssignedStores:', err);
   }
 }
 

@@ -88,8 +88,8 @@ async function renderVisitList(filter) {
 
     // Render
     if (filtered.length === 0) {
-      listEl.innerHTML = '<div class="card" style="text-align:center;padding:30px;color:#888;font-size:13px">' +
-        'No visits found.</div>';
+      listEl.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:15px">' +
+        _esc(T.noVisits) + '</div>';
       return;
     }
 
@@ -220,39 +220,74 @@ function _getActiveVisitFilter() {
 async function enhancedSyncStatus() {
   var dot = document.getElementById('sync-dot');
   var label = document.getElementById('sync-label');
-  if (!dot || !label) return;
+
+  // Global sync bar
+  var bar = document.getElementById('global-sync-bar');
+  var barIcon = document.getElementById('sync-bar-icon');
+  var barText = document.getElementById('sync-bar-text');
+  var barBtn = document.getElementById('sync-bar-btn');
+
+  // Home sync button visibility
+  var homeSyncSection = document.getElementById('home-sync-section');
+  var syncNowBtn = document.getElementById('btn-sync-now');
 
   try {
     var status = await getSyncStatus();
     var pending = status.pending || 0;
 
+    // Show/hide the home sync button based on pending count
+    if (homeSyncSection) {
+      homeSyncSection.style.display = pending > 0 ? 'block' : 'none';
+    }
+    if (syncNowBtn && pending > 0) {
+      syncNowBtn.innerHTML = '&#8635; ' + T.syncNow + ' (' + T.pending(pending) + ')';
+    }
+
     if (navigator.onLine) {
       if (pending === 0) {
-        dot.className = 'sync-dot online';
-        label.textContent = 'Synced';
+        // Online + synced — hide bar, show green dot
+        if (dot) { dot.className = 'sync-dot online'; }
+        if (label) { label.textContent = T.synced; }
+        if (bar) { bar.className = 'sync-bar sync-hidden'; }
       } else {
-        dot.className = 'sync-dot syncing';
-        label.textContent = 'Syncing ' + pending + '...';
+        // Online + pending — show blue syncing bar
+        if (dot) { dot.className = 'sync-dot syncing'; }
+        if (label) { label.textContent = T.syncing; }
+        if (bar) {
+          bar.className = 'sync-bar sync-working';
+          if (barIcon) barIcon.textContent = '\u21bb';
+          if (barText) barText.textContent = T.syncing;
+          if (barBtn) barBtn.style.display = 'none';
+        }
         // Trigger sync
         syncPending().then(function () {
           enhancedSyncStatus();
         }).catch(function () {
-          enhancedSyncStatus();
+          // Sync failed — show error bar
+          if (bar) {
+            bar.className = 'sync-bar sync-error';
+            if (barIcon) barIcon.textContent = '\u2717';
+            if (barText) barText.textContent = T.syncError;
+            if (barBtn) { barBtn.style.display = 'inline-block'; barBtn.textContent = T.retry; }
+          }
         });
       }
     } else {
-      dot.className = 'sync-dot offline';
-      label.textContent = 'Offline' + (pending > 0 ? ' \u00b7 ' + pending + ' pending' : '');
+      // Offline — show orange bar
+      if (dot) { dot.className = 'sync-dot offline'; }
+      if (label) { label.textContent = T.offline + (pending > 0 ? ' \u00b7 ' + T.pending(pending) : ''); }
+      if (bar) {
+        bar.className = 'sync-bar sync-offline';
+        if (barIcon) barIcon.textContent = '\u25cb';
+        if (barText) barText.textContent = T.offline + (pending > 0 ? ' \u00b7 ' + T.pending(pending) : '');
+        if (barBtn) { barBtn.style.display = 'inline-block'; barBtn.textContent = T.syncNow; }
+      }
     }
   } catch (e) {
-    // Fallback to simple status
-    if (navigator.onLine) {
-      dot.className = 'sync-dot online';
-      label.textContent = 'Synced';
-    } else {
-      dot.className = 'sync-dot offline';
-      label.textContent = 'Offline';
-    }
+    // Fallback
+    if (dot) { dot.className = navigator.onLine ? 'sync-dot online' : 'sync-dot offline'; }
+    if (label) { label.textContent = navigator.onLine ? T.synced : T.offline; }
+    if (bar) { bar.className = 'sync-bar sync-hidden'; }
   }
 }
 

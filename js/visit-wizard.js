@@ -1,9 +1,9 @@
-// Visit Wizard Module — 4-step visit recording wizard
+// Visit Wizard Module — Messenger-pattern visit recording
+// Replaces 4-step wizard with: info bubble → outcome chips → mini-form → submit
 
-var _visitStep = 1;
 var _visitData = {
-  storeId: null, storeName: '',
-  visit_type: 'regular',
+  storeId: null, storeName: '', storePhone: '',
+  visit_type: 'regular', outcome: null,
   order_taken: false, order_amount: 0,
   merch_score: 0, merch_items: {},
   competitor_notes: '',
@@ -12,14 +12,11 @@ var _visitData = {
   lat: null, lng: null
 };
 
-var _visitMerchLabels = ['Signage', 'Price Board', 'Flyers', 'Standee', 'Price Talkers'];
-
-function openVisitWizard(storeId, storeName) {
+async function openVisitWizard(storeId, storeName) {
   // Reset state
-  _visitStep = 1;
   _visitData = {
-    storeId: storeId, storeName: storeName || '',
-    visit_type: 'regular',
+    storeId: storeId, storeName: storeName || '', storePhone: '',
+    visit_type: 'regular', outcome: null,
     order_taken: false, order_amount: 0,
     merch_score: 0, merch_items: {},
     competitor_notes: '',
@@ -29,23 +26,19 @@ function openVisitWizard(storeId, storeName) {
   };
 
   // Set header
-  document.getElementById('visit-wiz-title').textContent = 'Visit: ' + (storeName || 'Store');
+  document.getElementById('visit-wiz-title').textContent = storeName || 'Visit';
 
-  // Reset step 1 chips
-  var typeChips = document.querySelectorAll('#visit-type-chips .chip');
-  for (var i = 0; i < typeChips.length; i++) {
-    typeChips[i].classList.remove('selected');
-    if (typeChips[i].getAttribute('data-value') === 'regular') {
-      typeChips[i].classList.add('selected');
-    }
-  }
+  // Reset outcome chips
+  var chips = document.querySelectorAll('#visit-outcome-grid .outcome-chip');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected');
 
-  // Reset step 2
-  document.getElementById('visit-order-taken').checked = false;
+  // Hide details panel until outcome selected
+  document.getElementById('visit-details-panel').style.display = 'none';
+  var orderPanel = document.getElementById('visit-order-panel');
+  if (orderPanel) orderPanel.style.display = 'none';
   document.getElementById('visit-order-amount').value = '';
-  _toggleOrderAmountField();
 
-  // Reset step 3 merch items
+  // Reset merch
   var merchChecks = document.querySelectorAll('#visit-merch-list .merch-check-item');
   for (var j = 0; j < merchChecks.length; j++) {
     merchChecks[j].classList.remove('checked');
@@ -53,88 +46,115 @@ function openVisitWizard(storeId, storeName) {
     if (dot) dot.textContent = '';
   }
   _visitData.merch_items = {};
-  document.getElementById('visit-competitor-notes').value = '';
-  document.getElementById('visit-photo-preview').style.display = 'none';
-  document.getElementById('visit-photo-status').textContent = 'No photo captured yet';
-  _visitData.photo = null;
 
-  // Reset step 4
+  // Reset photo + notes
+  document.getElementById('visit-photo-preview').style.display = 'none';
+  var photoBtn = document.getElementById('visit-photo-btn');
+  if (photoBtn) { photoBtn.classList.remove('has-photo'); photoBtn.innerHTML = '&#128247; ' + T.takePhoto; }
+  _visitData.photo = null;
   document.getElementById('visit-extra-notes').value = '';
   document.getElementById('visit-submit-error').style.display = 'none';
-  document.getElementById('visit-submit-error').textContent = '';
-  document.getElementById('btn-visit-submit').disabled = false;
-  document.getElementById('btn-visit-submit').textContent = 'Record Visit';
+  var submitBtn = document.getElementById('btn-visit-submit');
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = T.submitVisit; submitBtn.className = 'big-button'; }
 
-  showVisitStep(1);
+  // Populate store info bubble
+  var infoBubble = document.getElementById('visit-store-info');
+  if (infoBubble) {
+    infoBubble.innerHTML = '<b>' + _esc(storeName) + '</b>';
+    // Try to load full store data for richer info
+    try {
+      var store = await getStoreById(storeId);
+      if (store) {
+        _visitData.storePhone = store.phone || '';
+        var parts = [];
+        if (store.city) parts.push('\ud83d\udccd ' + _esc(store.city));
+        if (store.owner_name) parts.push('\ud83d\udc64 ' + _esc(store.owner_name) + (store.phone ? ' \u00b7 ' + _esc(store.phone) : ''));
+        if (store.bags_per_month) parts.push('\ud83d\udce6 ' + store.bags_per_month + ' ' + T.bagsMonth);
+        infoBubble.innerHTML = '<b>' + _esc(store.name) + '</b>' +
+          (parts.length ? '<br>' + parts.join('<br>') : '');
+      }
+    } catch (e) { /* keep simple info */ }
+  }
+
+  // Populate previous visit bubble
+  var prevContainer = document.getElementById('visit-prev-container');
+  if (prevContainer) {
+    prevContainer.innerHTML = '';
+    try {
+      var visits = await getVisitsByStore(storeId);
+      if (visits && visits.length > 0) {
+        var last = visits[0];
+        var vDate = formatRelativeTimeTagalog ? formatRelativeTimeTagalog(last.visited_at) : formatRelativeTime(last.visited_at);
+        var vType = (last.visit_type || 'regular').charAt(0).toUpperCase() + (last.visit_type || '').slice(1);
+        var prevHtml = '<div class="visit-bubble-sender">' + vDate + '</div>';
+        prevHtml += '<div class="visit-bubble">';
+        prevHtml += vType;
+        if (last.order_taken) prevHtml += ' \u00b7 ' + T.ordered + ' \u20b1' + (parseFloat(last.order_amount) || 0).toLocaleString();
+        if (last.notes) prevHtml += '<br><span style="color:var(--text-muted)">' + _esc(last.notes.substring(0, 80)) + '</span>';
+        prevHtml += '</div>';
+        prevContainer.innerHTML = prevHtml;
+      }
+    } catch (e) { /* no previous visit */ }
+  }
+
   nav('page-visit-wizard');
 }
 
-function showVisitStep(step) {
-  _visitStep = step;
-  for (var i = 1; i <= 4; i++) {
-    document.getElementById('visit-step' + i).style.display = (i === step) ? 'block' : 'none';
-    var stepDot = document.getElementById('visit-wiz-step-' + i);
-    stepDot.className = 'wizard-step';
-    if (i < step) stepDot.classList.add('done');
-    else if (i === step) stepDot.classList.add('current');
-  }
+// Outcome chip selection — the core 2-tap UX
+function selectOutcome(outcome) {
+  _visitData.outcome = outcome;
 
-  // Build summary when entering step 4
-  if (step === 4) {
-    _buildVisitSummary();
-  }
-}
-
-function visitNext() {
-  if (_visitStep === 1) {
-    // Collect visit type
-    var sel = document.querySelector('#visit-type-chips .chip.selected');
-    _visitData.visit_type = sel ? sel.getAttribute('data-value') : 'regular';
-
-    // If not order, skip step 2
-    if (_visitData.visit_type !== 'order') {
-      _visitData.order_taken = false;
-      _visitData.order_amount = 0;
-      showVisitStep(3);
-    } else {
-      showVisitStep(2);
+  // Highlight selected chip
+  var chips = document.querySelectorAll('#visit-outcome-grid .outcome-chip');
+  for (var i = 0; i < chips.length; i++) {
+    chips[i].classList.remove('selected');
+    if (chips[i].getAttribute('data-outcome') === outcome) {
+      chips[i].classList.add('selected');
     }
-  } else if (_visitStep === 2) {
-    // Collect order data
-    _visitData.order_taken = document.getElementById('visit-order-taken').checked;
-    var rawAmount = parseFloat(document.getElementById('visit-order-amount').value) || 0;
-    _visitData.order_amount = Math.max(0, Math.min(9999999999, rawAmount));
-    showVisitStep(3);
-  } else if (_visitStep === 3) {
-    // Collect merch data
-    _visitData.competitor_notes = document.getElementById('visit-competitor-notes').value.trim();
-    _updateMerchScore();
-    showVisitStep(4);
   }
+
+  // Set visit type based on outcome
+  if (outcome === 'order') {
+    _visitData.visit_type = 'order';
+    _visitData.order_taken = true;
+  } else if (outcome === 'no-order') {
+    _visitData.visit_type = 'regular';
+    _visitData.order_taken = false;
+  } else if (outcome === 'comeback') {
+    _visitData.visit_type = 'regular';
+    _visitData.order_taken = false;
+  }
+
+  // Show details panel
+  document.getElementById('visit-details-panel').style.display = 'block';
+
+  // Show/hide order amount field
+  var orderPanel = document.getElementById('visit-order-panel');
+  if (orderPanel) {
+    orderPanel.style.display = (outcome === 'order') ? 'block' : 'none';
+  }
+
+  // For "comeback" — auto-set a note
+  if (outcome === 'comeback') {
+    var notesEl = document.getElementById('visit-extra-notes');
+    if (notesEl && !notesEl.value) {
+      notesEl.value = T.willReturn;
+    }
+  }
+
+  // Scroll to details panel
+  document.getElementById('visit-details-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function visitBack() {
-  if (_visitStep === 4) {
-    showVisitStep(3);
-  } else if (_visitStep === 3) {
-    // If not order type, go back to step 1 (skip step 2)
-    if (_visitData.visit_type !== 'order') {
-      showVisitStep(1);
-    } else {
-      showVisitStep(2);
-    }
-  } else if (_visitStep === 2) {
-    showVisitStep(1);
-  } else {
-    // Step 1 — go back to store detail
-    nav('page-store-detail');
-  }
+  nav('page-store-detail');
 }
 
-function selectVisitType(chipEl) {
-  var chips = document.querySelectorAll('#visit-type-chips .chip');
-  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected');
-  chipEl.classList.add('selected');
+// Call store owner (phone link)
+function callStoreOwner() {
+  if (_visitData.storePhone) {
+    window.location.href = 'tel:' + _visitData.storePhone;
+  }
 }
 
 function toggleMerchItem(el) {
@@ -158,16 +178,9 @@ function _updateMerchScore() {
   _visitData.merch_score = count;
 }
 
-function _toggleOrderAmountField() {
-  var cb = document.getElementById('visit-order-taken');
-  var amtField = document.getElementById('visit-order-amount-group');
-  if (amtField) {
-    amtField.style.display = cb.checked ? 'block' : 'none';
-  }
-}
-
 async function captureVisitPhoto() {
-  document.getElementById('visit-photo-status').textContent = 'Opening camera...';
+  var btn = document.getElementById('visit-photo-btn');
+  if (btn) btn.innerHTML = '&#128247; Kumukuha...';
   try {
     var blob = await capturePhoto();
     if (blob) {
@@ -175,58 +188,16 @@ async function captureVisitPhoto() {
       var url = URL.createObjectURL(blob);
       document.getElementById('visit-photo-img').src = url;
       document.getElementById('visit-photo-preview').style.display = 'block';
-      document.getElementById('visit-photo-status').textContent =
-        'Photo captured (' + Math.round(blob.size / 1024) + ' KB)';
+      if (btn) {
+        btn.classList.add('has-photo');
+        btn.innerHTML = '\u2713 ' + T.photoTaken + ' (' + Math.round(blob.size / 1024) + ' KB)';
+      }
     } else {
-      document.getElementById('visit-photo-status').textContent = 'Photo capture cancelled';
+      if (btn) btn.innerHTML = '&#128247; ' + T.takePhoto;
     }
   } catch (err) {
-    document.getElementById('visit-photo-status').textContent = 'Error: ' + err.message;
+    if (btn) btn.innerHTML = '&#128247; ' + T.takePhoto;
   }
-}
-
-function _buildVisitSummary() {
-  var html = '';
-
-  // Store name
-  html += '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;font-size:13px">';
-  html += '<span style="color:#888">Store</span><b>' + _esc(_visitData.storeName) + '</b>';
-  html += '</div>';
-
-  // Visit type
-  var typeLabel = (_visitData.visit_type || 'regular').charAt(0).toUpperCase() + (_visitData.visit_type || 'regular').slice(1);
-  html += '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;font-size:13px">';
-  html += '<span style="color:#888">Visit Type</span><b>' + typeLabel + '</b>';
-  html += '</div>';
-
-  // Order details (if applicable)
-  if (_visitData.visit_type === 'order') {
-    html += '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;font-size:13px">';
-    html += '<span style="color:#888">Order Taken</span><b>' + (_visitData.order_taken ? 'Yes' : 'No') + '</b>';
-    html += '</div>';
-    if (_visitData.order_taken && _visitData.order_amount > 0) {
-      html += '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;font-size:13px">';
-      html += '<span style="color:#888">Order Amount</span><b>\u20b1 ' + parseFloat(_visitData.order_amount).toLocaleString() + '</b>';
-      html += '</div>';
-    }
-  }
-
-  // Merch score
-  html += '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;font-size:13px">';
-  html += '<span style="color:#888">Merch Score</span><b>' + _visitData.merch_score + '/5</b>';
-  html += '</div>';
-
-  // GPS status
-  html += '<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;font-size:13px">';
-  html += '<span style="color:#888">GPS</span><b id="visit-summary-gps">Will capture on submit</b>';
-  html += '</div>';
-
-  // Photo status
-  html += '<div style="padding:8px 0;display:flex;justify-content:space-between;font-size:13px">';
-  html += '<span style="color:#888">Photo</span><b>' + (_visitData.photo ? '\u2713 Captured' : 'None') + '</b>';
-  html += '</div>';
-
-  document.getElementById('visit-summary-card').innerHTML = html;
 }
 
 async function submitVisit() {
@@ -234,29 +205,28 @@ async function submitVisit() {
   var submitBtn = document.getElementById('btn-visit-submit');
   errorEl.style.display = 'none';
 
-  // Collect final notes
-  _visitData.notes = document.getElementById('visit-extra-notes').value.trim();
-  _visitData.competitor_notes = document.getElementById('visit-competitor-notes').value.trim();
+  // Must select an outcome first
+  if (!_visitData.outcome) {
+    errorEl.textContent = T.whatHappened;
+    errorEl.style.display = 'block';
+    return;
+  }
 
-  // Validate input lengths
+  // Collect final data from form
+  _visitData.notes = (document.getElementById('visit-extra-notes').value || '').trim();
+  var rawAmount = parseFloat(document.getElementById('visit-order-amount').value) || 0;
+  _visitData.order_amount = Math.max(0, Math.min(9999999999, rawAmount));
+  _updateMerchScore();
+
+  // Validate
   if (_visitData.notes.length > 1000) {
-    errorEl.textContent = 'Notes must be under 1000 characters.';
-    errorEl.style.display = 'block';
-    return;
-  }
-  if (_visitData.competitor_notes.length > 1000) {
-    errorEl.textContent = 'Competitor notes must be under 1000 characters.';
-    errorEl.style.display = 'block';
-    return;
-  }
-  if (_visitData.order_taken && _visitData.order_amount < 0) {
-    errorEl.textContent = 'Order amount cannot be negative.';
+    errorEl.textContent = T.submitFail;
     errorEl.style.display = 'block';
     return;
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Saving...';
+  submitBtn.textContent = T.syncing;
 
   try {
     // 1. Get GPS
@@ -266,15 +236,28 @@ async function submitVisit() {
       _visitData.lng = gps.lng;
     }
 
-    // 2. Upload photo if captured
+    // 2. Convert photo Blob to base64 for IndexedDB persistence
+    var photoBase64 = null;
     if (_visitData.photo) {
+      try {
+        photoBase64 = await _blobToBase64(_visitData.photo);
+      } catch (e) { /* photo conversion failed — continue without */ }
+    }
+
+    // 3. Upload photo if online (try now, retry during sync if offline)
+    if (_visitData.photo && navigator.onLine) {
       var session = getSession();
       var photoPath = (session ? session.id : 'unknown') + '/' +
         new Date().toISOString().slice(0, 10) + '/' + Date.now() + '_visit.jpg';
-      _visitData.photo_url = await uploadPhoto(_visitData.photo, photoPath);
+      try {
+        _visitData.photo_url = await uploadPhoto(_visitData.photo, photoPath);
+        photoBase64 = null; // Uploaded successfully — no need to store base64
+      } catch (e) {
+        // Upload failed — base64 will be stored for later upload during sync
+      }
     }
 
-    // 3. Build visit payload
+    // 4. Build visit payload (photo_base64 persists in IndexedDB for offline upload)
     var session = getSession();
     var visitPayload = {
       store_id: _visitData.storeId,
@@ -283,8 +266,8 @@ async function submitVisit() {
       lat: _visitData.lat,
       lng: _visitData.lng,
       photo_url: _visitData.photo_url || null,
-      notes: (_visitData.notes ? _visitData.notes : '') +
-        (_visitData.competitor_notes ? '\n[Competitor] ' + _visitData.competitor_notes : ''),
+      photo_base64: photoBase64 || null,
+      notes: _visitData.notes || '',
       order_taken: _visitData.order_taken,
       order_amount: _visitData.order_amount,
       merch_score: _visitData.merch_score,
@@ -292,39 +275,54 @@ async function submitVisit() {
       visited_at: new Date().toISOString()
     };
 
-    // 4. Save — online or offline
+    // 4. RULE 1: ALWAYS write to IndexedDB FIRST, then sync to server
+    await queueVisit(visitPayload);
+
+    // Immediately show success — data is safe in IndexedDB
+    submitBtn.textContent = '\u2713 ' + T.submitOk;
+    submitBtn.className = 'big-button success';
+
+    // Update sync bar immediately
+    if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+
+    // 5. Attempt server sync in background (non-blocking)
     if (navigator.onLine) {
-      await createVisit(visitPayload);
-
-      // Update store's last_visit_at
-      try {
-        await updateStore(_visitData.storeId, { last_visit_at: visitPayload.visited_at });
-      } catch (e) {
-        // Non-critical — don't block success
-      }
-
-      submitBtn.textContent = '\u2713 Visit Recorded!';
-      submitBtn.style.background = 'var(--green)';
-    } else {
-      await queueVisit(visitPayload);
-      submitBtn.textContent = '\u2713 Queued for Sync';
-      submitBtn.style.background = 'var(--orange)';
+      // Fire-and-forget sync — don't block the UI
+      syncPending().then(function () {
+        if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+        // Update store's last_visit_at after sync succeeds
+        try {
+          updateStore(_visitData.storeId, { last_visit_at: visitPayload.visited_at });
+        } catch (e) { /* non-critical */ }
+      }).catch(function () {
+        // Sync failed — no problem, data is safe in IndexedDB, will retry later
+        if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+      });
     }
 
-    // 5. Navigate back after brief delay
+    // 6. Navigate back after brief delay
     setTimeout(function () {
-      submitBtn.style.background = '';
       nav('page-store-detail');
-      // Refresh store detail
       if (_visitData.storeId && typeof openStoreDetail === 'function') {
         openStoreDetail(_visitData.storeId);
       }
     }, 1200);
 
   } catch (err) {
-    errorEl.textContent = 'Failed to save visit: ' + err.message;
+    errorEl.textContent = T.submitFail + ' ' + err.message;
     errorEl.style.display = 'block';
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Record Visit';
+    submitBtn.textContent = T.submitVisit;
+    submitBtn.className = 'big-button';
   }
+}
+
+// Convert Blob to base64 data URL for IndexedDB persistence
+function _blobToBase64(blob) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onloadend = function () { resolve(reader.result); };
+    reader.onerror = function () { reject(new Error('Failed to read blob')); };
+    reader.readAsDataURL(blob);
+  });
 }

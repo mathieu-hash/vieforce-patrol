@@ -42,40 +42,74 @@ async function renderStoreList(filter) {
   var listEl = document.getElementById('store-list');
   if (!listEl) return;
 
+  // Show skeleton while loading (Rule 7: never show spinners)
+  if (_storeCache.length === 0) {
+    listEl.innerHTML = _buildStoreSkeleton(4);
+  }
+
   try {
     var stores = await getStores(filter || {});
     _storeCache = stores;
 
     if (stores.length === 0) {
-      listEl.innerHTML = '<div class="card" style="text-align:center;padding:30px;color:#888;font-size:13px">' +
-        'No stores yet. Tap + to add your first store.</div>';
+      listEl.innerHTML = (typeof getEmptyStoreStateHTML === 'function')
+        ? getEmptyStoreStateHTML()
+        : '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:15px">' + _esc(T.noStores) + '</div>';
       _updateFilterCounts([]);
       return;
     }
+
+    // Check which stores were visited today
+    var todayStr = new Date().toISOString().slice(0, 10);
 
     var html = '';
     for (var i = 0; i < stores.length; i++) {
       var s = stores[i];
       var health = s.health_status || 'ok';
-      var volBadge = (s.vol_class || '-').toLowerCase();
-      var badgeClass = volBadge === 'a' ? 'badge-a' : volBadge === 'b' ? 'badge-b' : 'badge-c';
-      var storeType = formatStoreType(s.store_type);
+      var initial = (s.name || '?').charAt(0).toUpperCase();
+      var storeType = formatStoreTypeTagalog ? formatStoreTypeTagalog(s.store_type) : formatStoreType(s.store_type);
       var city = s.city || '';
-      var lastVisit = formatRelativeTime(s.last_visit_at);
+      var lastVisitText = formatRelativeTimeTagalog ? formatRelativeTimeTagalog(s.last_visit_at) : formatRelativeTime(s.last_visit_at);
 
-      html += '<div class="card clickable" onclick="openStoreDetail(\'' + s.id + '\')" style="padding-left:20px">' +
-        '<div class="health-bar health-' + health + '"></div>' +
-        '<div style="display:flex;justify-content:space-between;align-items:start">' +
-          '<div>' +
-            '<div style="font-size:14px;font-weight:700;color:var(--navy)">' + _esc(s.name) + '</div>' +
-            '<div style="font-size:11px;color:#888;margin-top:2px">' + _esc(storeType) + (city ? ' \u00b7 ' + _esc(city) : '') + '</div>' +
-            '<div style="font-size:11px;color:#888;margin-top:2px">Last visit: ' + lastVisit + '</div>' +
-          '</div>' +
-          '<div style="text-align:right">' +
-            '<span class="badge ' + badgeClass + '">' + (s.vol_class || '-') + '</span>' +
-            '<div style="font-size:18px;font-weight:800;color:var(--navy);margin-top:4px">' + (s.bags_per_month || 0) + '</div>' +
-            '<div style="font-size:9px;color:#888">bags/mo</div>' +
-          '</div>' +
+      // Was this store visited today?
+      var visitedToday = s.last_visit_at && s.last_visit_at.slice(0, 10) === todayStr;
+      var nameClass = visitedToday ? 'store-row-name visited' : 'store-row-name';
+
+      // Priority ring: not visited in 7+ days
+      var daysSinceVisit = s.last_visit_at ? Math.floor((Date.now() - new Date(s.last_visit_at).getTime()) / 86400000) : 999;
+      var hasPriorityRing = daysSinceVisit >= 7;
+      var avatarClass = 'store-avatar health-' + health + (hasPriorityRing ? ' priority-ring' : '');
+
+      // Subtitle: type + city + bags
+      var subParts = [];
+      if (city) subParts.push(_esc(city));
+      if (s.bags_per_month) subParts.push(s.bags_per_month + ' ' + T.bagsMonth);
+      var subText = subParts.join(' \u00b7 ');
+
+      // Preview line: last visit outcome (like Messenger last message)
+      var previewText = s.last_visit_at ? (T.lastVisit + ' \u00b7 ' + lastVisitText) : T.notVisited;
+
+      // Sync tick: show done tick for visited stores
+      var syncHtml = visitedToday
+        ? '<span class="sync-tick-done">\u2713\u2713</span>'
+        : (s.last_visit_at ? '' : '<span class="sync-tick-pending">\u25cb</span>');
+
+      html += '<div class="store-row" data-store-id="' + s.id + '" onclick="openStoreDetail(\'' + s.id + '\')">' +
+        // Avatar circle with health dot
+        '<div class="' + avatarClass + '">' +
+          initial +
+          '<span class="health-dot dot-' + health + '"></span>' +
+        '</div>' +
+        // Body
+        '<div class="store-row-body">' +
+          '<div class="' + nameClass + '">' + _esc(s.name) + '</div>' +
+          (subText ? '<div class="store-row-sub">' + subText + '</div>' : '') +
+          '<div class="store-row-preview">' + _esc(previewText) + '</div>' +
+        '</div>' +
+        // Meta: timestamp + sync
+        '<div class="store-row-meta">' +
+          '<span class="store-row-time">' + (s.last_visit_at ? lastVisitText : '') + '</span>' +
+          syncHtml +
         '</div>' +
       '</div>';
     }
@@ -83,9 +117,25 @@ async function renderStoreList(filter) {
     listEl.innerHTML = html;
     _updateFilterCounts(stores);
   } catch (err) {
-    listEl.innerHTML = '<div class="card" style="text-align:center;padding:20px;color:var(--pink);font-size:13px">' +
-      'Error loading stores: ' + _esc(err.message) + '</div>';
+    listEl.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--sync-error);font-size:14px">' +
+      _esc(T.loadError) + '<br><small>' + _esc(err.message) + '</small></div>';
   }
+}
+
+// Skeleton loading rows (Rule 7: no spinners)
+function _buildStoreSkeleton(count) {
+  var html = '';
+  for (var i = 0; i < count; i++) {
+    html += '<div class="skeleton-row">' +
+      '<div class="skeleton skeleton-circle"></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;gap:6px">' +
+        '<div class="skeleton skeleton-line w60"></div>' +
+        '<div class="skeleton skeleton-line w80"></div>' +
+        '<div class="skeleton skeleton-line w40"></div>' +
+      '</div>' +
+    '</div>';
+  }
+  return html;
 }
 
 // HTML-escape helper
@@ -118,16 +168,14 @@ async function updateHomeKPIs() {
     // Total stores
     var storesEl = document.getElementById('kpi-stores');
     if (storesEl) storesEl.textContent = stores.length;
-
-    var storesDelta = storesEl ? storesEl.parentElement.querySelector('.delta') : null;
-    if (storesDelta) storesDelta.textContent = 'mapped';
+    var storesDelta = document.getElementById('kpi-stores-delta');
+    if (storesDelta) storesDelta.textContent = 'na-map na';
 
     // Visits this week
     var visitsEl = document.getElementById('kpi-visits');
     if (visitsEl) visitsEl.textContent = visits.length;
-
-    var visitsDelta = visitsEl ? visitsEl.parentElement.querySelector('.delta') : null;
-    if (visitsDelta) visitsDelta.textContent = 'this week';
+    var visitsDelta = document.getElementById('kpi-visits-delta');
+    if (visitsDelta) visitsDelta.textContent = 'ngayong linggo';
 
     // Critical stores
     var critCount = 0;
@@ -136,9 +184,8 @@ async function updateHomeKPIs() {
     }
     var critEl = document.getElementById('kpi-critical');
     if (critEl) critEl.textContent = critCount;
-
-    var critDelta = critEl ? critEl.parentElement.querySelector('.delta') : null;
-    if (critDelta) critDelta.textContent = 'need attention';
+    var critDelta = document.getElementById('kpi-critical-delta');
+    if (critDelta) critDelta.textContent = critCount > 0 ? 'kailangan ng atensyon' : 'OK lahat';
 
     // Orders this week
     var orderCount = 0;
@@ -151,19 +198,18 @@ async function updateHomeKPIs() {
     }
     var ordersEl = document.getElementById('kpi-orders');
     if (ordersEl) ordersEl.textContent = orderCount;
-
-    var ordersDelta = ordersEl ? ordersEl.parentElement.querySelector('.delta') : null;
+    var ordersDelta = document.getElementById('kpi-orders-delta');
     if (ordersDelta) {
       ordersDelta.textContent = orderTotal > 0
         ? '\u20b1 ' + orderTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-        : 'this week';
+        : 'ngayong linggo';
     }
 
     // Stores subtitle
     var subtitleEl = document.getElementById('stores-subtitle');
     if (subtitleEl) {
-      var territory = session.territory || session.district || session.region || 'All';
-      subtitleEl.textContent = territory + ' \u00b7 ' + stores.length + ' store' + (stores.length !== 1 ? 's' : '');
+      var territory = session.territory || session.district || session.region || '';
+      subtitleEl.textContent = territory + ' \u00b7 ' + T.storesCount(stores.length);
     }
 
   } catch (err) {
