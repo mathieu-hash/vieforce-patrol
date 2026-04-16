@@ -1592,13 +1592,17 @@
   // ===== UX Polish Init (action sheet, onboarding, etc.) =====
   if (typeof initUXPolish === 'function') initUXPolish();
 
-  // ===== Service Worker Registration =====
+  // SW temporarily disabled — causing offline false positives on mobile
+  // TODO: re-enable after fixing cache strategy
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').then(function(reg) {
-      console.log('[SW] Registered:', reg.scope);
-    }).catch(function(err) {
-      console.warn('[SW] Registration failed:', err);
-    });
+    navigator.serviceWorker.getRegistrations().then(
+      function(registrations) {
+        for (var i = 0; i < registrations.length; i++) {
+          registrations[i].unregister();
+          console.log('SW unregistered:', registrations[i]);
+        }
+      }
+    );
   }
 
   // ===== Add to Home Screen Prompt (2nd session, non-blocking) =====
