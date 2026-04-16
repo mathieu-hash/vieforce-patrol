@@ -770,6 +770,15 @@ function setLanguage(lang) {
     T[keys[i]] = newT[keys[i]];
   }
   window.T = T;
+  window.currentLang = currentLang;
+  // Force ALL data-t elements to update immediately
+  var els = document.querySelectorAll('[data-t]');
+  for (var j = 0; j < els.length; j++) {
+    var key = els[j].getAttribute('data-t');
+    if (window.T[key] && typeof window.T[key] === 'string') {
+      els[j].textContent = window.T[key];
+    }
+  }
   rerenderCurrentPage();
   showLangToast();
 }
@@ -777,73 +786,104 @@ function setLanguage(lang) {
 // Re-render all data-t elements + active page dynamic content
 function rerenderCurrentPage() {
   // Update all static elements with data-t attribute
-  document.querySelectorAll('[data-t]').forEach(function(el) {
-    var key = el.dataset.t;
+  var els = document.querySelectorAll('[data-t]');
+  for (var i = 0; i < els.length; i++) {
+    var key = els[i].getAttribute('data-t');
     if (T[key] && typeof T[key] === 'string') {
-      el.textContent = T[key];
+      els[i].textContent = T[key];
     }
-  });
+  }
 
   // Update language pill active states
-  document.querySelectorAll('.lang-pill').forEach(function(pill) {
-    if (pill.dataset.lang === currentLang) {
-      pill.classList.add('active');
+  var pills = document.querySelectorAll('.lang-pill');
+  for (var p = 0; p < pills.length; p++) {
+    var l = pills[p].getAttribute('data-lang');
+    if (l === currentLang) {
+      pills[p].classList.add('active');
+      pills[p].style.background = 'var(--accent-dark,#004D71)';
+      pills[p].style.color = 'white';
     } else {
-      pill.classList.remove('active');
+      pills[p].classList.remove('active');
+      pills[p].style.background = 'white';
+      pills[p].style.color = 'var(--accent-dark,#004D71)';
     }
-  });
+  }
 
   // Re-render dynamic page content
   var activePage = document.querySelector('.page.active');
   if (!activePage) return;
+  var id = activePage.id;
 
-  if (activePage.id === 'page-stores' && typeof renderStoreList === 'function') {
+  if (id === 'page-stores' && typeof renderStoreList === 'function') {
     renderStoreList();
   }
-  if (activePage.id === 'page-home' && typeof renderStoreList === 'function') {
+  if (id === 'page-home' && typeof renderStoreList === 'function') {
     renderStoreList();
   }
-  if (activePage.id === 'page-visits' && typeof renderVisitList === 'function') {
+  if (id === 'page-visits' && typeof renderVisitList === 'function') {
     renderVisitList();
+  }
+  if (id === 'page-dashboard' && typeof initDashboard === 'function') {
+    initDashboard();
+  }
+  // Profile page — update labels that are not data-t
+  if (id === 'page-profile') {
+    var signOutBtn = document.getElementById('btn-logout');
+    if (signOutBtn) signOutBtn.textContent = T.signOut;
+    var statsLabel = activePage.querySelector('[style*="Mga Stats"]');
+    // Re-render stats labels
+    var session = typeof getSession === 'function' ? getSession() : null;
+    if (session) {
+      var roleEl = document.getElementById('profile-role');
+      if (roleEl) {
+        roleEl.textContent = (session.role || '').toUpperCase() +
+          (session.territory ? ' \u00B7 ' + session.territory : '');
+      }
+    }
   }
 
   // Update greeting
   var greetingEl = document.getElementById('home-greeting');
   if (greetingEl) {
-    var session = typeof getSession === 'function' ? getSession() : null;
-    var firstName = session ? (session.name || '').split(' ')[0] : '';
+    var sess = typeof getSession === 'function' ? getSession() : null;
+    var firstName = sess ? (sess.name || '').split(' ')[0] : '';
     greetingEl.textContent = getGreeting() + (firstName ? ', ' + firstName + '!' : '!');
   }
 
   // Update bottom nav labels
-  document.querySelectorAll('.nav-item[data-t]').forEach(function(el) {
-    var key = el.dataset.t;
-    if (T[key] && typeof T[key] === 'string') {
-      // Preserve the SVG icon, just update text
-      var svg = el.querySelector('svg');
-      el.textContent = T[key];
-      if (svg) el.prepend(svg);
+  var navItems = document.querySelectorAll('.nav-item[data-t]');
+  for (var n = 0; n < navItems.length; n++) {
+    var nkey = navItems[n].getAttribute('data-t');
+    if (T[nkey] && typeof T[nkey] === 'string') {
+      var svg = navItems[n].querySelector('svg');
+      navItems[n].textContent = T[nkey];
+      if (svg) navItems[n].prepend(svg);
     }
-  });
+  }
 }
 
-// Brief toast notification when language changes
+// Visible toast notification when language changes
 function showLangToast() {
   var existing = document.getElementById('lang-toast');
-  if (existing) existing.remove();
+  if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+  var msg = currentLang === 'BIS' ? 'Gibag-o ang pinulongan' :
+            currentLang === 'EN'  ? 'Language changed to English' :
+            'Wika ay binago sa Tagalog';
 
   var toast = document.createElement('div');
   toast.id = 'lang-toast';
-  toast.textContent = T.langChanged;
-  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-    'background:var(--accent-dark,#004D71);color:white;padding:10px 24px;border-radius:24px;' +
-    'font-size:14px;font-weight:600;z-index:9999;opacity:0;transition:opacity 0.3s;';
+  toast.textContent = msg;
+  toast.style.cssText = 'position:fixed;bottom:90px;left:50%;' +
+    'transform:translateX(-50%);background:#004D71;color:white;' +
+    'padding:12px 24px;border-radius:24px;font-size:14px;' +
+    'font-weight:700;z-index:9999;font-family:system-ui,-apple-system,sans-serif;' +
+    'box-shadow:0 4px 16px rgba(0,0,0,0.3);pointer-events:none;';
   document.body.appendChild(toast);
-  requestAnimationFrame(function() { toast.style.opacity = '1'; });
+
   setTimeout(function() {
-    toast.style.opacity = '0';
-    setTimeout(function() { toast.remove(); }, 300);
-  }, 2000);
+    if (toast.parentNode) toast.parentNode.removeChild(toast);
+  }, 3000);
 }
 
 // Relative time using current language
