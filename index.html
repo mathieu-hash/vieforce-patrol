@@ -23,15 +23,83 @@ if ('serviceWorker' in navigator) {
   }
 }
 </script>
+<style>
+/* Login page dark navy + flower watermark — inlined to bypass CSS cache */
+body { background: #00263A !important; margin: 0; }
+.login-page {
+  background: #00263A !important;
+  min-height: 100vh; display: flex;
+  flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px;
+  position: relative; overflow: hidden;
+}
+.login-page::before {
+  content: '';
+  position: fixed;
+  bottom: -10%; right: -20%;
+  width: 85vw; height: 85vw;
+  background-image: url('icons/vienovo-flower.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.08;
+  filter: grayscale(100%) brightness(0.6);
+  pointer-events: none;
+  z-index: 0;
+}
+.login-page > * { position: relative; z-index: 1; }
+.login-page h1 { color: #FFFFFF !important; font-size: 24px; font-weight: 800; }
+.login-page p { color: rgba(255,255,255,0.4) !important; font-size: 12px; }
+.login-box {
+  background: rgba(255,255,255,0.05) !important;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 16px !important;
+}
+.login-box label {
+  color: rgba(255,255,255,0.6) !important;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+}
+.login-box input {
+  background: rgba(255,255,255,0.08) !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  color: #FFFFFF !important;
+  border-radius: 8px !important;
+}
+.login-box input::placeholder { color: rgba(255,255,255,0.35) !important; }
+.login-box input:focus { border-color: #00A6CE !important; background: rgba(0,174,239,0.08) !important; }
+.login-btn {
+  background: #00A6CE !important; color: white !important;
+  min-height: 64px !important; font-size: 16px !important;
+  font-weight: 700 !important; border: none !important;
+  border-radius: 8px !important; width: 100% !important;
+}
+.login-lang-bar { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; z-index: 2; }
+.login-lang-btn {
+  background: rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.7) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  border-radius: 20px !important;
+  padding: 4px 12px !important;
+  font-size: 11px !important; font-weight: 700 !important;
+  cursor: pointer !important;
+}
+.login-lang-btn.active {
+  background: #00A6CE !important;
+  color: white !important;
+  border-color: #00A6CE !important;
+}
+.login-footer { color: rgba(255,255,255,0.25) !important; position: relative; z-index: 1; }
+</style>
 </head>
 <body>
 
-<div class="login-page" style="position:relative">
+<div class="login-page">
   <!-- Language switcher — top-right corner -->
   <div class="login-lang-bar">
-    <button class="login-lang-btn" data-lang="TL" onclick="switchLoginLang('TL')">TL</button>
-    <button class="login-lang-btn" data-lang="BIS" onclick="switchLoginLang('BIS')">BIS</button>
-    <button class="login-lang-btn" data-lang="EN" onclick="switchLoginLang('EN')">EN</button>
+    <button onclick="switchLoginLang('TL')" id="pill-TL" class="lang-pill login-lang-btn" data-lang="TL">TL</button>
+    <button onclick="switchLoginLang('BIS')" id="pill-BIS" class="lang-pill login-lang-btn" data-lang="BIS">BIS</button>
+    <button onclick="switchLoginLang('EN')" id="pill-EN" class="lang-pill login-lang-btn" data-lang="EN">EN</button>
   </div>
 
   <div class="logo" style="background:none;width:auto;height:auto;font-size:0;box-shadow:none"><img src="icons/patrol-logo.png" style="width:80px;height:80px;object-fit:contain" alt="VIEPro Elite Patrol"></div>
@@ -68,7 +136,7 @@ if ('serviceWorker' in navigator) {
     document.getElementById('lbl-pin').textContent = L.pinLabel;
     document.getElementById('login-btn').textContent = L.signIn;
     // Mark active pill
-    document.querySelectorAll('.login-lang-btn').forEach(function(btn) {
+    document.querySelectorAll('.lang-pill').forEach(function(btn) {
       if (btn.dataset.lang === lang) btn.classList.add('active');
       else btn.classList.remove('active');
     });
