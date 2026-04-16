@@ -9,6 +9,20 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>
+// Kill any existing service worker permanently
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then(function(regs) {
+      regs.forEach(function(reg) { reg.unregister(); });
+    });
+  if ('caches' in window) {
+    caches.keys().then(function(names) {
+      names.forEach(function(name) { caches.delete(name); });
+    });
+  }
+}
+</script>
 </head>
 <body>
 
@@ -115,18 +129,7 @@
     window.location.href = 'app.html';
   }
 
-  // SW temporarily disabled — causing offline false positives on mobile
-  // TODO: re-enable after fixing cache strategy
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(
-      function(registrations) {
-        for (var i = 0; i < registrations.length; i++) {
-          registrations[i].unregister();
-          console.log('SW unregistered:', registrations[i]);
-        }
-      }
-    );
-  }
+  // SW permanently removed — kill script in <head> handles cleanup
 </script>
 
 </body>
