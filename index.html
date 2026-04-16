@@ -92,7 +92,11 @@
     try {
       const result = await login(phone, pin);
       if (result && result.success) {
-        window.location.href = 'app.html';
+        // Small delay ensures localStorage flushes on mobile WebViews before navigation
+        setTimeout(function() {
+          window.location.href = 'app.html';
+        }, 100);
+        return;
       } else {
         errorEl.textContent = (result && result.error) || L.invalidLogin;
         errorEl.classList.add('visible');

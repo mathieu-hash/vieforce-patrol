@@ -976,7 +976,15 @@
 <script src="js/ux-polish.js"></script>
 <script>
   // ===== Auth gate =====
-  requireAuth();
+  var session = requireAuth();
+  if (!session) {
+    // requireAuth() will retry after 150ms and redirect if truly no session.
+    // Stop initializing — page will either get a session on retry or redirect.
+    var _retryInit = setTimeout(function() {
+      var s = getSession();
+      if (s) window.location.reload();
+    }, 200);
+  }
 
   // ===== Init language pills — mark active on load =====
   (function() {
@@ -993,9 +1001,6 @@
       }
     });
   })();
-
-  // ===== Populate profile from session =====
-  const session = getSession();
   if (session) {
     const initials = session.name ? session.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : '--';
     document.getElementById('profile-avatar').textContent = initials;

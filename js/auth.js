@@ -76,7 +76,7 @@ async function login(phone, pin) {
     return { success: false, error: T.errorInvalidPin };
   }
 
-  // Try edge function first
+  // Try edge function
   try {
     var res = await fetch(EDGE_FN_URL, {
       method: 'POST',
@@ -87,38 +87,39 @@ async function login(phone, pin) {
       body: JSON.stringify({ phone: cleanPhone, pin: cleanPin })
     });
 
-    if (res.ok) {
-      var data = await res.json();
-      if (data && data.id) {
-        resetLoginAttempts();
-        var session = {
-          id: data.id,
-          name: data.name,
-          role: data.role,
-          region: data.region || null,
-          district: data.district || null,
-          territory: data.territory || null,
-          is_champion: data.is_champion || false,
-          loggedInAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
-        };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-        return { success: true, session: session };
+    // Parse response body ONCE — never call res.json() twice
+    var data = null;
+    try { data = await res.json(); } catch (e) { data = null; }
+
+    if (res.ok && data && data.id) {
+      resetLoginAttempts();
+      var session = {
+        id: data.id,
+        name: data.name,
+        role: data.role,
+        region: data.region || null,
+        district: data.district || null,
+        territory: data.territory || null,
+        is_champion: data.is_champion || false,
+        loggedInAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      // Verify write landed before returning success
+      var verify = localStorage.getItem(SESSION_KEY);
+      if (!verify) {
+        return { success: false, error: T.submitFail };
       }
-      var errData = await res.json().catch(function() { return data; });
-      recordFailedAttempt();
-      return { success: false, error: (errData && errData.error) || data.error || T.errorWrongPin };
+      return { success: true, session: session };
     }
 
-    // Non-OK response (401, 429, etc.)
-    var errBody = null;
-    try { errBody = await res.json(); } catch(e) { /* ignore */ }
+    // Error path — use already-parsed data
     recordFailedAttempt();
 
     if (res.status === 429) {
-      return { success: false, error: (errBody && errBody.error) || T.errorThrottledGeneric, throttled: true };
+      return { success: false, error: (data && data.error) || T.errorThrottledGeneric, throttled: true };
     }
-    return { success: false, error: (errBody && errBody.error) || T.errorWrongPin };
+    return { success: false, error: (data && data.error) || T.errorWrongPin };
   } catch (e) {
     // Edge function unreachable (no internet)
     return { success: false, error: T.errorNetworkLogin };
@@ -144,10 +145,18 @@ function getSession() {
 
 function requireAuth() {
   var session = getSession();
-  if (!session) {
-    window.location.href = 'index.html';
-  }
-  return session;
+  if (session) return session;
+
+  // Retry once after 150ms — handles mobile localStorage flush delay
+  setTimeout(function() {
+    var retrySession = getSession();
+    if (!retrySession) {
+      window.location.href = 'index.html';
+    }
+  }, 150);
+
+  // Return null for now — retry will handle redirect if truly no session
+  return null;
 }
 
 function logout() {
