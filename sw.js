@@ -1,10 +1,10 @@
-// VieForce Patrol — Service Worker v3
+// VieForce Patrol — Service Worker v7
 // Domain: patrol.vienovo.ph
 // Cache First: app shell, labels, Leaflet tiles
 // Network First: Supabase API → fallback to cached response
 // Network Only: photos (too large to cache)
 
-var CACHE_NAME = 'patrol-v6';
+var CACHE_NAME = 'patrol-v7';
 var APP_SHELL = [
   '/',
   '/app.html',
