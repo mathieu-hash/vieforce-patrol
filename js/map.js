@@ -15,10 +15,8 @@ function initMap() {
   var container = document.getElementById('map-container');
   if (!container || _map) return _map;
 
-  // OpenFreeMap — no token needed, free forever
-  mapboxgl.accessToken = '';
-
-  _map = new mapboxgl.Map({
+  // OpenFreeMap + MapLibre GL — no token needed, free forever
+  _map = new maplibregl.Map({
     container: 'map-container',
     style: 'https://tiles.openfreemap.org/styles/liberty',
     center: [121.0900, 14.6900],
@@ -28,10 +26,10 @@ function initMap() {
   });
 
   // Navigation controls (zoom +/-)
-  _map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+  _map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
   // Geolocate — "locate me" with blue pulsing dot
-  _geolocateCtrl = new mapboxgl.GeolocateControl({
+  _geolocateCtrl = new maplibregl.GeolocateControl({
     positionOptions: { enableHighAccuracy: true },
     trackUserLocation: true,
     showUserHeading: true
@@ -39,7 +37,7 @@ function initMap() {
   _map.addControl(_geolocateCtrl, 'top-right');
 
   // Small attribution
-  _map.addControl(new mapboxgl.AttributionControl({ compact: true }), 'bottom-right');
+  _map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
 
   // Auto-center on user location on load
   _map.on('load', function() {
@@ -144,13 +142,13 @@ function _addStoreMarker(store, isFarm) {
   // Popup content
   var popupHtml = _buildPopupContent(store, isFarm);
 
-  var popup = new mapboxgl.Popup({
+  var popup = new maplibregl.Popup({
     offset: 20,
     maxWidth: '300px',
     closeButton: true
   }).setHTML(popupHtml);
 
-  var marker = new mapboxgl.Marker({ element: el })
+  var marker = new maplibregl.Marker({ element: el })
     .setLngLat([store.lng, store.lat])
     .setPopup(popup)
     .addTo(_map);
