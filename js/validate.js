@@ -27,20 +27,16 @@ var ERRORS = {
 };
 
 /* ---------- Language helpers ---------- */
+// NOTE: setLanguage() lives in labels-v2.js — do NOT redefine here
 
 function getLanguage() {
   try {
-    return localStorage.getItem('patrol_lang') === 'tl' ? 'tl' : 'en';
+    var stored = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
+    // ERRORS keys use 'tl'/'en' — map from uppercase system
+    if (stored === 'TL' || stored === 'BIS') return 'tl';
+    return 'en';
   } catch (e) {
     return 'en';
-  }
-}
-
-function setLanguage(lang) {
-  try {
-    localStorage.setItem('patrol_lang', lang === 'tl' ? 'tl' : 'en');
-  } catch (e) {
-    // localStorage unavailable — silently fail
   }
 }
 
