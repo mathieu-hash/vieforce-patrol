@@ -81,8 +81,8 @@ async function login(phone, pin) {
     var res = await fetch(EDGE_FN_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
+        'Content-Type': 'text/plain',
+        'apikey': CONFIG.SUPABASE_ANON_KEY
       },
       body: JSON.stringify({ phone: cleanPhone, pin: cleanPin })
     });

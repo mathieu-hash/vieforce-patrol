@@ -2,23 +2,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts"
 
-// --- CORS ---
-const ALLOWED_ORIGINS = [
-  'https://vieforce-patrol.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5500',
-  'http://localhost:5173',
-  'http://127.0.0.1:5500',
-]
+// --- CORS --- allow all origins (public login endpoint)
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
 
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('origin') || ''
-  const allowed = ALLOWED_ORIGINS.includes(origin) || origin.startsWith('http://localhost:')
-  return {
-    'Access-Control-Allow-Origin': allowed ? origin : ALLOWED_ORIGINS[0],
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  }
+function getCorsHeaders(_req: Request) {
+  return corsHeaders
 }
 
 // --- Rate Limiting (in-memory) ---
