@@ -560,138 +560,36 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
-<!-- STORE DETAIL                              -->
+<!-- STORE DETAIL — Messenger Chat Thread      -->
 <!-- ========================================= -->
-<div id="page-store-detail" class="page">
-  <div class="detail-header">
-    <button class="back-btn" onclick="nav('page-stores')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-bottom:8px">&larr; Bumalik</button>
-    <h1 id="detail-store-name">Loading...</h1>
-    <div class="meta" id="detail-store-meta">--</div>
-    <div class="detail-badges">
-      <span class="badge badge-a" id="detail-vol-badge">Vol --</span>
-      <span class="badge badge-a" id="detail-cov-badge">Cov --</span>
-      <span class="badge-segment badge" id="detail-segment-badge" style="background:rgba(149,201,61,0.15);color:#5a8a0a">--</span>
-      <span class="badge" id="detail-health-badge" style="background:var(--green);color:white">--</span>
+<div id="page-store-detail" class="page" style="background:var(--bg-main);display:flex;flex-direction:column">
+  <!-- Chat header -->
+  <div class="chat-header" id="chat-header">
+    <div class="back" onclick="navBack('page-stores')">&#8249;</div>
+    <div class="chat-av" id="detail-chat-av" style="background:linear-gradient(135deg,#0084FF,#A855F7)">--</div>
+    <div class="chat-hdr-info" id="detail-chat-info">
+      <div class="chat-hdr-name" id="detail-store-name">Loading...</div>
+      <div class="chat-hdr-sub" id="detail-store-meta">--</div>
+    </div>
+    <div class="chat-hdr-btns">
+      <div class="chat-ico-btn" id="detail-call-btn" onclick="callStorePhone()">&#128222;</div>
+      <div class="chat-ico-btn" id="detail-map-btn" onclick="openStoreDirections()">&#128506;</div>
     </div>
   </div>
 
-  <div class="tab-bar" id="store-tabs">
-    <button class="tab-btn active" onclick="storeTab('profile')">Profile ko</button>
-    <button class="tab-btn" onclick="storeTab('products')">Produkto</button>
-    <button class="tab-btn" onclick="storeTab('competitors')">Kakumpitensya</button>
-    <button class="tab-btn" onclick="storeTab('merch')">Merch</button>
-    <button class="tab-btn" onclick="storeTab('history')">Kasaysayan</button>
+  <!-- Messages area — scrollable chat thread -->
+  <div class="messages" id="detail-messages">
+    <!-- Populated by JS: store info card + visit history as bubbles -->
   </div>
 
-  <!-- Profile Tab -->
-  <div id="store-tab-profile" class="store-tab-content">
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Kontak</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-        <div><span style="color:#888">May-ari</span><br><b id="detail-owner">--</b></div>
-        <div><span style="color:#888">Telepono</span><br><b id="detail-phone">--</b></div>
-      </div>
+  <!-- Input bar — tapping opens visit sheet -->
+  <div class="input-bar">
+    <div class="input-ico" onclick="startVisitFromDetail()">&#10133;</div>
+    <div class="input-ico" onclick="startVisitFromDetail()">&#128247;</div>
+    <div class="input-field" onclick="startVisitFromDetail()">
+      <span class="inp-ph">Dagdag ng notes...</span>
     </div>
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Supply Chain</div>
-      <div class="supply-chain" id="detail-supply-chain">
-        <span class="node">Vienovo</span> <span class="arrow">&rarr;</span>
-        <span class="node" style="color:var(--green)" id="detail-supply-store">--</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Komersyal</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
-        <div><span style="color:#888">Kabuuang buwanan</span><br><b id="detail-bags-total">-- bags</b></div>
-        <div><span style="color:#888">Vienovo buwanan</span><br><b id="detail-bags-vienovo">-- bags</b></div>
-      </div>
-      <div style="margin-top:10px;font-size:11px;color:#888">
-        Bahagi ng Vienovo
-        <div class="progress-bar"><div class="progress-fill" id="detail-share-bar" style="width:0%;background:var(--green)"></div></div>
-        <span style="font-weight:700;color:var(--navy)" id="detail-share-pct">--%</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Visit Health</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;text-align:center">
-        <div><span style="color:#888">Huling bisita</span><br><b style="color:var(--green)" id="detail-last-visit">--</b></div>
-        <div><span style="color:#888">Kabuuang bisita</span><br><b id="detail-total-visits">--</b></div>
-        <div><span style="color:#888">Target</span><br><b>4&times;/buwan</b></div>
-      </div>
-    </div>
-    <button class="big-button" id="btn-start-visit">Simulan ang Bisita</button>
-  </div>
-
-  <!-- Products Tab -->
-  <div id="store-tab-products" class="store-tab-content" style="display:none">
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Mga Produkto</div>
-      <div id="detail-products-container" style="display:flex;flex-wrap:wrap;gap:6px">
-        <span style="font-size:12px;color:#888">Loading...</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Mga Brand</div>
-      <div id="detail-brands-container" style="font-size:12px;line-height:2">
-        <span style="font-size:12px;color:#888">Loading...</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Competitors Tab -->
-  <div id="store-tab-competitors" class="store-tab-content" style="display:none">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">Mga Kakumpitensya</div>
-        <span style="font-size:11px;color:#888" id="detail-competitors-count">--</span>
-      </div>
-      <div id="detail-competitors-container" style="margin-top:12px">
-        <div style="font-size:12px;color:#888;padding:12px 0;text-align:center">Loading...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Merch Tab -->
-  <div id="store-tab-merch" class="store-tab-content" style="display:none">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div style="font-size:13px;font-weight:700;color:var(--navy)">Merchandising Score</div>
-        <div style="font-size:24px;font-weight:800;color:var(--green)" id="detail-merch-score">--/5</div>
-      </div>
-      <div class="progress-bar" style="height:8px"><div class="progress-fill" id="detail-merch-bar" style="width:0%;background:var(--green)"></div></div>
-      <div id="detail-merch-checklist" style="margin-top:16px">
-        <div class="merch-item">
-          <div class="merch-check">?</div>
-          <div><b style="font-size:13px">Signage</b><div style="font-size:11px;color:#888">Vienovo signboard visible</div></div>
-        </div>
-        <div class="merch-item">
-          <div class="merch-check">?</div>
-          <div><b style="font-size:13px">Price Board</b><div style="font-size:11px;color:#888">Updated price list displayed</div></div>
-        </div>
-        <div class="merch-item">
-          <div class="merch-check">?</div>
-          <div><b style="font-size:13px">Flyers</b><div style="font-size:11px;color:#888">Product flyers available</div></div>
-        </div>
-        <div class="merch-item">
-          <div class="merch-check">?</div>
-          <div><b style="font-size:13px">Standee</b><div style="font-size:11px;color:#888">Standing display present</div></div>
-        </div>
-        <div class="merch-item">
-          <div class="merch-check">?</div>
-          <div><b style="font-size:13px">Price Talkers</b><div style="font-size:11px;color:#888">Price tags on shelves</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- History Tab -->
-  <div id="store-tab-history" class="store-tab-content" style="display:none">
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">Mga Huling Bisita</div>
-      <div id="detail-history-container" style="font-size:12px">
-        <div style="color:#888;padding:12px 0;text-align:center">Loading...</div>
-      </div>
-    </div>
+    <div class="send" onclick="startVisitFromDetail()">&#128228;</div>
   </div>
 </div>
 
@@ -830,81 +728,78 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
-<!-- VISIT WIZARD                              -->
+<!-- VISIT BOTTOM SHEET (replaces full-page)   -->
 <!-- ========================================= -->
-<div id="page-visit-wizard" class="page" style="background:var(--bg-chat)">
-  <div class="top-bar">
-    <button class="back-btn" id="visit-wiz-back-nav" onclick="visitBack()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-right:8px">&larr;</button>
-    <h1 id="visit-wiz-title">Visit</h1>
-    <span id="visit-wiz-call" style="cursor:pointer;font-size:20px;padding:8px" onclick="callStoreOwner()">&#128222;</span>
+<div class="overlay" id="visit-overlay" onclick="closeVisitSheet()"></div>
+<div class="sheet" id="visit-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-store" id="visit-sheet-store">
+    <div class="sheet-store-av" id="visit-sheet-av" style="background:linear-gradient(135deg,#0084FF,#A855F7)">--</div>
+    <div>
+      <div class="sheet-store-name" id="visit-wiz-title">Store</div>
+      <div class="sheet-store-loc" id="visit-sheet-loc">--</div>
+    </div>
+  </div>
+  <div class="sheet-q">Ano ang nangyari? &#127978;</div>
+
+  <div class="outcomes" id="visit-outcome-grid">
+    <div class="outcome" data-outcome="order" onclick="selectOutcome('order')">
+      <div class="out-ico" style="background:rgba(34,197,94,0.12)">&#128722;</div>
+      <div class="out-txt">
+        <div class="out-label">May Order</div>
+        <div class="out-sub">Adunay order &middot; With order</div>
+      </div>
+      <div class="out-check">&#10003;</div>
+    </div>
+    <div class="exp-form" id="visit-order-panel">
+      <div class="form-inner">
+        <div class="f-lbl">Halaga ng order (&#8369;)</div>
+        <input class="f-inp" type="number" id="visit-order-amount" placeholder="hal. 80000" min="0" step="100">
+      </div>
+    </div>
+
+    <div class="outcome" data-outcome="no-order" onclick="selectOutcome('no-order')">
+      <div class="out-ico" style="background:rgba(0,132,255,0.1)">&#128172;</div>
+      <div class="out-txt">
+        <div class="out-label">Nakausap &middot; Walang Order</div>
+        <div class="out-sub">Nag-usap pero walang order ngayon</div>
+      </div>
+      <div class="out-check" style="color:var(--fb-blue,#0084FF)">&#10003;</div>
+    </div>
+
+    <div class="outcome" data-outcome="comeback" onclick="selectOutcome('comeback')">
+      <div class="out-ico" style="background:rgba(247,179,40,0.12)">&#128197;</div>
+      <div class="out-txt">
+        <div class="out-label">Bukas ulit</div>
+        <div class="out-sub">Wala sa tindahan &middot; Susunod</div>
+      </div>
+      <div class="out-check" style="color:var(--status-warn)">&#10003;</div>
+    </div>
   </div>
 
-  <!-- Store info bubble (blue, right-aligned like sent message) -->
-  <div class="info-bubble" id="visit-store-info">
-    <!-- Populated by JS: store name, location, bags, VPI share -->
-  </div>
-
-  <!-- Previous visit bubble (gray, left-aligned like received message) -->
-  <div id="visit-prev-container">
-    <!-- Populated by JS if there's a previous visit -->
-  </div>
-
-  <!-- Section divider -->
-  <div class="section-divider" id="visit-log-divider">I-log ang visit ngayon</div>
-
-  <!-- Outcome chips: 3 big tappable buttons (the core UX) -->
-  <div class="outcome-grid" id="visit-outcome-grid">
-    <button class="outcome-chip" data-outcome="order" onclick="selectOutcome('order')">
-      <span class="outcome-chip-icon">&#128722;</span>
-      <span class="outcome-chip-label">May Order</span>
-    </button>
-    <button class="outcome-chip" data-outcome="no-order" onclick="selectOutcome('no-order')">
-      <span class="outcome-chip-icon">&#128172;</span>
-      <span class="outcome-chip-label">Walang Order</span>
-    </button>
-    <button class="outcome-chip" data-outcome="comeback" onclick="selectOutcome('comeback')">
-      <span class="outcome-chip-icon">&#128197;</span>
-      <span class="outcome-chip-label">Bukas ulit</span>
-    </button>
-  </div>
-
-  <!-- GPS warning banner (non-blocking, shown if GPS fails) -->
-  <div id="visit-gps-warning" style="display:none;margin:8px 16px;padding:12px 16px;background:#FFF3E0;border-radius:12px;border-left:4px solid var(--status-warn);font-size:13px;color:#E65100;line-height:1.5">
+  <!-- GPS warning -->
+  <div id="visit-gps-warning" style="display:none;margin:8px 0;padding:12px 16px;background:#FFF3E0;border-radius:12px;border-left:4px solid var(--status-warn);font-size:13px;color:#E65100;line-height:1.5">
     <b>&#9888;&#65039; Hindi ma-locate ang GPS mo.</b><br>
     I-allow ang location sa settings.<br>
     <span style="color:var(--text-muted)">Maaari ka pa ring mag-submit.</span>
   </div>
+  <div id="visit-gps-status" style="display:none;margin:4px 0;font-size:12px;color:var(--text-muted);text-align:center"></div>
 
-  <!-- GPS status indicator (shown during acquisition) -->
-  <div id="visit-gps-status" style="display:none;margin:4px 16px;font-size:12px;color:var(--text-muted);text-align:center"></div>
-
-  <!-- Expandable mini-form (shows after outcome selection) -->
-  <div id="visit-details-panel" style="display:none;padding:0 16px">
-    <!-- Order details (shown if "May Order") -->
-    <div id="visit-order-panel" style="display:none">
-      <div class="form-group">
-        <label style="font-size:14px;font-weight:600;color:var(--text-secondary)">Halaga ng order (PHP)</label>
-        <input type="number" id="visit-order-amount" placeholder="hal. 25000" min="0" step="100"
-               style="min-height:56px;font-size:16px;border-radius:12px">
-      </div>
+  <!-- Expandable details (shows after outcome selection) -->
+  <div id="visit-details-panel" style="display:none">
+    <!-- Photo capture -->
+    <div class="cam-row" id="visit-photo-btn" onclick="captureVisitPhoto()">
+      <div class="cam-circle">&#128247;</div>
+      <span class="cam-lbl">Kumuha ng litrato ng shelf</span>
     </div>
-
-    <!-- Photo capture (Messenger camera button style) -->
-    <button class="photo-capture-btn" id="visit-photo-btn" onclick="captureVisitPhoto()">
-      &#128247; Kumuha ng litrato
-    </button>
     <div id="visit-photo-preview" style="margin:8px 0;display:none" onclick="captureVisitPhoto()">
       <img id="visit-photo-img" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;cursor:pointer" alt="Visit photo">
-      <div id="visit-photo-label" style="text-align:center;font-size:13px;color:var(--status-ok);font-weight:600;margin-top:4px">Litrato: &#10003; Handa na</div>
-      <div style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:2px">I-tap para palitan</div>
     </div>
 
-    <!-- Notes input (Messenger input bar style) -->
-    <div class="notes-input-bar">
-      <textarea id="visit-extra-notes" rows="1" placeholder="Dagdag ng notes..."></textarea>
-    </div>
+    <!-- Notes -->
+    <textarea class="notes-area" id="visit-extra-notes" placeholder="Dagdag ng notes... (opsyonal)"></textarea>
 
-    <!-- Merch quick-check (collapsed by default) -->
+    <!-- Merch quick-check -->
     <details style="margin:12px 0">
       <summary style="font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:8px 0">
         Merch Checklist (opsyonal)
@@ -932,15 +827,15 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
     </details>
-
-    <!-- Error display -->
-    <div id="visit-submit-error" class="error-msg" style="display:none"></div>
-
-    <!-- Big submit button (64px, Messenger blue) -->
-    <button class="big-button" id="btn-visit-submit" onclick="submitVisit()">
-      I-SUBMIT ANG VISIT
-    </button>
   </div>
+
+  <!-- Error display -->
+  <div id="visit-submit-error" class="error-msg" style="display:none"></div>
+
+  <!-- Gradient submit button -->
+  <button class="sub-btn" id="btn-visit-submit" disabled onclick="submitVisit()">
+    &#128228; I-submit ang bisita
+  </button>
 </div>
 
 <!-- ========================================= -->
@@ -1050,6 +945,34 @@ if ('serviceWorker' in navigator) {
     if (typeof autoSync === 'function') autoSync();
   }
 
+  // ===== Visit Bottom Sheet helpers =====
+  function openVisitSheet() {
+    var ov = document.getElementById('visit-overlay');
+    var sh = document.getElementById('visit-sheet');
+    if (ov) ov.classList.add('show');
+    if (sh) sh.classList.add('open');
+  }
+  function closeVisitSheet() {
+    var ov = document.getElementById('visit-overlay');
+    var sh = document.getElementById('visit-sheet');
+    if (ov) ov.classList.remove('show');
+    if (sh) sh.classList.remove('open');
+  }
+  function startVisitFromDetail() {
+    openVisitWizard(_currentStoreId, document.getElementById('detail-store-name').textContent);
+  }
+  function callStorePhone() {
+    var info = document.getElementById('detail-chat-info');
+    var phone = info ? info.getAttribute('data-phone') : '';
+    if (phone) window.location.href = 'tel:' + phone;
+  }
+  function openStoreDirections() {
+    var info = document.getElementById('detail-chat-info');
+    var lat = info ? info.getAttribute('data-lat') : '';
+    var lng = info ? info.getAttribute('data-lng') : '';
+    if (lat && lng) window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng, '_blank');
+  }
+
   // ===== Role-based home page: DSM/RSM/Admin see dashboard, TSR sees home =====
   if (session && (session.role === 'dsm' || session.role === 'rsm' || session.role === 'admin')) {
     // Show dashboard as default page, change Home nav to point to dashboard
@@ -1067,19 +990,27 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  // ===== Page Navigation =====
-  var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile'];
-  // Note: page-visits still exists but is accessed from home/stores, not bottom nav
+  // ===== Page Navigation (slide transitions) =====
+  var _navHistory = [];
 
   function nav(pageId) {
+    var cur = document.querySelector('.page.active');
+    var target = document.getElementById(pageId);
+    if (!target) return;
+    if (cur && cur.id === pageId) return;
+
+    // Track history for back navigation
+    if (cur) _navHistory.push(cur.id);
+
+    // Remove active from all, add to target
     var allPages = document.querySelectorAll('.page');
     for (var i = 0; i < allPages.length; i++) {
-      allPages[i].classList.remove('active');
+      allPages[i].classList.remove('active', 'page-behind');
     }
-    var target = document.getElementById(pageId);
-    if (target) target.classList.add('active');
+    target.classList.add('active');
 
-    // Update bottom-nav active state if navigating to a main page
+    // Update bottom-nav active state
+    var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile'];
     if (_mainPages.indexOf(pageId) !== -1) {
       var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
       for (var j = 0; j < navBtns.length; j++) {
@@ -1089,6 +1020,14 @@ if ('serviceWorker' in navigator) {
         }
       }
     }
+
+    // Scroll to top
+    window.scrollTo(0, 0);
+  }
+
+  function navBack(fallback) {
+    var prevId = _navHistory.pop();
+    nav(prevId || fallback || 'page-stores');
   }
 
   // Bottom-nav click handlers
@@ -1106,150 +1045,117 @@ if ('serviceWorker' in navigator) {
     _currentStoreId = storeId;
     nav('page-store-detail');
 
-    // Reset tabs to profile
-    storeTab('profile');
-
     // Set loading state
     document.getElementById('detail-store-name').textContent = 'Loading...';
     document.getElementById('detail-store-meta').textContent = '--';
 
+    var msgs = document.getElementById('detail-messages');
+    if (msgs) msgs.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>';
+
     try {
       var store = await getStoreById(storeId);
+      var visits = await getVisitsByStore(storeId);
 
-      // Header
+      // Avatar gradient based on health
+      var _grads = { crit:'linear-gradient(135deg,#FA383E,#FF6B35)', warn:'linear-gradient(135deg,#F97316,#EAB308)', ok:'linear-gradient(135deg,#22C55E,#16A34A)' };
+      var hs = store.health_status || 'ok';
+      var grad = _grads[hs] || 'linear-gradient(135deg,#0084FF,#A855F7)';
+      var initial = (store.name || '?').charAt(0).toUpperCase();
+      var second = (store.name || '').split(/\s+/)[1];
+      var initials = initial + (second ? second.charAt(0).toUpperCase() : '');
+
+      // Chat header
+      var chatAv = document.getElementById('detail-chat-av');
+      if (chatAv) { chatAv.style.background = grad; chatAv.textContent = initials; }
       document.getElementById('detail-store-name').textContent = store.name || '--';
       var metaParts = [];
-      if (store.store_type) metaParts.push(formatStoreType(store.store_type));
       if (store.city) metaParts.push(store.city);
-      if (store.province) metaParts.push(store.province);
-      document.getElementById('detail-store-meta').textContent = metaParts.join(' \u00b7 ') || '--';
+      if (store.bags_per_month) metaParts.push(store.bags_per_month + ' bags/buwan');
+      var statusDot = hs === 'ok' ? '\u25cf ' : hs === 'warn' ? '\u26a0 ' : '\u2757 ';
+      document.getElementById('detail-store-meta').textContent = statusDot + metaParts.join(' \u00b7 ');
 
-      // Badges
-      var volBadge = document.getElementById('detail-vol-badge');
-      volBadge.textContent = 'Vol ' + (store.vol_class || '--');
-      volBadge.className = 'badge ' + (store.vol_class === 'A' ? 'badge-a' : store.vol_class === 'B' ? 'badge-b' : 'badge-c');
+      // Store data on header for phone/directions
+      var chatInfo = document.getElementById('detail-chat-info');
+      if (chatInfo) {
+        chatInfo.setAttribute('data-phone', store.phone || '');
+        chatInfo.setAttribute('data-lat', store.lat || '');
+        chatInfo.setAttribute('data-lng', store.lng || '');
+      }
 
-      var covBadge = document.getElementById('detail-cov-badge');
-      covBadge.textContent = 'Cov ' + (store.cov_class || '--');
-      covBadge.className = 'badge ' + (store.cov_class === 'A' ? 'badge-a' : store.cov_class === 'B' ? 'badge-b' : 'badge-c');
-
-      var segBadge = document.getElementById('detail-segment-badge');
-      segBadge.textContent = store.segment || '--';
-
-      var healthBadge = document.getElementById('detail-health-badge');
-      var hs = store.health_status || 'ok';
-      if (hs === 'ok') { healthBadge.style.background = 'var(--green)'; healthBadge.textContent = '\u25cf OK'; }
-      else if (hs === 'warn') { healthBadge.style.background = 'var(--orange)'; healthBadge.textContent = '\u25cf Warning'; }
-      else { healthBadge.style.background = 'var(--pink)'; healthBadge.textContent = '\u25cf Critical'; }
-
-      // Profile tab — Contact
-      document.getElementById('detail-owner').textContent = store.owner_name || '--';
-      document.getElementById('detail-phone').textContent = store.phone || '--';
-
-      // Supply chain
-      document.getElementById('detail-supply-store').textContent = store.name || '--';
-
-      // Commercial
+      // Build chat messages
+      var html = '';
       var totalBags = store.bags_per_month || 0;
-      document.getElementById('detail-bags-total').textContent = totalBags + ' bags';
-
       var vienBags = 0;
       if (store.products) {
         for (var p = 0; p < store.products.length; p++) {
           if (store.products[p].is_vienovo) vienBags += (store.products[p].bags_per_month || 0);
         }
       }
-      document.getElementById('detail-bags-vienovo').textContent = vienBags + ' bags';
-
       var sharePct = totalBags > 0 ? Math.round((vienBags / totalBags) * 100) : 0;
-      document.getElementById('detail-share-pct').textContent = sharePct + '%';
-      document.getElementById('detail-share-bar').style.width = sharePct + '%';
+      var lastVisitText = formatRelativeTimeTagalog ? formatRelativeTimeTagalog(store.last_visit_at) : formatRelativeTime(store.last_visit_at);
 
-      // Visit health
-      document.getElementById('detail-last-visit').textContent = formatRelativeTime(store.last_visit_at);
+      // Store info card bubble (gray, received)
+      html += '<div class="msg-row">' +
+        '<div class="msg-av-small" style="background:' + grad + '">' + initials + '</div>' +
+        '<div>' +
+          '<div class="card-bubble">' +
+            '<div class="card-lbl">\ud83c\udfea ' + T.contact + '</div>' +
+            '<div class="card-row"><span class="card-key">' + T.owner + '</span><span class="card-val">' + _esc(store.owner_name || '--') + '</span></div>' +
+            '<div class="card-row"><span class="card-key">' + T.phone + '</span><span class="card-val blue">' + _esc(store.phone || '--') + '</span></div>' +
+            '<div class="card-row"><span class="card-key">VIE Share</span><span class="card-val green">' + sharePct + '% \u00b7 ' + totalBags + ' bags/mo</span></div>' +
+            '<div class="card-row"><span class="card-key">' + T.lastVisitLabel + '</span><span class="card-val">' + _esc(lastVisitText) + '</span></div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
 
-      // Total visits
-      var visits = await getVisitsByStore(storeId);
-      document.getElementById('detail-total-visits').textContent = visits.length;
-
-      // Products tab
-      var prodContainer = document.getElementById('detail-products-container');
-      var brandsContainer = document.getElementById('detail-brands-container');
-      if (store.products && store.products.length > 0) {
-        var groupSet = {};
-        var brandsHtml = '';
-        for (var pi = 0; pi < store.products.length; pi++) {
-          var prod = store.products[pi];
-          groupSet[prod.product_group] = true;
-          var brandColors = prod.is_vienovo
-            ? 'background:#e8f5e9;color:#2e7d32'
-            : 'background:#fff3e0;color:#e65100';
-          brandsHtml += '<span class="badge" style="' + brandColors + '">' + _esc(prod.brand) + '</span> ';
-        }
-        var groupIcons = {hog:'\ud83d\udc16',poultry:'\ud83d\udc14',gamefowl:'\ud83d\udc13',aqua:'\ud83d\udc1f',pet:'\ud83d\udc15',dairy:'\ud83e\udd5b',other:'\ud83d\udce6'};
-        var allGroups = ['hog','poultry','gamefowl','aqua','pet','dairy','other'];
-        var chipsHtml = '';
-        for (var gi = 0; gi < allGroups.length; gi++) {
-          var g = allGroups[gi];
-          var icon = groupIcons[g] || '';
-          var sel = groupSet[g] ? ' selected' : '';
-          var opac = groupSet[g] ? '' : ' style="opacity:0.4"';
-          chipsHtml += '<span class="chip' + sel + '"' + opac + '>' + icon + ' ' + g.charAt(0).toUpperCase() + g.slice(1) + '</span>';
-        }
-        prodContainer.innerHTML = chipsHtml;
-        brandsContainer.innerHTML = brandsHtml || '<span style="color:#888">' + T.noBrands + '</span>';
-      } else {
-        prodContainer.innerHTML = '<span style="font-size:12px;color:#888">' + T.noProducts + '</span>';
-        brandsContainer.innerHTML = '<span style="font-size:12px;color:#888">' + T.noBrands + '</span>';
-      }
-
-      // Competitors tab
-      var compContainer = document.getElementById('detail-competitors-container');
-      var compCount = document.getElementById('detail-competitors-count');
-      if (store.competitors && store.competitors.length > 0) {
-        compCount.textContent = store.competitors.length + ' brand' + (store.competitors.length !== 1 ? 's' : '');
-        var compHtml = '';
-        for (var ci = 0; ci < store.competitors.length; ci++) {
-          var comp = store.competitors[ci];
-          var isLast = ci === store.competitors.length - 1;
-          compHtml += '<div style="padding:10px 0;' + (isLast ? '' : 'border-bottom:1px solid #f0f0f0;') + '">' +
-            '<div style="display:flex;justify-content:space-between;font-size:13px">' +
-              '<b>' + _esc(comp.brand_name) + '</b>' +
-              (comp.product_group ? '<span class="badge" style="background:#fff3e0;color:#e65100">' + _esc(comp.product_group) + '</span>' : '') +
-            '</div>' +
-            '<div style="font-size:11px;color:#888;margin-top:4px">Est. ' + (comp.est_bags_per_month || 0) + ' bags/mo' +
-              (comp.notes ? ' \u00b7 ' + _esc(comp.notes) : '') +
-            '</div>' +
-          '</div>';
-        }
-        compContainer.innerHTML = compHtml;
-      } else {
-        compCount.textContent = '0 brands';
-        compContainer.innerHTML = '<div style="font-size:12px;color:#888;padding:12px 0;text-align:center">' + T.noCompetitors + '</div>';
-      }
-
-      // History tab
-      var histContainer = document.getElementById('detail-history-container');
+      // Visit history as chat bubbles (sent, blue/gradient)
       if (visits.length > 0) {
-        var histHtml = '';
+        var lastDateStr = '';
         for (var vi = 0; vi < visits.length; vi++) {
           var v = visits[vi];
-          var vDate = v.visited_at ? new Date(v.visited_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) : '--';
-          var vType = (v.visit_type || 'regular').charAt(0).toUpperCase() + (v.visit_type || 'regular').slice(1);
-          var isLastV = vi === visits.length - 1;
-          var vBadgeBg = v.order_taken ? 'background:#e8f5e9;color:#2e7d32' : 'background:#e3f2fd;color:#1565c0';
-          var vBadgeIcon = v.order_taken ? '\u2713' : '\u25cf';
-          histHtml += '<div style="padding:10px 0;' + (isLastV ? '' : 'border-bottom:1px solid #f0f0f0;') + 'display:flex;justify-content:space-between">' +
-            '<div><b>' + vDate + '</b> \u00b7 ' + _esc(vType) +
-              (v.notes ? '<div style="color:#888;font-size:11px">' + _esc(v.notes) + '</div>' : '') +
-              (v.order_taken ? '<div style="color:#888;font-size:11px">\u20b1 ' + (parseFloat(v.order_amount) || 0).toLocaleString() + '</div>' : '') +
+          var vDate = v.visited_at ? new Date(v.visited_at).toLocaleDateString('fil-PH', {month:'short',day:'numeric',year:'numeric'}) : '--';
+          var vDateKey = v.visited_at ? v.visited_at.slice(0, 10) : '';
+
+          // Date chip between different days
+          if (vDateKey !== lastDateStr) {
+            html += '<div class="date-chip">' + vDate + '</div>';
+            lastDateStr = vDateKey;
+          }
+
+          var vTime = v.visited_at ? new Date(v.visited_at).toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'}) : '';
+          var outcomeEmoji = v.order_taken ? '\ud83d\uded2' : '\ud83d\udcac';
+          var outcomeText = v.order_taken ? T.ordered : (T.noOrderNote || 'Nakausap');
+          var amountText = v.order_taken ? ' \u00b7 \u20b1' + (parseFloat(v.order_amount) || 0).toLocaleString() : '';
+
+          html += '<div class="msg-row out">' +
+            '<div>' +
+              '<div class="bubble out gradient">' +
+                outcomeEmoji + ' ' + _esc(outcomeText) + amountText +
+                (v.notes ? '<br><span style="opacity:0.85;font-size:13px">' + _esc(v.notes.substring(0, 100)) + '</span>' : '') +
+              '</div>' +
+              '<div class="msg-time out">' + vTime + ' <span style="color:rgba(255,255,255,0.7)">\u2713\u2713</span></div>' +
             '</div>' +
-            '<span class="badge" style="' + vBadgeBg + '">' + vBadgeIcon + '</span>' +
           '</div>';
         }
-        histContainer.innerHTML = histHtml;
-      } else {
-        histContainer.innerHTML = '<div style="color:#888;padding:12px 0;text-align:center">' + T.noVisitsYet + '</div>';
+      }
+
+      // Today's date chip
+      html += '<div class="date-chip">Ngayon \u00b7 ' + new Date().toLocaleDateString('fil-PH', {month:'short',day:'numeric',year:'numeric'}) + '</div>';
+
+      // Typing dots (waiting for today's visit)
+      html += '<div class="msg-row">' +
+        '<div class="msg-av-small" style="background:' + grad + '">' + initials + '</div>' +
+        '<div class="typing"><span></span><span></span><span></span></div>' +
+      '</div>';
+
+      // Visit prompt button
+      html += '<div class="visit-prompt" onclick="startVisitFromDetail()">' +
+        '<span>\ud83d\udcdd</span> I-log ang bisita ngayon' +
+      '</div>';
+
+      if (msgs) {
+        msgs.innerHTML = html;
+        msgs.scrollTop = msgs.scrollHeight;
       }
 
     } catch (err) {
@@ -1258,19 +1164,9 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  // ===== Store Detail Tabs =====
+  // ===== Store Detail Tabs (legacy — kept for compatibility) =====
   function storeTab(tabName) {
-    var tabs = document.querySelectorAll('#store-tabs .tab-btn');
-    var contents = document.querySelectorAll('.store-tab-content');
-    for (var i = 0; i < tabs.length; i++) {
-      tabs[i].classList.remove('active');
-    }
-    for (var j = 0; j < contents.length; j++) {
-      contents[j].style.display = 'none';
-    }
-    var tabNames = ['profile','products','competitors','merch','history'];
-    var idx = tabNames.indexOf(tabName);
-    if (idx !== -1 && tabs[idx]) tabs[idx].classList.add('active');
+    // No-op: tabs removed in chat redesign
     var target = document.getElementById('store-tab-' + tabName);
     if (target) target.style.display = 'block';
   }

@@ -29,14 +29,19 @@ async function openVisitWizard(storeId, storeName) {
   // Set header
   document.getElementById('visit-wiz-title').textContent = storeName || 'Visit';
 
-  // Reset outcome chips
-  var chips = document.querySelectorAll('#visit-outcome-grid .outcome-chip');
-  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected');
+  // Reset outcome chips (supports both .outcome-chip and .outcome)
+  var chips = document.querySelectorAll('#visit-outcome-grid .outcome-chip, #visit-outcome-grid .outcome');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected', 'sel-g', 'sel-b', 'sel-o');
+
+  // Close any open exp-forms
+  var expForms = document.querySelectorAll('.exp-form');
+  for (var ef = 0; ef < expForms.length; ef++) expForms[ef].classList.remove('open');
 
   // Hide details panel until outcome selected
-  document.getElementById('visit-details-panel').style.display = 'none';
+  var detailsPanel = document.getElementById('visit-details-panel');
+  if (detailsPanel) detailsPanel.style.display = 'none';
   var orderPanel = document.getElementById('visit-order-panel');
-  if (orderPanel) orderPanel.style.display = 'none';
+  if (orderPanel) { orderPanel.style.display = 'none'; orderPanel.classList.remove('open'); }
   document.getElementById('visit-order-amount').value = '';
 
   // Reset merch
@@ -56,7 +61,7 @@ async function openVisitWizard(storeId, storeName) {
   document.getElementById('visit-extra-notes').value = '';
   document.getElementById('visit-submit-error').style.display = 'none';
   var submitBtn = document.getElementById('btn-visit-submit');
-  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = T.submitVisit; submitBtn.className = 'big-button'; }
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '\ud83d\udce4 I-submit ang bisita'; submitBtn.className = 'sub-btn'; submitBtn.style.background = ''; }
 
   // Populate store info bubble
   var infoBubble = document.getElementById('visit-store-info');
@@ -104,7 +109,21 @@ async function openVisitWizard(storeId, storeName) {
   if (gpsWarning) gpsWarning.style.display = 'none';
   if (gpsStatus) gpsStatus.style.display = 'none';
 
-  nav('page-visit-wizard');
+  // Open bottom sheet instead of full-page navigation
+  if (typeof openVisitSheet === 'function') {
+    // Set sheet header
+    var sheetAv = document.getElementById('visit-sheet-av');
+    var sheetLoc = document.getElementById('visit-sheet-loc');
+    if (sheetAv) {
+      var ini = (storeName || '?').charAt(0).toUpperCase();
+      var sec = (storeName || '').split(/\s+/)[1];
+      sheetAv.textContent = ini + (sec ? sec.charAt(0).toUpperCase() : '');
+    }
+    if (sheetLoc) sheetLoc.textContent = '\ud83d\udccd ' + (storeName || '');
+    openVisitSheet();
+  } else {
+    nav('page-visit-wizard');
+  }
 
   // Pre-check GPS (non-blocking — TSR can still submit without GPS)
   _preCheckGPS();
@@ -140,13 +159,25 @@ async function _preCheckGPS() {
 function selectOutcome(outcome) {
   _visitData.outcome = outcome;
 
-  // Highlight selected chip
-  var chips = document.querySelectorAll('#visit-outcome-grid .outcome-chip');
+  // Reset all outcome chips (supports both .outcome-chip and .outcome classes)
+  var chips = document.querySelectorAll('#visit-outcome-grid .outcome-chip, #visit-outcome-grid .outcome');
   for (var i = 0; i < chips.length; i++) {
-    chips[i].classList.remove('selected');
-    if (chips[i].getAttribute('data-outcome') === outcome) {
-      chips[i].classList.add('selected');
+    chips[i].classList.remove('selected', 'sel-g', 'sel-b', 'sel-o');
+  }
+
+  // Highlight selected chip
+  var selMap = { 'order': 'sel-g', 'no-order': 'sel-b', 'comeback': 'sel-o' };
+  for (var j = 0; j < chips.length; j++) {
+    if (chips[j].getAttribute('data-outcome') === outcome) {
+      chips[j].classList.add('selected');
+      if (selMap[outcome]) chips[j].classList.add(selMap[outcome]);
     }
+  }
+
+  // Close all exp-forms, then open the right one
+  var expForms = document.querySelectorAll('.exp-form');
+  for (var ef = 0; ef < expForms.length; ef++) {
+    expForms[ef].classList.remove('open');
   }
 
   // Set visit type based on outcome
@@ -162,12 +193,19 @@ function selectOutcome(outcome) {
   }
 
   // Show details panel
-  document.getElementById('visit-details-panel').style.display = 'block';
+  var detailsPanel = document.getElementById('visit-details-panel');
+  if (detailsPanel) detailsPanel.style.display = 'block';
 
-  // Show/hide order amount field
+  // Show/hide order form (supports both old display toggle and new .exp-form.open)
   var orderPanel = document.getElementById('visit-order-panel');
   if (orderPanel) {
-    orderPanel.style.display = (outcome === 'order') ? 'block' : 'none';
+    if (outcome === 'order') {
+      orderPanel.style.display = 'block';
+      orderPanel.classList.add('open');
+    } else {
+      orderPanel.style.display = 'none';
+      orderPanel.classList.remove('open');
+    }
   }
 
   // For "comeback" — auto-set a note
@@ -178,12 +216,21 @@ function selectOutcome(outcome) {
     }
   }
 
-  // Scroll to details panel
-  document.getElementById('visit-details-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Enable submit button with spring bounce
+  var submitBtn = document.getElementById('btn-visit-submit');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.style.transform = 'scale(1.03)';
+    setTimeout(function() { submitBtn.style.transform = ''; }, 200);
+  }
 }
 
 function visitBack() {
-  nav('page-store-detail');
+  if (typeof closeVisitSheet === 'function') {
+    closeVisitSheet();
+  } else {
+    nav('page-store-detail');
+  }
 }
 
 // Call store owner (phone link)
@@ -342,12 +389,30 @@ async function submitVisit() {
       });
     }
 
-    // 6. Navigate back after brief delay
+    // 6. Close sheet + append bubble to chat after brief delay
     setTimeout(function () {
-      nav('page-store-detail');
-      if (_visitData.storeId && typeof openStoreDetail === 'function') {
-        openStoreDetail(_visitData.storeId);
+      if (typeof closeVisitSheet === 'function') {
+        closeVisitSheet();
       }
+      // Append new visit bubble to chat thread
+      var msgs = document.getElementById('detail-messages');
+      if (msgs) {
+        var newBubble = document.createElement('div');
+        newBubble.className = 'msg-row out';
+        newBubble.style.animation = 'msgPop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+        var outcomeEmoji = _visitData.order_taken ? '\ud83d\uded2' : '\ud83d\udcac';
+        var amountText = _visitData.order_taken ? ' \u00b7 \u20b1' + (_visitData.order_amount || 0).toLocaleString() : '';
+        var timeNow = new Date().toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'});
+        newBubble.innerHTML = '<div><div class="bubble out gradient">' +
+          outcomeEmoji + ' ' + (T.ordered || 'Na-log') + amountText +
+          (_visitData.notes ? '<br><span style="opacity:0.85;font-size:13px">' + _visitData.notes.substring(0, 80) + '</span>' : '') +
+          '</div><div class="msg-time out">' + timeNow + ' <span style="color:rgba(255,255,255,0.7)">\u2713</span></div></div>';
+        msgs.appendChild(newBubble);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+      // Refresh store list in background
+      if (typeof renderStoreList === 'function') renderStoreList();
+      if (typeof updateHomeKPIs === 'function') updateHomeKPIs();
     }, 1200);
 
   } catch (err) {
