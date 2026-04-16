@@ -60,6 +60,7 @@ body {
 /* ===== GLOBAL COMPONENTS ===== */
 .page { display: none; padding-bottom: 80px; min-height: 100vh; }
 .page.active { display: block; }
+#page-stores.active { display: flex !important; flex-direction: column; overflow: hidden; }
 
 /* Page transition classes (opt-in — requires HTML changes to activate) */
 .page.page-animated {

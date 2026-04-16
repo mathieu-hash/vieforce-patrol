@@ -396,20 +396,24 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- STORES PAGE                               -->
 <!-- ========================================= -->
-<div id="page-stores" class="page" style="background:var(--bg-chat)">
-  <div class="top-bar">
-    <div style="flex:1">
-      <h1 id="stores-title">Mga Tindahan</h1>
-      <div class="subtitle" id="stores-subtitle">Loading...</div>
+<div id="page-stores" class="page" style="background:var(--bg);display:flex;flex-direction:column;overflow:hidden">
+  <!-- Messenger-style white header -->
+  <div class="header" style="flex-shrink:0;padding:0 16px;background:var(--bg);position:relative;z-index:10;border-bottom:1px solid var(--divider)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px">
+      <div style="font-size:24px;font-weight:800;color:var(--text);letter-spacing:-0.3px" id="stores-title">Mga Tindahan</div>
+      <div style="display:flex;gap:8px">
+        <div class="hdr-btn" id="btn-new-store" style="width:36px;height:36px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">✏️</div>
+        <div class="hdr-btn" id="stores-avatar-btn" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer">--</div>
+      </div>
     </div>
-    <button class="action-btn" id="btn-new-store">+ Bago</button>
+    <div id="stores-subtitle" style="display:none"></div>
+    <div style="background:var(--bg2);border-radius:22px;display:flex;align-items:center;gap:8px;padding:9px 16px;margin-bottom:12px">
+      <span style="font-size:14px;color:var(--text2)">🔍</span>
+      <input type="text" id="store-search" placeholder="Hanapin ang tindahan..." style="border:none;background:none;font-size:15px;color:var(--text);outline:none;width:100%;font-family:inherit">
+    </div>
   </div>
 
-  <div class="search-bar">
-    <input type="text" id="store-search" placeholder="Hanapin ang tindahan...">
-  </div>
-
-  <div class="filter-row">
+  <div class="filter-row" style="flex-shrink:0">
     <button class="filter-chip active" data-filter-label="all">Lahat</button>
     <button class="filter-chip" data-filter-label="crit" style="color:var(--status-crit)">Critical</button>
     <button class="filter-chip" data-filter-label="warn" style="color:var(--status-warn)">Babala</button>
@@ -417,11 +421,11 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- Story circles: priority stores to visit (FB Messenger stories row) -->
-  <div class="stories" id="story-circles-row" style="display:none">
+  <div class="stories" id="story-circles-row" style="display:none;flex-shrink:0">
     <!-- Populated by JS: renderStoryCircles() -->
   </div>
 
-  <div id="store-list" class="conv-list" style="background:var(--bg-main)">
+  <div id="store-list" class="conv-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
     <!-- Skeleton rows rendered by JS (Rule 7: no spinners) -->
   </div>
 </div>
@@ -925,6 +929,8 @@ if ('serviceWorker' in navigator) {
   if (session) {
     const initials = session.name ? session.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : '--';
     document.getElementById('profile-avatar').textContent = initials;
+    var storesAvBtn = document.getElementById('stores-avatar-btn');
+    if (storesAvBtn) storesAvBtn.textContent = initials;
     document.getElementById('profile-name').textContent = session.name || 'Unknown';
     document.getElementById('profile-role').textContent =
       (session.role || '').toUpperCase() + (session.territory ? ' \u00B7 ' + session.territory : '');
