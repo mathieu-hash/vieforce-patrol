@@ -416,7 +416,12 @@ if ('serviceWorker' in navigator) {
     <button class="filter-chip" data-filter-label="ok" style="color:var(--status-ok)">OK</button>
   </div>
 
-  <div id="store-list" style="background:var(--bg-main)">
+  <!-- Story circles: priority stores to visit (FB Messenger stories row) -->
+  <div class="stories" id="story-circles-row" style="display:none">
+    <!-- Populated by JS: renderStoryCircles() -->
+  </div>
+
+  <div id="store-list" class="conv-list" style="background:var(--bg-main)">
     <!-- Skeleton rows rendered by JS (Rule 7: no spinners) -->
   </div>
 </div>

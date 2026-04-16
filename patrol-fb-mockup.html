@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="tl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>VieForce Patrol — Full Messenger Feel</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+
+:root {
+  /* Exact Facebook Messenger colors */
+  --fb-blue: #0084FF;
+  --fb-blue-dark: #0070E0;
+  --fb-gradient: linear-gradient(135deg, #0084FF, #A855F7);
+  --fb-purple: #A855F7;
+  --fb-pink: #F43F5E;
+  --fb-orange: #F97316;
+  --fb-green: #22C55E;
+  --fb-yellow: #EAB308;
+  
+  /* Vienovo accent */
+  --vie-blue: #00A6CE;
+  --vie-navy: #004A64;
+  
+  /* Status */
+  --s-green: #31A24C;
+  --s-orange: #F7B928;
+  --s-red: #FA383E;
+  
+  /* Neutrals — exact FB */
+  --bg: #FFFFFF;
+  --bg2: #F0F2F5;
+  --bg3: #E4E6EB;
+  --text: #050505;
+  --text2: #65676B;
+  --text3: #BCC0C4;
+  --divider: rgba(0,0,0,0.08);
+  
+  --radius: 18px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg2);
+  max-width: 430px;
+  margin: 0 auto;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===== PAGE SYSTEM with FB-feel transitions ===== */
+.page {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+  overflow: hidden;
+}
+.page.active {
+  transform: translateX(0);
+}
+.page.behind {
+  transform: translateX(-30%);
+  transition: transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.page.home {
+  transform: translateX(0);
+}
+
+/* ===== TOP HEADER ===== */
+.header {
+  flex-shrink: 0;
+  padding: 0 16px;
+  background: var(--bg);
+  position: relative;
+  z-index: 10;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--divider);
+}
+.header-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0 10px;
+}
+.header-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.3px;
+}
+.header-actions { display: flex; gap: 8px; }
+.hdr-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--bg2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.hdr-btn:active { transform: scale(0.88); background: var(--bg3); }
+
+.search-wrap {
+  background: var(--bg2);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s;
+}
+.search-wrap:focus-within {
+  box-shadow: 0 0 0 3px rgba(0,132,255,0.2);
+}
+.search-ico { font-size: 14px; color: var(--text2); }
+.search-txt { font-size: 15px; color: var(--text2); }
+
+/* ===== STORIES / PRIORITY ROW ===== */
+.stories {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: var(--bg);
+  border-bottom: 1px solid var(--divider);
+}
+.stories::-webkit-scrollbar { display: none; }
+.story {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+.story-ring-wrap {
+  position: relative;
+  width: 60px; height: 60px;
+}
+.story-ring {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  padding: 2.5px;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.story:active .story-ring { transform: scale(0.9); }
+.ring-urgent { background: conic-gradient(var(--s-red) 0%, var(--s-orange) 50%, var(--s-red) 100%); animation: spin 3s linear infinite; }
+.ring-warn { background: conic-gradient(var(--s-orange), var(--fb-yellow), var(--s-orange)); animation: spin 4s linear infinite; }
+.ring-ok { background: conic-gradient(var(--s-green), #7ED321, var(--s-green)); }
+.ring-new { background: conic-gradient(var(--fb-blue), var(--fb-purple), var(--fb-blue)); animation: spin 3s linear infinite; }
+@keyframes spin { from{filter:hue-rotate(0deg)} to{filter:hue-rotate(360deg)} }
+.story-inner {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: white;
+  border: 2.5px solid white;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+.story-av {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 800; color: white;
+}
+.story-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text2);
+  max-width: 64px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  text-align: center;
+}
+.story-badge {
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  color: white;
+}
+
+/* ===== CONVERSATION LIST ===== */
+.conv-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.section-hdr {
+  font-size: 13px; font-weight: 700;
+  color: var(--text2);
+  padding: 10px 16px 4px;
+  letter-spacing: 0.2px;
+}
+
+.conv {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.conv::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  transition: background 0.1s;
+  pointer-events: none;
+}
+.conv:active::after { background: rgba(0,0,0,0.04); }
+
+.av-wrap { position: relative; flex-shrink: 0; }
+.av {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; font-weight: 800; color: white;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.conv:active .av { transform: scale(0.92); }
+.status-dot {
+  position: absolute;
+  bottom: 2px; right: 2px;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  border: 2.5px solid white;
+  transition: transform 0.2s;
+}
+.dot-ok { background: var(--s-green); }
+.dot-warn { background: var(--s-orange); }
+.dot-crit { background: var(--s-red); box-shadow: 0 0 0 3px rgba(250,56,62,0.25); animation: crit-pulse 1.5s ease infinite; }
+@keyframes crit-pulse { 0%,100%{box-shadow:0 0 0 3px rgba(250,56,62,0.25)} 50%{box-shadow:0 0 0 5px rgba(250,56,62,0)} }
+
+.conv-info { flex: 1; min-width: 0; }
+.conv-name {
+  font-size: 15px; font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.conv-name.muted { font-weight: 400; color: var(--text2); }
+.conv-last {
+  font-size: 13px; font-weight: 600;
+  color: var(--text2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.conv-last.muted { font-weight: 400; }
+.conv-last.urgent { color: var(--s-red); font-weight: 700; }
+
+.conv-meta {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 5px;
+  flex-shrink: 0;
+}
+.conv-time { font-size: 12px; color: var(--text3); }
+.conv-time.new { color: var(--fb-blue); font-weight: 600; }
+.ticks { font-size: 14px; color: var(--fb-blue); }
+.ticks.gray { color: var(--text3); }
+.ticks.sending { color: var(--s-orange); }
+.unread-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--fb-blue);
+}
+.urgent-badge {
+  min-width: 20px; height: 20px;
+  border-radius: 10px;
+  background: var(--s-red);
+  color: white;
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 5px;
+  animation: badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes badge-pop { from{transform:scale(0)} to{transform:scale(1)} }
+
+/* ===== CHAT SCREEN ===== */
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 4px;
+  background: var(--bg);
+  flex-shrink: 0;
+  position: relative;
+}
+.chat-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: var(--divider);
+}
+.back {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  color: var(--fb-blue);
+  cursor: pointer;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.12s, transform 0.1s;
+}
+.back:active { background: var(--bg2); transform: scale(0.88); }
+.chat-av {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800; color: white;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.chat-av:active { transform: scale(0.88); }
+.chat-hdr-info { flex: 1; cursor: pointer; }
+.chat-hdr-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.chat-hdr-sub { font-size: 12px; color: var(--s-green); font-weight: 500; }
+.chat-hdr-btns { display: flex; gap: 4px; }
+.chat-ico-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--bg2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; cursor: pointer;
+  transition: transform 0.1s, background 0.12s;
+}
+.chat-ico-btn:active { transform: scale(0.85); background: var(--bg3); }
+
+/* Messages */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 12px 8px;
+  display: flex; flex-direction: column; gap: 3px;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+}
+.date-chip {
+  align-self: center;
+  font-size: 12px; font-weight: 500;
+  color: var(--text2);
+  background: var(--bg2);
+  padding: 4px 14px;
+  border-radius: 12px;
+  margin: 8px 0;
+}
+.msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+.msg-row.out { flex-direction: row-reverse; }
+.msg-av-small {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; color: white;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+.bubble {
+  max-width: 76%;
+  padding: 10px 14px;
+  border-radius: 20px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  position: relative;
+  word-break: break-word;
+  transition: transform 0.1s;
+  cursor: pointer;
+}
+.bubble:active { transform: scale(0.97); }
+.bubble.in {
+  background: var(--bg2);
+  color: var(--text);
+  border-bottom-left-radius: 5px;
+}
+.bubble.out {
+  background: var(--fb-blue);
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+.bubble.out.gradient {
+  background: var(--fb-gradient);
+}
+.msg-time {
+  font-size: 11px;
+  padding: 0 4px;
+  color: var(--text3);
+  display: flex; align-items: center; gap: 3px;
+  margin-bottom: 2px;
+}
+.msg-time.out { justify-content: flex-end; }
+
+/* Info card bubble */
+.card-bubble {
+  background: var(--bg2);
+  border-radius: 20px;
+  border-bottom-left-radius: 5px;
+  padding: 12px 14px;
+  max-width: 85%;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.card-bubble:active { transform: scale(0.98); }
+.card-lbl {
+  font-size: 11px; font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.card-row {
+  display: flex; justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  font-size: 13.5px;
+}
+.card-row:last-child { border: none; padding-bottom: 0; }
+.card-key { color: var(--text2); }
+.card-val { font-weight: 600; color: var(--text); }
+.card-val.blue { color: var(--fb-blue); }
+.card-val.green { color: var(--s-green); }
+.card-val.red { color: var(--s-red); }
+
+/* Order result bubble */
+.order-bubble {
+  background: linear-gradient(135deg, rgba(0,132,255,0.08), rgba(168,85,247,0.08));
+  border: 1.5px solid rgba(0,132,255,0.2);
+  border-radius: 20px;
+  border-bottom-left-radius: 5px;
+  padding: 12px 14px;
+  max-width: 85%;
+}
+.order-big { font-size: 24px; font-weight: 800; color: var(--fb-blue); }
+.order-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.order-chips { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.chip {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 9px; border-radius: 12px;
+}
+.chip-g { background: rgba(34,197,94,0.12); color: var(--s-green); }
+.chip-b { background: rgba(0,132,255,0.1); color: var(--fb-blue); }
+.chip-o { background: rgba(247,179,40,0.12); color: var(--s-orange); }
+.chip-n { background: var(--bg3); color: var(--text2); }
+
+/* Reactions */
+.reaction-bar {
+  display: flex; gap: 2px;
+  margin-top: 3px;
+  padding-left: 4px;
+}
+.reaction {
+  background: white;
+  border: 1.5px solid var(--divider);
+  border-radius: 12px;
+  padding: 2px 7px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.reaction:active { transform: scale(1.3); }
+
+/* Visit prompt */
+.visit-prompt {
+  align-self: center;
+  background: linear-gradient(135deg, var(--fb-blue), var(--fb-purple));
+  color: white;
+  padding: 11px 20px;
+  border-radius: 22px;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer;
+  margin: 10px 0;
+  box-shadow: 0 4px 16px rgba(0,132,255,0.35);
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.visit-prompt:active { transform: scale(0.95); box-shadow: 0 2px 8px rgba(0,132,255,0.25); }
+
+/* Input bar */
+.input-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  background: var(--bg);
+  border-top: 1px solid var(--divider);
+  flex-shrink: 0;
+}
+.input-ico {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: none;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  color: var(--fb-blue);
+}
+.input-ico:active { transform: scale(0.85); }
+.input-field {
+  flex: 1;
+  background: var(--bg2);
+  border-radius: 22px;
+  padding: 9px 14px;
+  font-size: 15px;
+  color: var(--text);
+  display: flex; align-items: center;
+  cursor: text;
+  min-height: 38px;
+  transition: box-shadow 0.2s;
+}
+.input-field:focus-within { box-shadow: 0 0 0 2px rgba(0,132,255,0.3); }
+.inp-ph { color: var(--text2); }
+.send {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--fb-blue);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,132,255,0.4);
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s;
+}
+.send:active { transform: scale(0.85); box-shadow: 0 1px 4px rgba(0,132,255,0.2); }
+
+/* ===== BOTTOM NAV ===== */
+.bottom-nav {
+  display: flex;
+  background: var(--bg);
+  border-top: 1px solid var(--divider);
+  flex-shrink: 0;
+  padding-bottom: 4px;
+}
+.nav-item {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 2px;
+  padding: 8px 4px 4px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+}
+.nav-item:active { transform: scale(0.85); }
+.nav-ico { font-size: 22px; }
+.nav-lbl { font-size: 10px; font-weight: 600; color: var(--text3); }
+.nav-item.on .nav-lbl { color: var(--fb-blue); }
+.nav-pip {
+  position: absolute; top: 5px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--fb-blue);
+  display: none;
+}
+.nav-item.on .nav-pip { display: block; }
+
+/* ===== OUTCOME SHEET ===== */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0);
+  z-index: 80;
+  display: none;
+  transition: background 0.3s;
+}
+.overlay.show {
+  display: block;
+  background: rgba(0,0,0,0.5);
+}
+.sheet {
+  position: fixed;
+  bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+  width: 100%; max-width: 430px;
+  background: var(--bg);
+  border-radius: 24px 24px 0 0;
+  z-index: 90;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  padding: 0 16px 36px;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.15);
+}
+.sheet.open { transform: translateX(-50%) translateY(0); }
+.sheet-handle {
+  width: 40px; height: 5px;
+  background: var(--bg3);
+  border-radius: 3px;
+  margin: 12px auto 18px;
+}
+.sheet-store {
+  display: flex; align-items: center; gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 14px;
+}
+.sheet-store-av {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: white;
+}
+.sheet-store-name { font-size: 16px; font-weight: 700; color: var(--text); }
+.sheet-store-loc { font-size: 13px; color: var(--text2); }
+.sheet-q { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+
+/* Outcome options */
+.outcomes { display: flex; flex-direction: column; gap: 8px; }
+.outcome {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: var(--bg2);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+.outcome::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.3), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.outcome:active { transform: scale(0.97); }
+.outcome:active::after { opacity: 1; }
+.outcome.sel-g { background: rgba(34,197,94,0.1); border-color: var(--s-green); transform: scale(1.01); }
+.outcome.sel-b { background: rgba(0,132,255,0.1); border-color: var(--fb-blue); transform: scale(1.01); }
+.outcome.sel-o { background: rgba(247,179,40,0.1); border-color: var(--s-orange); transform: scale(1.01); }
+.out-ico {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.out-txt { flex: 1; }
+.out-label { font-size: 15px; font-weight: 700; color: var(--text); }
+.out-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.out-check {
+  font-size: 20px;
+  transform: scale(0);
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  color: var(--s-green);
+}
+.outcome.sel-g .out-check,
+.outcome.sel-b .out-check { transform: scale(1); }
+
+/* Expanded form */
+.exp-form {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.exp-form.open { max-height: 300px; }
+.form-inner { padding: 10px 0 4px; }
+.f-lbl { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.f-inp {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--bg3);
+  font-size: 15px; font-weight: 600;
+  color: var(--text);
+  background: var(--bg);
+  margin-bottom: 10px;
+  font-family: var(--font);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.f-inp:focus { outline: none; border-color: var(--fb-blue); box-shadow: 0 0 0 3px rgba(0,132,255,0.12); }
+.cam-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; cursor: pointer;
+}
+.cam-circle {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 2px dashed var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  transition: all 0.15s;
+}
+.cam-row:active .cam-circle { border-color: var(--fb-blue); background: rgba(0,132,255,0.06); transform: scale(0.9); }
+.cam-lbl { font-size: 14px; color: var(--text2); }
+
+.notes-area {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--bg3);
+  font-size: 14px; color: var(--text);
+  background: var(--bg);
+  font-family: var(--font);
+  resize: none; height: 56px;
+  margin-top: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.notes-area:focus { outline: none; border-color: var(--fb-blue); box-shadow: 0 0 0 3px rgba(0,132,255,0.12); }
+
+/* Submit button */
+.sub-btn {
+  width: 100%;
+  padding: 15px;
+  border-radius: 16px;
+  background: var(--fb-gradient);
+  color: white;
+  font-size: 16px; font-weight: 700;
+  border: none; cursor: pointer;
+  font-family: var(--font);
+  margin-top: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: 0 4px 20px rgba(0,132,255,0.35);
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.15s, opacity 0.2s;
+}
+.sub-btn:active { transform: scale(0.97); box-shadow: 0 2px 10px rgba(0,132,255,0.2); }
+.sub-btn:disabled { background: var(--bg2); color: var(--text3); box-shadow: none; pointer-events: none; }
+
+/* Typing dots */
+.typing {
+  display: flex; align-items: center; gap: 4px;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border-radius: 20px;
+  border-bottom-left-radius: 5px;
+  width: fit-content;
+  margin-bottom: 4px;
+}
+.typing span {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--text3);
+  animation: typing 1.4s ease infinite;
+}
+.typing span:nth-child(2) { animation-delay: 0.2s; }
+.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-5px);opacity:1} }
+
+</style>
+</head>
+<body>
+
+<!-- ===== PAGE 1: STORE LIST ===== -->
+<div class="page home" id="pg-list">
+
+  <div class="header">
+    <div class="header-row1">
+      <div class="header-title">Mga Tindahan</div>
+      <div class="header-actions">
+        <div class="hdr-btn">✏️</div>
+        <div class="hdr-btn" style="background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));color:white;font-weight:800;font-size:14px">JS</div>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <span class="search-ico">🔍</span>
+      <span class="search-txt">Hanapin ang tindahan...</span>
+    </div>
+  </div>
+
+  <!-- Priority story circles -->
+  <div class="stories">
+    <div class="story" onclick="navTo('pg-chat')">
+      <div class="story-ring-wrap">
+        <div class="story-ring ring-urgent">
+          <div class="story-inner"><div class="story-av" style="background:linear-gradient(135deg,#FA383E,#FF6B35)">SA</div></div>
+        </div>
+        <div class="story-badge" style="background:var(--s-red)">!</div>
+      </div>
+      <span class="story-label">Santos Agri</span>
+    </div>
+    <div class="story" onclick="navTo('pg-chat')">
+      <div class="story-ring-wrap">
+        <div class="story-ring ring-warn">
+          <div class="story-inner"><div class="story-av" style="background:linear-gradient(135deg,#F97316,#EAB308)">MF</div></div>
+        </div>
+        <div class="story-badge" style="background:var(--s-orange)">5d</div>
+      </div>
+      <span class="story-label">Metro Farm</span>
+    </div>
+    <div class="story" onclick="navTo('pg-chat')">
+      <div class="story-ring-wrap">
+        <div class="story-ring ring-ok">
+          <div class="story-inner"><div class="story-av" style="background:linear-gradient(135deg,#22C55E,#16A34A)">GF</div></div>
+        </div>
+        <div class="story-badge" style="background:var(--s-green)">✓</div>
+      </div>
+      <span class="story-label">Greenfield</span>
+    </div>
+    <div class="story" onclick="navTo('pg-chat')">
+      <div class="story-ring-wrap">
+        <div class="story-ring ring-ok">
+          <div class="story-inner"><div class="story-av" style="background:linear-gradient(135deg,#0084FF,#A855F7)">NF</div></div>
+        </div>
+        <div class="story-badge" style="background:var(--s-green)">✓</div>
+      </div>
+      <span class="story-label">Nueva Feeds</span>
+    </div>
+    <div class="story" onclick="navTo('pg-chat')">
+      <div class="story-ring-wrap">
+        <div class="story-ring ring-new">
+          <div class="story-inner"><div class="story-av" style="background:linear-gradient(135deg,#8B5CF6,#EC4899)">QC</div></div>
+        </div>
+        <div class="story-badge" style="background:var(--fb-blue)">★</div>
+      </div>
+      <span class="story-label">QC Feeds</span>
+    </div>
+  </div>
+
+  <div class="conv-list">
+    <div class="section-hdr">⚡ Hindi pa nabibisita</div>
+
+    <div class="conv" onclick="navTo('pg-chat')">
+      <div class="av-wrap">
+        <div class="av" style="background:linear-gradient(135deg,#FA383E,#FF6B35)">SA</div>
+        <div class="status-dot dot-crit"></div>
+      </div>
+      <div class="conv-info">
+        <div class="conv-name">Santos Agri Center</div>
+        <div class="conv-last urgent">⚠️ 8 araw nang hindi nabibisita</div>
+      </div>
+      <div class="conv-meta">
+        <span class="conv-time new">8d</span>
+        <div class="urgent-badge">!</div>
+      </div>
+    </div>
+
+    <div class="conv" onclick="navTo('pg-chat')">
+      <div class="av-wrap">
+        <div class="av" style="background:linear-gradient(135deg,#F97316,#EAB308)">MF</div>
+        <div class="status-dot dot-warn"></div>
+      </div>
+      <div class="conv-info">
+        <div class="conv-name">Metro Farm Supply</div>
+        <div class="conv-last">Kailangan ng bisita ngayong linggo</div>
+      </div>
+      <div class="conv-meta">
+        <span class="conv-time new">5d</span>
+        <div class="urgent-badge" style="background:var(--s-orange)">5d</div>
+      </div>
+    </div>
+
+    <div class="section-hdr">✅ Na-bisita na ngayon</div>
+
+    <div class="conv" onclick="navTo('pg-chat')">
+      <div class="av-wrap">
+        <div class="av" style="background:linear-gradient(135deg,#22C55E,#16A34A)">GF</div>
+        <div class="status-dot dot-ok"></div>
+      </div>
+      <div class="conv-info">
+        <div class="conv-name muted">Greenfield Feeds — Caloocan</div>
+        <div class="conv-last muted">✓ Nag-order · 30 bags VIEPro · ₱45,000</div>
+      </div>
+      <div class="conv-meta">
+        <span class="conv-time">09:14</span>
+        <span class="ticks">✓✓</span>
+      </div>
+    </div>
+
+    <div class="conv" onclick="navTo('pg-chat')">
+      <div class="av-wrap">
+        <div class="av" style="background:linear-gradient(135deg,#0084FF,#A855F7)">NF</div>
+        <div class="status-dot dot-ok"></div>
+      </div>
+      <div class="conv-info">
+        <div class="conv-name muted">Nueva Feeds — Malabon</div>
+        <div class="conv-last muted">🐷 Farm visit · 480 heads · FCR 2.6</div>
+      </div>
+      <div class="conv-meta">
+        <span class="conv-time">10:52</span>
+        <span class="ticks">✓✓</span>
+      </div>
+    </div>
+
+    <div class="conv" onclick="navTo('pg-chat')">
+      <div class="av-wrap">
+        <div class="av" style="background:linear-gradient(135deg,#8B5CF6,#EC4899)">QC</div>
+        <div class="status-dot dot-ok"></div>
+      </div>
+      <div class="conv-info">
+        <div class="conv-name muted">QC North Feeds</div>
+        <div class="conv-last muted">📸 Merch fix · Signage napalitan na</div>
+      </div>
+      <div class="conv-meta">
+        <span class="conv-time">Kahapon</span>
+        <span class="ticks gray">✓✓</span>
+      </div>
+    </div>
+
+    <div class="conv" onclick="navTo('pg-chat')">
+      <div class="av-wrap">
+        <div class="av" style="background:linear-gradient(135deg,#06B6D4,#0284C7)">SF</div>
+        <div class="status-dot dot-ok"></div>
+      </div>
+      <div class="conv-info">
+        <div class="conv-name muted">Sunrise Farms — Pasig</div>
+        <div class="conv-last muted">Nakausap · Walang order ngayon</div>
+      </div>
+      <div class="conv-meta">
+        <span class="conv-time">Kahapon</span>
+        <span class="ticks gray">✓</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item on">
+      <div class="nav-pip"></div>
+      <span class="nav-ico">🏠</span>
+      <span class="nav-lbl" style="color:var(--fb-blue)">Bahay</span>
+    </div>
+    <div class="nav-item" onclick="navTo('pg-list')">
+      <span class="nav-ico">🏪</span>
+      <span class="nav-lbl">Tindahan</span>
+    </div>
+    <div class="nav-item">
+      <span class="nav-ico">🗺️</span>
+      <span class="nav-lbl">Mapa</span>
+    </div>
+    <div class="nav-item" onclick="navTo('pg-profile')">
+      <span class="nav-ico">👤</span>
+      <span class="nav-lbl">Profile</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PAGE 2: CHAT / STORE ===== -->
+<div class="page" id="pg-chat">
+
+  <div class="chat-header">
+    <div class="back" onclick="navBack()">‹</div>
+    <div class="chat-av" style="background:linear-gradient(135deg,#FA383E,#FF6B35)">SA</div>
+    <div class="chat-hdr-info" onclick="openSheet()">
+      <div class="chat-hdr-name">Santos Agri Center</div>
+      <div class="chat-hdr-sub">● Valenzuela · 80 bags/buwan</div>
+    </div>
+    <div class="chat-hdr-btns">
+      <div class="chat-ico-btn">📞</div>
+      <div class="chat-ico-btn">🗺️</div>
+      <div class="chat-ico-btn">⋯</div>
+    </div>
+  </div>
+
+  <div class="messages" id="msgs">
+    <div class="date-chip">Abr 4, 2026</div>
+
+    <!-- Store info card -->
+    <div class="msg-row">
+      <div class="msg-av-small" style="background:linear-gradient(135deg,#FA383E,#FF6B35)">SA</div>
+      <div>
+        <div class="card-bubble" onclick="openSheet()">
+          <div class="card-lbl">🏪 Impormasyon ng Tindahan</div>
+          <div class="card-row"><span class="card-key">May-ari</span><span class="card-val">Ricardo Santos</span></div>
+          <div class="card-row"><span class="card-key">Telepono</span><span class="card-val blue">+63 917 321 4567</span></div>
+          <div class="card-row"><span class="card-key">VIE Share</span><span class="card-val green">67% · 80 bags/mo</span></div>
+          <div class="card-row"><span class="card-key">AR Balance</span><span class="card-val red">₱42,000 · 18 araw</span></div>
+          <div class="card-row"><span class="card-key">Huling bisita</span><span class="card-val">8 araw na ang nakalipas</span></div>
+        </div>
+        <div class="msg-time">Abr 4 · 10:20</div>
+      </div>
+    </div>
+
+    <!-- Previous order bubble (sent) -->
+    <div class="msg-row out">
+      <div>
+        <div class="order-bubble">
+          <div class="order-big">₱80,000</div>
+          <div class="order-sub">May Order — Abr 4, 2026</div>
+          <div class="order-chips">
+            <span class="chip chip-g">✓ Nag-order</span>
+            <span class="chip chip-b">30 bags VIEPro</span>
+            <span class="chip chip-n">SOV 42%</span>
+            <span class="chip chip-n">📸 3 litrato</span>
+          </div>
+        </div>
+        <div class="msg-time out">10:45 <span style="color:var(--fb-blue)">✓✓</span></div>
+      </div>
+    </div>
+
+    <div class="reaction-bar" style="padding-left:0;justify-content:flex-end;margin-top:-6px;margin-bottom:4px">
+      <div class="reaction">👍</div>
+    </div>
+
+    <div class="date-chip">Abr 11, 2026</div>
+
+    <div class="msg-row out">
+      <div>
+        <div class="bubble out gradient">
+          Nakausap si Ricardo. Interesado sa PowerBoost Broiler. Susunod na linggo mag-o-order daw. B-MEG rep nandoon kanina.
+        </div>
+        <div class="msg-time out">11:20 <span style="color:rgba(255,255,255,0.7)">✓✓</span></div>
+      </div>
+    </div>
+
+    <div class="date-chip">Ngayon · Abr 16, 2026</div>
+
+    <!-- Typing dots = "waiting for visit log" -->
+    <div class="msg-row">
+      <div class="msg-av-small" style="background:linear-gradient(135deg,#FA383E,#FF6B35)">SA</div>
+      <div class="typing">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <div class="visit-prompt" onclick="openSheet()">
+      <span>📝</span>
+      I-log ang bisita ngayon
+    </div>
+
+  </div>
+
+  <div class="input-bar">
+    <div class="input-ico">➕</div>
+    <div class="input-ico">📷</div>
+    <div class="input-field" onclick="openSheet()">
+      <span class="inp-ph">Dagdag ng notes...</span>
+    </div>
+    <div class="send" onclick="openSheet()">📤</div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navBack()">
+      <span class="nav-ico">🏠</span><span class="nav-lbl">Bahay</span>
+    </div>
+    <div class="nav-item on">
+      <div class="nav-pip"></div>
+      <span class="nav-ico">🏪</span>
+      <span class="nav-lbl" style="color:var(--fb-blue)">Tindahan</span>
+    </div>
+    <div class="nav-item"><span class="nav-ico">🗺️</span><span class="nav-lbl">Mapa</span></div>
+    <div class="nav-item" onclick="navTo('pg-profile')"><span class="nav-ico">👤</span><span class="nav-lbl">Profile</span></div>
+  </div>
+</div>
+
+<!-- ===== PAGE 3: PROFILE ===== -->
+<div class="page" id="pg-profile">
+  <div class="chat-header">
+    <div class="back" onclick="navBack()">‹</div>
+    <div style="flex:1;font-size:18px;font-weight:700;color:var(--text)">Profile ko</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:20px 16px">
+    <div style="text-align:center;padding:16px 0 24px;border-bottom:1px solid var(--divider);margin-bottom:20px">
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:white;margin:0 auto 12px;box-shadow:0 4px 20px rgba(0,132,255,0.35)">JS</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text)">Jake Santos</div>
+      <div style="font-size:14px;color:var(--text2);margin-top:3px">TSR · MM-South</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">🌐 Wika / Language</div>
+    <div style="display:flex;gap:8px;margin-bottom:24px">
+      <button style="flex:1;padding:11px 6px;border-radius:12px;border:2px solid var(--fb-blue);background:rgba(0,132,255,0.08);color:var(--fb-blue);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all 0.15s">TL</button>
+      <button style="flex:1;padding:11px 6px;border-radius:12px;border:2px solid var(--bg3);background:var(--bg2);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">BIS</button>
+      <button style="flex:1;padding:11px 6px;border-radius:12px;border:2px solid var(--bg3);background:var(--bg2);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font)">EN</button>
+    </div>
+    <div style="background:var(--bg2);border-radius:16px;overflow:hidden;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--divider)"><span style="color:var(--text2);font-size:15px">Telepono</span><span style="font-weight:600;color:var(--text)">09170000002</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--divider)"><span style="color:var(--text2);font-size:15px">Teritoryo</span><span style="font-weight:600;color:var(--text)">MM-South</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="color:var(--text2);font-size:15px">Tungkulin</span><span style="font-weight:600;color:var(--text)">TSR</span></div>
+    </div>
+    <div style="background:rgba(34,197,94,0.08);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span style="font-size:20px">🔋</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--s-green)">Naka-sync na ✓✓</div>
+        <div style="font-size:12px;color:var(--text2)">Lahat ng data ay na-save · 14:32</div>
+      </div>
+    </div>
+    <button onclick="navBack()" style="width:100%;padding:14px;border-radius:14px;border:2px solid var(--s-red);background:rgba(250,56,62,0.06);color:var(--s-red);font-size:16px;font-weight:700;cursor:pointer;font-family:var(--font)">Mag-sign out</button>
+  </div>
+  <div class="bottom-nav">
+    <div class="nav-item" onclick="navBack()"><span class="nav-ico">🏠</span><span class="nav-lbl">Bahay</span></div>
+    <div class="nav-item" onclick="navBack()"><span class="nav-ico">🏪</span><span class="nav-lbl">Tindahan</span></div>
+    <div class="nav-item"><span class="nav-ico">🗺️</span><span class="nav-lbl">Mapa</span></div>
+    <div class="nav-item on"><div class="nav-pip"></div><span class="nav-ico">👤</span><span class="nav-lbl" style="color:var(--fb-blue)">Profile</span></div>
+  </div>
+</div>
+
+<!-- ===== OVERLAY + SHEET ===== -->
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-store">
+    <div class="sheet-store-av" style="background:linear-gradient(135deg,#FA383E,#FF6B35)">SA</div>
+    <div>
+      <div class="sheet-store-name">Santos Agri Center</div>
+      <div class="sheet-store-loc">📍 Valenzuela · 80 bags/buwan</div>
+    </div>
+  </div>
+  <div class="sheet-q">Ano ang nangyari? 🏪</div>
+
+  <div class="outcomes">
+    <div class="outcome" id="o-order" onclick="pickOutcome('order',this,'sel-g')">
+      <div class="out-ico" style="background:rgba(34,197,94,0.12)">🛍️</div>
+      <div class="out-txt">
+        <div class="out-label">May Order</div>
+        <div class="out-sub">Adunay order · With order</div>
+      </div>
+      <div class="out-check">✓</div>
+    </div>
+    <div class="exp-form" id="ef-order">
+      <div class="form-inner">
+        <div class="f-lbl">Halaga ng order (₱)</div>
+        <input class="f-inp" type="number" placeholder="hal. 80000">
+        <div class="f-lbl">Produkto</div>
+        <input class="f-inp" type="text" placeholder="hal. 30 bags VIEPro Hog">
+        <div class="cam-row">
+          <div class="cam-circle">📷</div>
+          <span class="cam-lbl">Kumuha ng litrato ng shelf</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="outcome" id="o-talk" onclick="pickOutcome('talk',this,'sel-b')">
+      <div class="out-ico" style="background:rgba(0,132,255,0.1)">💬</div>
+      <div class="out-txt">
+        <div class="out-label">Nakausap · Walang Order</div>
+        <div class="out-sub">Nag-usap pero walang order ngayon</div>
+      </div>
+      <div class="out-check" style="color:var(--fb-blue)">✓</div>
+    </div>
+
+    <div class="outcome" id="o-back" onclick="pickOutcome('back',this,'sel-o')">
+      <div class="out-ico" style="background:rgba(247,179,40,0.12)">📅</div>
+      <div class="out-txt">
+        <div class="out-label">Bukas ulit</div>
+        <div class="out-sub">Wala sa tindahan · Susunod</div>
+      </div>
+      <div class="out-check" style="color:var(--s-orange)">✓</div>
+    </div>
+  </div>
+
+  <textarea class="notes-area" placeholder="Dagdag ng notes... (opsyonal)"></textarea>
+
+  <button class="sub-btn" id="sub-btn" disabled onclick="submitVisit()">
+    📤 I-submit ang bisita
+  </button>
+</div>
+
+<script>
+var history = ['pg-list'];
+var chosen = null;
+
+function navTo(id) {
+  var cur = history[history.length - 1];
+  var curEl = document.getElementById(cur);
+  var nextEl = document.getElementById(id);
+  
+  // Push behind
+  curEl.classList.add('behind');
+  curEl.classList.remove('home', 'active');
+  
+  // Slide in new
+  nextEl.classList.add('active');
+  nextEl.classList.remove('home');
+  
+  history.push(id);
+  
+  // Haptic feedback simulation (visual bounce)
+  setTimeout(function() {
+    nextEl.style.transform = 'translateX(2px)';
+    setTimeout(function() { nextEl.style.transform = ''; }, 80);
+  }, 320);
+}
+
+function navBack() {
+  if (history.length <= 1) return;
+  var cur = history.pop();
+  var prev = history[history.length - 1];
+  
+  var curEl = document.getElementById(cur);
+  var prevEl = document.getElementById(prev);
+  
+  // Slide out current
+  curEl.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+  curEl.style.transform = 'translateX(100%)';
+  
+  // Restore previous
+  prevEl.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+  prevEl.classList.remove('behind');
+  if (prev === 'pg-list') {
+    prevEl.classList.add('home');
+  } else {
+    prevEl.classList.add('active');
+  }
+  prevEl.style.transform = '';
+  
+  setTimeout(function() {
+    curEl.classList.remove('active', 'behind');
+    curEl.style.transform = '';
+    curEl.style.transition = '';
+    prevEl.style.transition = '';
+  }, 300);
+}
+
+function openSheet() {
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('open');
+  // Reset
+  chosen = null;
+  document.querySelectorAll('.outcome').forEach(function(o) {
+    o.className = 'outcome';
+  });
+  document.querySelectorAll('.exp-form').forEach(function(f) {
+    f.classList.remove('open');
+  });
+  document.getElementById('sub-btn').disabled = true;
+}
+
+function pickOutcome(type, el, cls) {
+  // Ripple effect
+  var ripple = document.createElement('div');
+  ripple.style.cssText = 'position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);width:100px;height:100px;margin:-50px;pointer-events:none;animation:ripple 0.4s ease-out forwards;left:50%;top:50%';
+  el.appendChild(ripple);
+  setTimeout(function() { ripple.remove(); }, 400);
+  
+  // Reset all
+  document.querySelectorAll('.outcome').forEach(function(o) {
+    o.className = 'outcome';
+  });
+  document.querySelectorAll('.exp-form').forEach(function(f) {
+    f.classList.remove('open');
+  });
+  
+  // Select
+  chosen = type;
+  el.classList.add(cls);
+  
+  if (type === 'order') {
+    document.getElementById('ef-order').classList.add('open');
+  }
+  
+  // Enable submit with bounce
+  var btn = document.getElementById('sub-btn');
+  btn.disabled = false;
+  btn.style.transform = 'scale(1.03)';
+  setTimeout(function() { btn.style.transform = ''; }, 200);
+}
+
+function submitVisit() {
+  var btn = document.getElementById('sub-btn');
+  btn.textContent = '⏳ Nag-sisync...';
+  btn.style.background = 'linear-gradient(135deg, var(--s-green), #16A34A)';
+  
+  setTimeout(function() {
+    btn.textContent = '✅ Na-save at na-sync!';
+    
+    setTimeout(function() {
+      closeSheet();
+      
+      // Add new bubble to chat
+      var msgs = document.getElementById('msgs');
+      var newBubble = document.createElement('div');
+      newBubble.className = 'msg-row out';
+      newBubble.style.animation = 'msgPop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+      newBubble.innerHTML = '<div><div class="bubble out gradient">✅ Bisita na-log ngayon! ' + new Date().toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'}) + '</div><div class="msg-time out">Ngayon <span style="color:rgba(255,255,255,0.7)">✓</span></div></div>';
+      msgs.appendChild(newBubble);
+      msgs.scrollTop = msgs.scrollHeight;
+      
+      btn.textContent = '📤 I-submit ang bisita';
+      btn.style.background = '';
+      btn.disabled = true;
+    }, 1200);
+  }, 1200);
+}
+</script>
+
+<style>
+@keyframes ripple { from{opacity:1;transform:scale(0)} to{opacity:0;transform:scale(3)} }
+@keyframes msgPop { from{opacity:0;transform:translateY(16px) scale(0.95)} to{opacity:1;transform:translateY(0) scale(1)} }
+</style>
+
+</body>
+</html>

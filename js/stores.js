@@ -62,56 +62,49 @@ async function renderStoreList(filter) {
     // Check which stores were visited today
     var todayStr = new Date().toISOString().slice(0, 10);
 
+    // Gradient palettes by health for avatars
+    var _gradients = {
+      crit: 'linear-gradient(135deg,#FA383E,#FF6B35)',
+      warn: 'linear-gradient(135deg,#F97316,#EAB308)',
+      ok:   'linear-gradient(135deg,#22C55E,#16A34A)'
+    };
+    var _gradientArr = [
+      'linear-gradient(135deg,#0084FF,#A855F7)',
+      'linear-gradient(135deg,#06B6D4,#0284C7)',
+      'linear-gradient(135deg,#8B5CF6,#EC4899)',
+      'linear-gradient(135deg,#F97316,#EAB308)',
+      'linear-gradient(135deg,#22C55E,#16A34A)'
+    ];
+
+    // Split stores into unvisited-today and visited-today
+    var unvisited = [];
+    var visited = [];
+    for (var si = 0; si < stores.length; si++) {
+      var vs = stores[si].last_visit_at && stores[si].last_visit_at.slice(0, 10) === todayStr;
+      if (vs) visited.push(stores[si]); else unvisited.push(stores[si]);
+    }
+
+    // Render story circles for priority stores (7+ days unvisited or critical)
+    _renderStoryCircles(stores, _gradients, _gradientArr);
+
+    // Build conversation rows
     var html = '';
-    for (var i = 0; i < stores.length; i++) {
-      var s = stores[i];
-      var health = s.health_status || 'ok';
-      var initial = (s.name || '?').charAt(0).toUpperCase();
-      var storeType = formatStoreTypeTagalog ? formatStoreTypeTagalog(s.store_type) : formatStoreType(s.store_type);
-      var city = s.city || '';
-      var lastVisitText = formatRelativeTimeTagalog ? formatRelativeTimeTagalog(s.last_visit_at) : formatRelativeTime(s.last_visit_at);
-
-      // Was this store visited today?
-      var visitedToday = s.last_visit_at && s.last_visit_at.slice(0, 10) === todayStr;
-      var nameClass = visitedToday ? 'store-row-name visited' : 'store-row-name';
-
-      // Priority ring: not visited in 7+ days
-      var daysSinceVisit = s.last_visit_at ? Math.floor((Date.now() - new Date(s.last_visit_at).getTime()) / 86400000) : 999;
-      var hasPriorityRing = daysSinceVisit >= 7;
-      var avatarClass = 'store-avatar health-' + health + (hasPriorityRing ? ' priority-ring' : '');
-
-      // Subtitle: type + city + bags
-      var subParts = [];
-      if (city) subParts.push(_esc(city));
-      if (s.bags_per_month) subParts.push(s.bags_per_month + ' ' + T.bagsMonth);
-      var subText = subParts.join(' \u00b7 ');
-
-      // Preview line: last visit outcome (like Messenger last message)
-      var previewText = s.last_visit_at ? (T.lastVisit + ' \u00b7 ' + lastVisitText) : T.notVisited;
-
-      // Sync tick: show done tick for visited stores
-      var syncHtml = visitedToday
-        ? '<span class="sync-tick-done">\u2713\u2713</span>'
-        : (s.last_visit_at ? '' : '<span class="sync-tick-pending">\u25cb</span>');
-
-      html += '<div class="store-row" data-store-id="' + s.id + '" onclick="openStoreDetail(\'' + s.id + '\')">' +
-        // Avatar circle with health dot
-        '<div class="' + avatarClass + '">' +
-          initial +
-          '<span class="health-dot dot-' + health + '"></span>' +
-        '</div>' +
-        // Body
-        '<div class="store-row-body">' +
-          '<div class="' + nameClass + '">' + _esc(s.name) + '</div>' +
-          (subText ? '<div class="store-row-sub">' + subText + '</div>' : '') +
-          '<div class="store-row-preview">' + _esc(previewText) + '</div>' +
-        '</div>' +
-        // Meta: timestamp + sync
-        '<div class="store-row-meta">' +
-          '<span class="store-row-time">' + (s.last_visit_at ? lastVisitText : '') + '</span>' +
-          syncHtml +
-        '</div>' +
-      '</div>';
+    if (unvisited.length > 0) {
+      html += '<div class="section-hdr">\u26a1 ' + T.notVisited + '</div>';
+      for (var u = 0; u < unvisited.length; u++) {
+        html += _buildConvRow(unvisited[u], todayStr, _gradients, _gradientArr);
+      }
+    }
+    if (visited.length > 0) {
+      html += '<div class="section-hdr">\u2705 Na-bisita na ngayon</div>';
+      for (var v = 0; v < visited.length; v++) {
+        html += _buildConvRow(visited[v], todayStr, _gradients, _gradientArr);
+      }
+    }
+    if (unvisited.length === 0 && visited.length === 0) {
+      html = (typeof getEmptyStoreStateHTML === 'function')
+        ? getEmptyStoreStateHTML()
+        : '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:15px">' + _esc(T.noStores) + '</div>';
     }
 
     listEl.innerHTML = html;
@@ -144,6 +137,167 @@ function _esc(str) {
   var d = document.createElement('div');
   d.textContent = str;
   return d.innerHTML;
+}
+
+// ── FB Messenger conversation row builder ──
+
+function _buildConvRow(s, todayStr, gradients, gradientArr) {
+  var health = s.health_status || 'ok';
+  var initial = (s.name || '?').charAt(0).toUpperCase();
+  var second = (s.name || '').split(/\s+/)[1];
+  var initials = initial + (second ? second.charAt(0).toUpperCase() : '');
+  var city = s.city || '';
+  var lastVisitText = formatRelativeTimeTagalog ? formatRelativeTimeTagalog(s.last_visit_at) : formatRelativeTime(s.last_visit_at);
+  var visitedToday = s.last_visit_at && s.last_visit_at.slice(0, 10) === todayStr;
+  var daysSinceVisit = s.last_visit_at ? Math.floor((Date.now() - new Date(s.last_visit_at).getTime()) / 86400000) : 999;
+
+  // Avatar gradient — use health-based or hash-based
+  var grad = gradients[health] || gradientArr[Math.abs(_hashCode(s.id || s.name || '')) % gradientArr.length];
+
+  // Name styling: bold if unvisited, muted if visited today
+  var nameClass = visitedToday ? 'conv-name muted' : 'conv-name';
+
+  // Preview text
+  var previewClass = 'conv-last' + (visitedToday ? ' muted' : '');
+  var previewText = '';
+  if (daysSinceVisit >= 7) {
+    previewClass = 'conv-last urgent';
+    previewText = '\u26a0\ufe0f ' + daysSinceVisit + ' araw nang hindi nabibisita';
+  } else if (visitedToday) {
+    previewText = '\u2713 ' + T.lastVisit + ' \u00b7 ' + lastVisitText;
+  } else if (s.last_visit_at) {
+    previewText = T.lastVisit + ' \u00b7 ' + lastVisitText;
+  } else {
+    previewText = T.notVisited;
+  }
+
+  // Timestamp: short Messenger format
+  var timeText = '';
+  var timeClass = 'conv-time';
+  if (visitedToday) {
+    timeText = s.last_visit_at ? new Date(s.last_visit_at).toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'}) : '';
+  } else if (s.last_visit_at) {
+    timeText = _shortTime(daysSinceVisit);
+    if (daysSinceVisit >= 7) timeClass = 'conv-time new';
+  }
+
+  // Right side: ticks or urgent badge
+  var metaHtml = '<span class="' + timeClass + '">' + timeText + '</span>';
+  if (daysSinceVisit >= 7 && health === 'crit') {
+    metaHtml += '<div class="urgent-badge">!</div>';
+  } else if (daysSinceVisit >= 5 && !visitedToday) {
+    metaHtml += '<div class="urgent-badge" style="background:var(--status-warn)">' + daysSinceVisit + 'd</div>';
+  } else if (visitedToday) {
+    metaHtml += '<span class="ticks">\u2713\u2713</span>';
+  } else if (s.last_visit_at) {
+    metaHtml += '<span class="ticks gray">\u2713\u2713</span>';
+  }
+
+  // Health dot
+  var dotClass = 'status-dot dot-' + health;
+
+  return '<div class="store-row conv" data-store-id="' + s.id + '" onclick="openStoreDetail(\'' + s.id + '\')">' +
+    '<div class="av-wrap">' +
+      '<div class="av" style="background:' + grad + '">' + initials + '</div>' +
+      '<div class="' + dotClass + '"></div>' +
+    '</div>' +
+    '<div class="conv-info">' +
+      '<div class="' + nameClass + '">' + _esc(s.name) + (city && !visitedToday ? '' : '') + '</div>' +
+      '<div class="' + previewClass + '">' + previewText + '</div>' +
+    '</div>' +
+    '<div class="conv-meta">' + metaHtml + '</div>' +
+  '</div>';
+}
+
+function _shortTime(days) {
+  if (days < 1) return T.justNow || 'Now';
+  if (days === 1) return T.yesterday || 'Kahapon';
+  if (days < 7) return days + 'd';
+  if (days < 30) return Math.floor(days / 7) + 'w';
+  return Math.floor(days / 30) + 'mo';
+}
+
+function _hashCode(str) {
+  var hash = 0;
+  for (var i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash;
+}
+
+// ── Story circles (priority stores) ──
+
+function _renderStoryCircles(stores, gradients, gradientArr) {
+  var el = document.getElementById('story-circles-row');
+  if (!el) return;
+
+  // Filter: unvisited 5+ days, critical, or new prospects
+  var priority = [];
+  for (var i = 0; i < stores.length; i++) {
+    var s = stores[i];
+    var days = s.last_visit_at ? Math.floor((Date.now() - new Date(s.last_visit_at).getTime()) / 86400000) : 999;
+    if (days >= 5 || s.health_status === 'crit') {
+      priority.push({ store: s, days: days });
+    }
+  }
+  // Sort by urgency (most overdue first)
+  priority.sort(function(a, b) { return b.days - a.days; });
+  priority = priority.slice(0, 10);
+
+  if (priority.length === 0) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'flex';
+
+  var html = '';
+  for (var j = 0; j < priority.length; j++) {
+    var p = priority[j];
+    var s = p.store;
+    var health = s.health_status || 'ok';
+    var initial = (s.name || '?').charAt(0).toUpperCase();
+    var second = (s.name || '').split(/\s+/)[1];
+    var initials = initial + (second ? second.charAt(0).toUpperCase() : '');
+    var shortName = (s.name || '').split(/\s+/).slice(0, 2).join(' ');
+    if (shortName.length > 10) shortName = shortName.slice(0, 9) + '\u2026';
+
+    // Ring class
+    var ringClass = 'story-ring ';
+    var badgeBg = '';
+    var badgeText = '';
+    if (p.days >= 7 && health === 'crit') {
+      ringClass += 'ring-urgent';
+      badgeBg = 'var(--status-crit)';
+      badgeText = '!';
+    } else if (p.days >= 7) {
+      ringClass += 'ring-warn';
+      badgeBg = 'var(--status-warn)';
+      badgeText = p.days + 'd';
+    } else if (health === 'crit') {
+      ringClass += 'ring-urgent';
+      badgeBg = 'var(--status-crit)';
+      badgeText = '!';
+    } else {
+      ringClass += 'ring-warn';
+      badgeBg = 'var(--status-warn)';
+      badgeText = p.days + 'd';
+    }
+
+    var grad = gradients[health] || gradientArr[Math.abs(_hashCode(s.id || s.name || '')) % gradientArr.length];
+
+    html += '<div class="story" onclick="openStoreDetail(\'' + s.id + '\')">' +
+      '<div class="story-ring-wrap">' +
+        '<div class="' + ringClass + '">' +
+          '<div class="story-inner"><div class="story-av" style="background:' + grad + '">' + initials + '</div></div>' +
+        '</div>' +
+        '<div class="story-badge" style="background:' + badgeBg + '">' + badgeText + '</div>' +
+      '</div>' +
+      '<span class="story-label">' + _esc(shortName) + '</span>' +
+    '</div>';
+  }
+
+  el.innerHTML = html;
 }
 
 // ── Home Page KPIs ──
@@ -307,9 +461,9 @@ function _updateFilterCounts(allStores) {
       else if (h === 'warn') warn++;
       else ok++;
     }
-    chips[0].textContent = 'All (' + total + ')';
-    chips[1].textContent = 'Critical (' + crit + ')';
-    chips[2].textContent = 'Warning (' + warn + ')';
+    chips[0].textContent = (T.all || 'Lahat') + ' (' + total + ')';
+    chips[1].textContent = (T.critical || 'Critical') + ' (' + crit + ')';
+    chips[2].textContent = (T.warning || 'Babala') + ' (' + warn + ')';
     chips[3].textContent = 'OK (' + ok + ')';
   }).catch(function () {
     // ignore — counts just won't update
