@@ -1,3 +1,9 @@
+// Safety guard — labels.js must load before auth.js
+if (typeof window.T === 'undefined') {
+  window.T = {};
+  console.error('CRITICAL: labels.js not loaded before auth.js');
+}
+
 // Auth Module — login, session, role checks (Phase 8 hardened)
 
 var EDGE_FN_URL = 'https://yolxcmeoovztuindrglk.supabase.co/functions/v1/verify-pin';

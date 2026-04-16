@@ -4,7 +4,7 @@
 // Network First: Supabase API → fallback to cached response
 // Network Only: photos (too large to cache)
 
-var CACHE_NAME = 'patrol-v5';
+var CACHE_NAME = 'patrol-v6';
 var APP_SHELL = [
   '/',
   '/app.html',
