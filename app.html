@@ -396,7 +396,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- STORES PAGE                               -->
 <!-- ========================================= -->
-<div id="page-stores" class="page" style="background:var(--bg);display:flex;flex-direction:column;overflow:hidden">
+<div id="page-stores" class="page" style="background:var(--bg-chat)">
   <!-- Messenger-style white header -->
   <div class="header" style="flex-shrink:0;padding:0 16px;background:var(--bg);position:relative;z-index:10;border-bottom:1px solid var(--divider)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px">
@@ -566,7 +566,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- STORE DETAIL — Messenger Chat Thread      -->
 <!-- ========================================= -->
-<div id="page-store-detail" class="page" style="background:var(--bg-main);display:flex;flex-direction:column">
+<div id="page-store-detail" class="page" style="background:var(--bg-main)">
   <!-- Chat header -->
   <div class="chat-header" id="chat-header">
     <div class="back" onclick="navBack('page-stores')">&#8249;</div>
@@ -1007,6 +1007,12 @@ if ('serviceWorker' in navigator) {
 
     // Track history for back navigation
     if (cur) _navHistory.push(cur.id);
+
+    // Close any open overlays/sheets before navigating
+    var overlays = document.querySelectorAll('.overlay, .sheet');
+    for (var oi = 0; oi < overlays.length; oi++) {
+      overlays[oi].classList.remove('open', 'show');
+    }
 
     // Remove active from all, add to target
     var allPages = document.querySelectorAll('.page');
