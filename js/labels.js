@@ -771,14 +771,32 @@ function setLanguage(lang) {
   }
   window.T = T;
   window.currentLang = currentLang;
+
   // Force ALL data-t elements to update immediately
   var els = document.querySelectorAll('[data-t]');
   for (var j = 0; j < els.length; j++) {
-    var key = els[j].getAttribute('data-t');
-    if (window.T[key] && typeof window.T[key] === 'string') {
-      els[j].textContent = window.T[key];
+    var tKey = els[j].getAttribute('data-t');
+    if (T[tKey] && typeof T[tKey] === 'string') {
+      els[j].textContent = T[tKey];
     }
   }
+
+  // Force update lang pill active states with hardcoded colors
+  var allPills = document.querySelectorAll('.lang-pill, .login-lang-btn');
+  for (var p = 0; p < allPills.length; p++) {
+    var pillLang = allPills[p].getAttribute('data-lang');
+    if (pillLang === lang) {
+      allPills[p].style.background = '#004D71';
+      allPills[p].style.color = '#ffffff';
+      allPills[p].style.borderColor = '#004D71';
+    } else {
+      allPills[p].style.background = '#ffffff';
+      allPills[p].style.color = '#004D71';
+      allPills[p].style.borderColor = '#004D71';
+    }
+  }
+
+  console.log('setLanguage complete:', lang, 'T.withOrder:', T.withOrder);
   rerenderCurrentPage();
   showLangToast();
 }
@@ -874,11 +892,11 @@ function showLangToast() {
   var toast = document.createElement('div');
   toast.id = 'lang-toast';
   toast.textContent = msg;
-  toast.style.cssText = 'position:fixed;bottom:90px;left:50%;' +
-    'transform:translateX(-50%);background:#004D71;color:white;' +
-    'padding:12px 24px;border-radius:24px;font-size:14px;' +
-    'font-weight:700;z-index:9999;font-family:system-ui,-apple-system,sans-serif;' +
-    'box-shadow:0 4px 16px rgba(0,0,0,0.3);pointer-events:none;';
+  toast.style.cssText = 'position:fixed !important;bottom:100px !important;left:50% !important;' +
+    'transform:translateX(-50%) !important;background:#004D71 !important;color:white !important;' +
+    'padding:14px 28px !important;border-radius:24px !important;font-size:16px !important;' +
+    'font-weight:700 !important;z-index:99999 !important;font-family:system-ui,-apple-system,sans-serif !important;' +
+    'box-shadow:0 4px 20px rgba(0,0,0,0.4) !important;pointer-events:none !important;';
   document.body.appendChild(toast);
 
   setTimeout(function() {
@@ -931,8 +949,20 @@ function formatStoreTypeTagalog(type) {
   return map[type] || type;
 }
 
+console.log('labels.js loaded, currentLang:', currentLang);
+
+function testLang() {
+  console.log('setLanguage called');
+  console.log('currentLang before:', currentLang);
+  setLanguage('BIS');
+  console.log('currentLang after:', currentLang);
+  console.log('localStorage value:', localStorage.getItem('patrol_lang'));
+  console.log('T.withOrder:', T.withOrder);
+}
+
 window.T = T;
 window.LABELS = LABELS;
 window.currentLang = currentLang;
 window.setLanguage = setLanguage;
 window.rerenderCurrentPage = rerenderCurrentPage;
+window.testLang = testLang;

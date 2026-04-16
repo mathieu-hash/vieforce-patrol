@@ -970,9 +970,10 @@ body {
 
 /* Language Switcher Pills */
 .lang-pill.active {
-  background: var(--accent-dark, #004D71) !important;
-  color: white !important;
-  border-color: var(--accent-dark, #004D71) !important;
+  background: #004D71 !important;
+  color: #ffffff !important;
+  border-color: #004D71 !important;
+  font-weight: 700 !important;
 }
 
 /* Login page language switcher (compact) */
