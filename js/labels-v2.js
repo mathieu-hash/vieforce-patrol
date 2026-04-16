@@ -765,35 +765,48 @@ window.T = T;
 
 // Switch language and re-render
 function setLanguage(lang) {
+  console.log('setLanguage input:', lang);
   lang = String(lang).toUpperCase();
-  if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') return;
+  console.log('after toUpperCase:', lang);
+  if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') {
+    console.log('REJECTED - invalid lang:', lang);
+    return;
+  }
   window.currentLang = lang;
+  console.log('window.currentLang set to:', window.currentLang);
   localStorage.setItem('patrol_lang', lang);
+  console.log('localStorage set to:', localStorage.getItem('patrol_lang'));
   // Rebuild T in-place — keeps same reference for all scripts
   var newT = getT();
+  console.log('newT.withOrder:', newT.withOrder);
   var keys = Object.keys(newT);
   for (var i = 0; i < keys.length; i++) {
     T[keys[i]] = newT[keys[i]];
   }
   window.T = T;
+  console.log('T.withOrder after rebuild:', T.withOrder);
   // Force update all data-t elements
   var els = document.querySelectorAll('[data-t]');
-  for (var i = 0; i < els.length; i++) {
-    var k = els[i].getAttribute('data-t');
-    if (T[k]) els[i].textContent = T[k];
+  for (var j = 0; j < els.length; j++) {
+    var k = els[j].getAttribute('data-t');
+    if (T[k]) els[j].textContent = T[k];
   }
-  // Update pill active states inline with cssText
+  // Update pill active states
   var pills = document.querySelectorAll('.lang-pill, .login-lang-btn');
-  for (var i = 0; i < pills.length; i++) {
-    var pl = pills[i].getAttribute('data-lang');
+  console.log('pills found:', pills.length);
+  for (var p = 0; p < pills.length; p++) {
+    var pl = pills[p].getAttribute('data-lang');
+    console.log('pill data-lang:', pl, 'comparing to:', lang);
     if (pl && pl.toUpperCase() === lang) {
-      pills[i].style.cssText = 'flex:1;padding:10px 0;border-radius:20px;font-size:13px;min-height:44px;cursor:pointer;background:#004D71!important;color:white!important;border:2px solid #004D71!important;font-weight:700!important';
+      pills[p].style.background = '#004D71';
+      pills[p].style.color = '#ffffff';
     } else {
-      pills[i].style.cssText = 'flex:1;padding:10px 0;border-radius:20px;font-size:13px;min-height:44px;cursor:pointer;background:white!important;color:#004D71!important;border:2px solid #004D71!important;font-weight:700';
+      pills[p].style.background = 'white';
+      pills[p].style.color = '#004D71';
     }
   }
   showLangToast();
-  console.log('setLanguage done:', window.currentLang, 'T.withOrder:', T.withOrder);
+  console.log('setLanguage COMPLETE:', window.currentLang);
 }
 
 // Re-render all data-t elements + active page dynamic content
