@@ -233,3 +233,5 @@ function formatStoreTypeTagalog(type) {
   };
   return map[type] || type;
 }
+
+window.T = T;
