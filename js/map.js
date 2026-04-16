@@ -630,10 +630,10 @@ function _buildFilterChips(container) {
   filtersDiv.className = 'map-filters';
 
   var chipData = [
-    { label: 'All',      filter: 'all' },
-    { label: 'Stores',   filter: 'store' },
-    { label: 'Farms',    filter: 'farm' },
-    { label: 'Critical', filter: 'crit' }
+    { label: T.all,          filter: 'all' },
+    { label: T.stores,       filter: 'store' },
+    { label: T.farmsLabel,   filter: 'farm' },
+    { label: T.critical,     filter: 'crit' }
   ];
 
   for (var i = 0; i < chipData.length; i++) {

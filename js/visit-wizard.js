@@ -22,7 +22,8 @@ async function openVisitWizard(storeId, storeName) {
     competitor_notes: '',
     photo: null, photo_url: null,
     notes: '',
-    lat: null, lng: null
+    lat: null, lng: null,
+    gps_failed: false
   };
 
   // Set header
@@ -97,7 +98,42 @@ async function openVisitWizard(storeId, storeName) {
     } catch (e) { /* no previous visit */ }
   }
 
+  // Hide GPS warning + status from previous session
+  var gpsWarning = document.getElementById('visit-gps-warning');
+  var gpsStatus = document.getElementById('visit-gps-status');
+  if (gpsWarning) gpsWarning.style.display = 'none';
+  if (gpsStatus) gpsStatus.style.display = 'none';
+
   nav('page-visit-wizard');
+
+  // Pre-check GPS (non-blocking — TSR can still submit without GPS)
+  _preCheckGPS();
+}
+
+async function _preCheckGPS() {
+  var gpsWarning = document.getElementById('visit-gps-warning');
+  var gpsStatus = document.getElementById('visit-gps-status');
+  if (gpsStatus) {
+    gpsStatus.style.display = 'block';
+    gpsStatus.textContent = T.gpsAcquiring;
+  }
+
+  var gps = await getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+
+  if (gps) {
+    _visitData.lat = gps.lat;
+    _visitData.lng = gps.lng;
+    _visitData.gps_failed = false;
+    if (gpsStatus) {
+      gpsStatus.textContent = T.gpsOk + ' (' + gps.lat.toFixed(4) + ', ' + gps.lng.toFixed(4) + ')';
+      gpsStatus.style.color = 'var(--status-ok)';
+    }
+    if (gpsWarning) gpsWarning.style.display = 'none';
+  } else {
+    _visitData.gps_failed = true;
+    if (gpsWarning) gpsWarning.style.display = 'block';
+    if (gpsStatus) gpsStatus.style.display = 'none';
+  }
 }
 
 // Outcome chip selection — the core 2-tap UX
@@ -229,11 +265,16 @@ async function submitVisit() {
   submitBtn.textContent = T.syncing;
 
   try {
-    // 1. Get GPS
-    var gps = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
-    if (gps) {
-      _visitData.lat = gps.lat;
-      _visitData.lng = gps.lng;
+    // 1. Get GPS — try again if pre-check failed, but don't block
+    if (!_visitData.lat && !_visitData.lng) {
+      var gps = await getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+      if (gps) {
+        _visitData.lat = gps.lat;
+        _visitData.lng = gps.lng;
+        _visitData.gps_failed = false;
+      } else {
+        _visitData.gps_failed = true;
+      }
     }
 
     // 2. Convert photo Blob to base64 for IndexedDB persistence
@@ -271,6 +312,7 @@ async function submitVisit() {
       order_taken: _visitData.order_taken,
       order_amount: _visitData.order_amount,
       merch_score: _visitData.merch_score,
+      gps_failed: _visitData.gps_failed || false,
       offline_id: (session ? session.id : 'anon') + '_' + Date.now(),
       visited_at: new Date().toISOString()
     };

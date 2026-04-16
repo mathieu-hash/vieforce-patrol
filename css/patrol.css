@@ -879,8 +879,8 @@ body {
 }
 .map-locate-btn:active { transform: scale(0.95); }
 
-/* Popup glass styles */
-.map-popup .leaflet-popup-content-wrapper {
+/* Mapbox GL popup glass styles */
+.mapboxgl-popup-content {
   background: rgba(10, 10, 15, 0.92) !important;
   backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
@@ -888,14 +888,18 @@ body {
   box-shadow: 0 8px 40px rgba(0,0,0,0.5) !important;
   color: #e8e8f0 !important;
   padding: 0 !important;
+  min-width: 260px;
 }
-.map-popup .leaflet-popup-tip {
-  background: rgba(10, 10, 15, 0.92) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
+.mapboxgl-popup-tip {
+  border-top-color: rgba(10, 10, 15, 0.92) !important;
 }
-.map-popup .leaflet-popup-close-button {
-  color: #8888a8 !important; font-size: 18px !important;
-  top: 8px !important; right: 10px !important;
+.mapboxgl-popup-close-button {
+  color: #8888a8 !important; font-size: 20px !important;
+  top: 4px !important; right: 8px !important;
+  background: none !important; border: none !important;
+}
+.mapboxgl-popup-close-button:hover {
+  color: #fff !important; background: none !important;
 }
 
 /* Entrance animations */
@@ -922,25 +926,46 @@ body {
   50% { transform: scale(1.2); opacity: 0.3; }
 }
 
-/* Override Leaflet controls for dark theme */
-.map-dark-theme .leaflet-control-zoom a {
+/* Override Mapbox GL controls for dark theme */
+.map-dark-theme .mapboxgl-ctrl-group {
   background: rgba(26, 26, 40, 0.9) !important;
   backdrop-filter: blur(16px) !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
-  color: #e8e8f0 !important;
-  border-radius: 10px !important;
-  width: 36px !important; height: 36px !important;
-  line-height: 36px !important;
-  font-size: 16px !important;
-}
-.map-dark-theme .leaflet-control-zoom {
-  border: none !important; border-radius: 12px !important;
-  overflow: hidden;
+  border-radius: 12px !important;
   box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+  overflow: hidden;
 }
-.map-dark-theme .leaflet-control-attribution {
+.map-dark-theme .mapboxgl-ctrl-group button {
+  background: transparent !important;
+  color: #e8e8f0 !important;
+  width: 36px !important; height: 36px !important;
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+}
+.map-dark-theme .mapboxgl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+.map-dark-theme .mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(1) brightness(0.9);
+}
+.map-dark-theme .mapboxgl-ctrl-attrib {
   background: rgba(10,10,15,0.7) !important;
   color: #555570 !important; font-size: 9px !important;
+}
+.map-dark-theme .mapboxgl-ctrl-attrib a {
+  color: #555570 !important;
+}
+/* Mapbox geolocate button pulse */
+.map-dark-theme .mapboxgl-user-location-dot {
+  background-color: var(--map-accent) !important;
+  box-shadow: 0 0 16px rgba(79, 143, 247, 0.5) !important;
+}
+/* Map markers */
+.map-marker {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.map-marker:hover {
+  transform: scale(1.15);
 }
 
 /* Language Switcher Pills */

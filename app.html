@@ -9,8 +9,8 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -427,9 +427,8 @@
   <!-- Floating glass filter bar -->
   <div class="map-filter-bar">
     <button class="map-filter-chip active" data-filter="all">Lahat</button>
-    <button class="map-filter-chip" data-filter="ok">OK</button>
-    <button class="map-filter-chip" data-filter="warn">Babala</button>
-    <button class="map-filter-chip" data-filter="crit">Critical</button>
+    <button class="map-filter-chip" data-filter="store">Tindahan</button>
+    <button class="map-filter-chip" data-filter="farm">Bukid</button>
   </div>
 
   <!-- Full-bleed map container -->

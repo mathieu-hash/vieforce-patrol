@@ -1,0 +1,25 @@
+{
+  "name": "vieforce-patrol",
+  "version": "1.0.0",
+  "description": "",
+  "main": "config.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright test --reporter=html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mathieu-hash/vieforce-patrol.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mathieu-hash/vieforce-patrol/issues"
+  },
+  "homepage": "https://github.com/mathieu-hash/vieforce-patrol#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}

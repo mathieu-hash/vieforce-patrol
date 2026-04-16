@@ -6,3 +6,6 @@ const CONFIG = {
   VERSION: '3.0.0',
   DOMAIN: 'patrol.vienovo.ph'
 };
+
+// Mapbox GL JS — replace with your real token from mapbox.com
+window.MAPBOX_TOKEN = 'pk.YOUR_TOKEN_HERE';
