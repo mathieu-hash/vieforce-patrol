@@ -734,11 +734,16 @@ var LABELS = {
 };
 
 // Active language — read from localStorage, default Tagalog
-var currentLang = localStorage.getItem('patrol_lang') || 'TL';
+// Normalize existing stored value to uppercase (fixes 'en' → 'EN' corruption)
+var storedLang = localStorage.getItem('patrol_lang');
+if (storedLang) {
+  localStorage.setItem('patrol_lang', storedLang.toUpperCase());
+}
+var currentLang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
 
 // Build T as plain object for current language — no Proxy (fails on slow mobile)
 function getT() {
-  var lang = localStorage.getItem('patrol_lang') || 'TL';
+  var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
   var src = LABELS[lang] || LABELS['TL'];
   var fallback = LABELS['TL'];
   var obj = {};
@@ -760,6 +765,7 @@ window.T = T;
 
 // Switch language and re-render
 function setLanguage(lang) {
+  lang = String(lang).toUpperCase();
   if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') return;
   currentLang = lang;
   localStorage.setItem('patrol_lang', lang);
