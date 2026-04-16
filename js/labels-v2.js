@@ -791,18 +791,22 @@ function setLanguage(lang) {
     var k = els[j].getAttribute('data-t');
     if (T[k]) els[j].textContent = T[k];
   }
-  // Update pill active states
+  // Reset ALL pills to inactive first
   var pills = document.querySelectorAll('.lang-pill, .login-lang-btn');
-  console.log('pills found:', pills.length);
   for (var p = 0; p < pills.length; p++) {
-    var pl = pills[p].getAttribute('data-lang');
-    console.log('pill data-lang:', pl, 'comparing to:', lang);
-    if (pl && pl.toUpperCase() === lang) {
-      pills[p].style.background = '#004D71';
-      pills[p].style.color = '#ffffff';
-    } else {
-      pills[p].style.background = 'white';
-      pills[p].style.color = '#004D71';
+    pills[p].style.background = 'transparent';
+    pills[p].style.color = '#004D71';
+    pills[p].style.borderColor = '#004D71';
+    pills[p].classList.remove('active');
+  }
+  // Then activate only matching pill
+  for (var p2 = 0; p2 < pills.length; p2++) {
+    var pl = (pills[p2].getAttribute('data-lang') || '').toUpperCase();
+    if (pl === lang) {
+      pills[p2].style.background = '#004D71';
+      pills[p2].style.color = '#ffffff';
+      pills[p2].style.borderColor = '#004D71';
+      pills[p2].classList.add('active');
     }
   }
   showLangToast();
@@ -820,18 +824,22 @@ function rerenderCurrentPage() {
     }
   }
 
-  // Update language pill active states
-  var pills = document.querySelectorAll('.lang-pill');
+  // Reset ALL pills to inactive first
+  var pills = document.querySelectorAll('.lang-pill, .login-lang-btn');
   for (var p = 0; p < pills.length; p++) {
-    var l = pills[p].getAttribute('data-lang');
-    if (l === window.currentLang) {
-      pills[p].classList.add('active');
-      pills[p].style.background = 'var(--accent-dark,#004D71)';
-      pills[p].style.color = 'white';
-    } else {
-      pills[p].classList.remove('active');
-      pills[p].style.background = 'white';
-      pills[p].style.color = 'var(--accent-dark,#004D71)';
+    pills[p].style.background = 'transparent';
+    pills[p].style.color = '#004D71';
+    pills[p].style.borderColor = '#004D71';
+    pills[p].classList.remove('active');
+  }
+  // Then activate only matching pill
+  for (var p2 = 0; p2 < pills.length; p2++) {
+    var pl = (pills[p2].getAttribute('data-lang') || '').toUpperCase();
+    if (pl === (window.currentLang || '').toUpperCase()) {
+      pills[p2].style.background = '#004D71';
+      pills[p2].style.color = '#ffffff';
+      pills[p2].style.borderColor = '#004D71';
+      pills[p2].classList.add('active');
     }
   }
 
