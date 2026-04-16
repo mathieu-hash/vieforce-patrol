@@ -733,17 +733,17 @@ var LABELS = {
   }
 };
 
-// Active language — read from localStorage, default Tagalog
+// Active language — use window.currentLang explicitly to avoid scope conflicts
 // Normalize existing stored value to uppercase (fixes 'en' → 'EN' corruption)
 var storedLang = localStorage.getItem('patrol_lang');
 if (storedLang) {
   localStorage.setItem('patrol_lang', storedLang.toUpperCase());
 }
-var currentLang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
+window.currentLang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
 
 // Build T as plain object for current language — no Proxy (fails on slow mobile)
 function getT() {
-  var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
+  var lang = window.currentLang || (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
   var src = LABELS[lang] || LABELS['TL'];
   var fallback = LABELS['TL'];
   var obj = {};
@@ -767,7 +767,7 @@ window.T = T;
 function setLanguage(lang) {
   lang = String(lang).toUpperCase();
   if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') return;
-  currentLang = lang;
+  window.currentLang = lang;
   localStorage.setItem('patrol_lang', lang);
   // Rebuild T in-place — keeps same reference for all scripts
   var newT = getT();
@@ -776,35 +776,24 @@ function setLanguage(lang) {
     T[keys[i]] = newT[keys[i]];
   }
   window.T = T;
-  window.currentLang = currentLang;
-
-  // Force ALL data-t elements to update immediately
+  // Force update all data-t elements
   var els = document.querySelectorAll('[data-t]');
-  for (var j = 0; j < els.length; j++) {
-    var tKey = els[j].getAttribute('data-t');
-    if (T[tKey] && typeof T[tKey] === 'string') {
-      els[j].textContent = T[tKey];
-    }
+  for (var i = 0; i < els.length; i++) {
+    var k = els[i].getAttribute('data-t');
+    if (T[k]) els[i].textContent = T[k];
   }
-
-  // Force update lang pill active states with hardcoded colors
-  var allPills = document.querySelectorAll('.lang-pill, .login-lang-btn');
-  for (var p = 0; p < allPills.length; p++) {
-    var pillLang = allPills[p].getAttribute('data-lang');
-    if (pillLang === lang) {
-      allPills[p].style.background = '#004D71';
-      allPills[p].style.color = '#ffffff';
-      allPills[p].style.borderColor = '#004D71';
+  // Update pill active states inline with cssText
+  var pills = document.querySelectorAll('.lang-pill, .login-lang-btn');
+  for (var i = 0; i < pills.length; i++) {
+    var pl = pills[i].getAttribute('data-lang');
+    if (pl && pl.toUpperCase() === lang) {
+      pills[i].style.cssText = 'flex:1;padding:10px 0;border-radius:20px;font-size:13px;min-height:44px;cursor:pointer;background:#004D71!important;color:white!important;border:2px solid #004D71!important;font-weight:700!important';
     } else {
-      allPills[p].style.background = '#ffffff';
-      allPills[p].style.color = '#004D71';
-      allPills[p].style.borderColor = '#004D71';
+      pills[i].style.cssText = 'flex:1;padding:10px 0;border-radius:20px;font-size:13px;min-height:44px;cursor:pointer;background:white!important;color:#004D71!important;border:2px solid #004D71!important;font-weight:700';
     }
   }
-
-  console.log('setLanguage complete:', lang, 'T.withOrder:', T.withOrder);
-  rerenderCurrentPage();
   showLangToast();
+  console.log('setLanguage done:', window.currentLang, 'T.withOrder:', T.withOrder);
 }
 
 // Re-render all data-t elements + active page dynamic content
@@ -822,7 +811,7 @@ function rerenderCurrentPage() {
   var pills = document.querySelectorAll('.lang-pill');
   for (var p = 0; p < pills.length; p++) {
     var l = pills[p].getAttribute('data-lang');
-    if (l === currentLang) {
+    if (l === window.currentLang) {
       pills[p].classList.add('active');
       pills[p].style.background = 'var(--accent-dark,#004D71)';
       pills[p].style.color = 'white';
@@ -891,8 +880,8 @@ function showLangToast() {
   var existing = document.getElementById('lang-toast');
   if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
 
-  var msg = currentLang === 'BIS' ? 'Gibag-o ang pinulongan' :
-            currentLang === 'EN'  ? 'Language changed to English' :
+  var msg = window.currentLang === 'BIS' ? 'Gibag-o ang pinulongan' :
+            window.currentLang === 'EN'  ? 'Language changed to English' :
             'Wika ay binago sa Tagalog';
 
   var toast = document.createElement('div');
@@ -929,7 +918,7 @@ function formatRelativeTimeTagalog(dateStr) {
   if (days === 1) return T.yesterday;
   if (days < 30) return T.daysAgo(days);
 
-  var locale = currentLang === 'EN' ? 'en-US' : 'fil-PH';
+  var locale = window.currentLang === 'EN' ? 'en-US' : 'fil-PH';
   return new Date(dateStr).toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
@@ -955,20 +944,19 @@ function formatStoreTypeTagalog(type) {
   return map[type] || type;
 }
 
-console.log('labels.js loaded, currentLang:', currentLang);
+console.log('labels.js loaded, window.currentLang:', window.currentLang);
 
 function testLang() {
-  console.log('setLanguage called');
-  console.log('currentLang before:', currentLang);
+  console.log('window.currentLang before:', window.currentLang);
   setLanguage('BIS');
-  console.log('currentLang after:', currentLang);
-  console.log('localStorage value:', localStorage.getItem('patrol_lang'));
+  console.log('window.currentLang after:', window.currentLang);
+  console.log('localStorage:', localStorage.getItem('patrol_lang'));
   console.log('T.withOrder:', T.withOrder);
 }
 
 window.T = T;
 window.LABELS = LABELS;
-window.currentLang = currentLang;
+// window.currentLang already set at top of file
 window.setLanguage = setLanguage;
 window.rerenderCurrentPage = rerenderCurrentPage;
 window.testLang = testLang;
