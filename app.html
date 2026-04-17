@@ -26,7 +26,7 @@ if ('serviceWorker' in navigator) {
 <link href="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- xlsx loaded on-demand for manager roles only (see js role-check block) — saves ~240 KB gz on every TSR load -->
 </head>
 <body>
 
@@ -997,6 +997,13 @@ if ('serviceWorker' in navigator) {
   // ===== Role-based home page: DSM/RSM/Exec/Admin see dashboard, TSR sees home =====
   var MANAGER_ROLES = ['dsm','rsm','exec','admin'];
   if (session && MANAGER_ROLES.indexOf(session.role) !== -1) {
+    // Lazy-load xlsx (~240 KB gz) only for managers — TSRs never need export
+    (function () {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.async = true;
+      document.head.appendChild(s);
+    })();
     // Show dashboard as default page, change Home nav to point to dashboard
     document.getElementById('page-home').classList.remove('active');
     document.getElementById('page-dashboard').classList.add('active');
