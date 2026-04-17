@@ -7,7 +7,7 @@ create table if not exists public.users (
   phone text not null unique,
   pin_hash text not null,
   name text not null,
-  role text not null check (role in ('tsr','dsm','rsm','admin')),
+  role text not null check (role in ('tsr','champion','dsm','rsm','exec','admin')),
   region text,
   district text,
   territory text,
