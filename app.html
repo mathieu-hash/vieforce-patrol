@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=13">
+<link rel="stylesheet" href="css/patrol.css?v=14">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -603,10 +603,10 @@ if ('serviceWorker' in navigator) {
 <div id="page-store-new" class="page">
   <div class="chat-header">
     <div class="back" onclick="navBack('page-stores')">&#8249;</div>
-    <div class="chat-av" style="background:linear-gradient(135deg,#4A90E2,#6BA3E8);font-size:18px">\ud83c\udfea</div>
+    <div class="chat-av" style="background:linear-gradient(135deg,#4A90E2,#6BA3E8);font-size:22px">&#127978;</div>
     <div class="chat-hdr-info">
       <div class="chat-hdr-name">VieForce Assistant</div>
-      <div class="chat-hdr-sub">\u25cf Online \u00b7 Store Registration</div>
+      <div class="chat-hdr-sub">&#9679; Online &middot; Store Registration</div>
     </div>
   </div>
   <div class="messages" id="new-store-messages"></div>
@@ -625,10 +625,10 @@ if ('serviceWorker' in navigator) {
 <div id="page-farm-new" class="page">
   <div class="chat-header">
     <div class="back" onclick="navBack('page-stores')">&#8249;</div>
-    <div class="chat-av" style="background:linear-gradient(135deg,#7EB87E,#95C695);font-size:18px">\ud83d\udc16</div>
+    <div class="chat-av" style="background:linear-gradient(135deg,#7EB87E,#95C695);font-size:22px">&#128022;</div>
     <div class="chat-hdr-info">
       <div class="chat-hdr-name">VieForce Assistant</div>
-      <div class="chat-hdr-sub">\u25cf Online \u00b7 Farm Registration</div>
+      <div class="chat-hdr-sub">&#9679; Online &middot; Farm Registration</div>
     </div>
   </div>
   <div class="messages" id="new-farm-messages"></div>
@@ -767,16 +767,16 @@ if ('serviceWorker' in navigator) {
 <div class="overlay" id="fab-picker-overlay" onclick="closeFabPicker()"></div>
 <div class="sheet" id="fab-picker-sheet" style="max-height:none;padding-bottom:32px">
   <div class="sheet-handle"></div>
-  <div class="sheet-q" style="text-align:center">Ano ang i-rehistro? \u2728</div>
+  <div class="sheet-q" style="text-align:center">Ano ang i-rehistro? &#10024;</div>
   <button class="fab-pick-btn" onclick="openChatbotStore()">
-    <span class="fab-pick-ico">\ud83c\udfea</span>
+    <span class="fab-pick-ico">&#127978;</span>
     <div class="fab-pick-txt">
       <b data-t="newStore">Bagong Tindahan</b>
       <small>Store / POS</small>
     </div>
   </button>
   <button class="fab-pick-btn" onclick="openChatbotFarm()">
-    <span class="fab-pick-ico">\ud83d\udc16</span>
+    <span class="fab-pick-ico">&#128022;</span>
     <div class="fab-pick-txt">
       <b data-t="newFarm">Bagong Farm</b>
       <small>Hog / Poultry / Dairy</small>
@@ -834,7 +834,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/champion.js"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
-<script src="js/chatbot-register.js?v=1"></script>
+<script src="js/chatbot-register.js?v=2"></script>
 <script>
   // ===== Auth gate =====
   var session = requireAuth();
@@ -1032,12 +1032,12 @@ if ('serviceWorker' in navigator) {
       var initials = initial + (second ? second.charAt(0).toUpperCase() : '');
       var storeIcon = (typeof getStoreIcon === 'function') ? getStoreIcon(store.store_type) : '';
 
-      // Chat header — icon on top, initials below
+      // Chat header — big store-type emoji + small initials badge overlay
       var chatAv = document.getElementById('detail-chat-av');
       if (chatAv) {
         chatAv.style.background = grad;
-        chatAv.innerHTML = (storeIcon ? '<span style="font-size:16px;line-height:1">' + storeIcon + '</span>' : '') +
-          '<span style="font-size:10px;font-weight:700;letter-spacing:0.3px;opacity:0.95">' + initials + '</span>';
+        chatAv.innerHTML = (storeIcon ? '<span class="chat-av-icon">' + storeIcon + '</span>' : '') +
+          '<span class="chat-av-initials">' + initials + '</span>';
       }
       document.getElementById('detail-store-name').textContent = store.name || '--';
       var metaParts = [];
