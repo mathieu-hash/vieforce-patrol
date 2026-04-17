@@ -367,6 +367,22 @@ async function submitVisit() {
     // 4. RULE 1: ALWAYS write to IndexedDB FIRST, then sync to server
     await queueVisit(visitPayload);
 
+    // 4b. Phase 3 — First-order celebration if this visit converts a prospect
+    //     Triggers when outcome = order AND current store.store_status = 'prospect'.
+    try {
+      var storeNow = await getStoreById(_visitData.storeId);
+      if (storeNow && storeNow.store_status === 'prospect' && _visitData.order_taken) {
+        await updateStore(_visitData.storeId, {
+          store_status: 'active',
+          prospect_stage: 'converted',
+          converted_at: new Date().toISOString()
+        });
+        if (typeof showConversionCelebration === 'function') {
+          showConversionCelebration(storeNow.name || (_visitData.storeName || ''));
+        }
+      }
+    } catch (e) { /* non-critical — don't block the visit save */ }
+
     // Immediately show success — data is safe in IndexedDB
     submitBtn.textContent = '\u2713 ' + T.submitOk;
     submitBtn.className = 'big-button success';

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=15">
+<link rel="stylesheet" href="css/patrol.css?v=16">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -53,6 +53,9 @@ if ('serviceWorker' in navigator) {
       <span id="sync-label">Synced</span>
     </div>
   </div>
+
+  <!-- TSR scorecard hero (populated by renderTsrScorecardHero) -->
+  <div id="tsr-scorecard-container"></div>
 
   <div class="kpi-grid">
     <div class="kpi-card">
@@ -597,6 +600,21 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
+<!-- TSR SCORECARD DETAIL (DSM drill-down)     -->
+<!-- ========================================= -->
+<div class="page" id="page-tsr-scorecard" style="background:var(--bg-main)">
+  <div class="chat-header">
+    <div class="back" onclick="navBack('page-team')">&#8249;</div>
+    <div class="chat-av" id="tsc-avatar" style="background:linear-gradient(135deg,#4A90E2,#6BA3E8)">?</div>
+    <div class="chat-hdr-info">
+      <div class="chat-hdr-name" id="tsc-name">TSR</div>
+      <div class="chat-hdr-sub" id="tsc-role">TSR</div>
+    </div>
+  </div>
+  <div class="messages" id="tsc-content"></div>
+</div>
+
+<!-- ========================================= -->
 <!-- STORE DETAIL — Messenger Chat Thread      -->
 <!-- ========================================= -->
 <div id="page-store-detail" class="page" style="background:var(--bg-main)">
@@ -847,7 +865,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
-<script src="js/labels-v2.js?v=6"></script>
+<script src="js/labels-v2.js?v=7"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -865,7 +883,8 @@ if ('serviceWorker' in navigator) {
 <script src="js/dashboard.js"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
-<script src="js/team.js?v=1"></script>
+<script src="js/scorecard.js?v=1"></script>
+<script src="js/team.js?v=2"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=2"></script>
@@ -1018,7 +1037,7 @@ if ('serviceWorker' in navigator) {
     target.classList.add('active');
 
     // Update bottom-nav active state
-    var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile','page-team'];
+    var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-tsr-scorecard'];
     if (_mainPages.indexOf(pageId) !== -1) {
       var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
       for (var j = 0; j < navBtns.length; j++) {
@@ -1757,6 +1776,11 @@ if ('serviceWorker' in navigator) {
   initStoreSearch();
   initStoreFilters();
 
+  // ===== Phase 3: TSR scorecard hero on home =====
+  if (session && (session.role === 'tsr' || session.role === 'champion')) {
+    if (typeof renderTsrScorecardHero === 'function') renderTsrScorecardHero();
+  }
+
   // ===== Initialize champion team + leaderboard widgets (TSR home) =====
   if (session && session.role === 'tsr') {
     initChampionWidgets();
@@ -1785,6 +1809,9 @@ if ('serviceWorker' in navigator) {
     }
     if (pageId === 'page-team' && typeof renderTeamPage === 'function') {
       renderTeamPage();
+    }
+    if (pageId === 'page-tsr-scorecard' && typeof renderTsrScorecardDetail === 'function' && window._selectedTsrId) {
+      renderTsrScorecardDetail(window._selectedTsrId);
     }
   };
 

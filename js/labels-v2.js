@@ -257,7 +257,30 @@ var LABELS = {
     activeTsrs:      'Aktibong TSR',
     storesCovered:   'Tindahan na-bisita',
     noTeamYet:       'Walang team member pa. Makipag-ugnayan sa admin.',
-    noActivityToday: 'Walang activity ngayon'
+    noActivityToday: 'Walang activity ngayon',
+
+    // Scorecard (Phase 3)
+    prospection:     'Prospeksyon',
+    conversion:      'Konbersyon',
+    retention:       'Retention',
+    growth:          'Paglago',
+    newStores:       'Bagong tindahan',
+    newShort:        'bago',
+    converted:       'Na-convert',
+    conversionRate:  'Conversion rate',
+    visited:         'Na-bisita',
+    atRisk:          'May panganib',
+    churned:         'Nawala',
+    mtdVolume:       'MTD Volume',
+    growthPct:       'Paglago vs LM',
+    avgSov:          'Avg SOV',
+    recentVisits:    'Mga huling bisita',
+    activeProspects: 'Aktibong prospect',
+    myScorecard:     'Scorecard ko ngayong buwan',
+    overallScore:    'Overall Score',
+    firstOrder:      'Unang order!',
+    convertedFromProspect: 'Nag-convert si prospect',
+    loading:         'Nilo-load...'
   },
 
   BIS: {
@@ -514,7 +537,30 @@ var LABELS = {
     activeTsrs:      'Aktibo nga TSR',
     storesCovered:   'Tindahan na-bisita',
     noTeamYet:       'Wala pay team member. Kontaka ang admin.',
-    noActivityToday: 'Walay activity karon'
+    noActivityToday: 'Walay activity karon',
+
+    // Scorecard (Phase 3)
+    prospection:     'Pangita og bag-o',
+    conversion:      'Konbersyon',
+    retention:       'Retention',
+    growth:          'Paglambo',
+    newStores:       'Bag-ong tindahan',
+    newShort:        'bag-o',
+    converted:       'Na-convert',
+    conversionRate:  'Conversion rate',
+    visited:         'Na-bisita',
+    atRisk:          'Nameligro',
+    churned:         'Nawala',
+    mtdVolume:       'MTD Volume',
+    growthPct:       'Paglambo vs LM',
+    avgSov:          'Avg SOV',
+    recentVisits:    'Katapusang bisita',
+    activeProspects: 'Aktibo nga prospect',
+    myScorecard:     'Akong scorecard karong bulana',
+    overallScore:    'Overall Score',
+    firstOrder:      'Unang order!',
+    convertedFromProspect: 'Nag-convert ang prospect',
+    loading:         'Gi-load...'
   },
 
   EN: {
@@ -771,7 +817,30 @@ var LABELS = {
     activeTsrs:      'Active TSRs',
     storesCovered:   'Stores covered',
     noTeamYet:       'No team members yet. Contact your admin.',
-    noActivityToday: 'No activity today'
+    noActivityToday: 'No activity today',
+
+    // Scorecard (Phase 3)
+    prospection:     'Prospection',
+    conversion:      'Conversion',
+    retention:       'Retention',
+    growth:          'Growth',
+    newStores:       'New stores',
+    newShort:        'new',
+    converted:       'Converted',
+    conversionRate:  'Conversion rate',
+    visited:         'Visited',
+    atRisk:          'At risk',
+    churned:         'Churned',
+    mtdVolume:       'MTD Volume',
+    growthPct:       'Growth vs LM',
+    avgSov:          'Avg SOV',
+    recentVisits:    'Recent visits',
+    activeProspects: 'Active prospects',
+    myScorecard:     'My scorecard this month',
+    overallScore:    'Overall Score',
+    firstOrder:      'First order!',
+    convertedFromProspect: 'Prospect converted',
+    loading:         'Loading...'
   }
 };
 
