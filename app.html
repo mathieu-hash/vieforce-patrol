@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=14">
+<link rel="stylesheet" href="css/patrol.css?v=15">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -564,6 +564,39 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
+<!-- TEAM — Manager view (DSM/RSM/Exec)        -->
+<!-- ========================================= -->
+<div class="page" id="page-team">
+  <div class="top-bar">
+    <div style="flex:1">
+      <h1 data-t="teamHeader">Team ko</h1>
+      <div class="subtitle" id="team-subtitle">--</div>
+    </div>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="team-kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-value" id="team-visits-today">&mdash;</div>
+      <div class="kpi-label" data-t="visitsToday">Bisita ngayon</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="team-active-tsrs">&mdash;</div>
+      <div class="kpi-label" data-t="activeTsrs">Aktibong TSR</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" id="team-stores-covered">&mdash;</div>
+      <div class="kpi-label" data-t="storesCovered">Tindahan na-bisita</div>
+    </div>
+  </div>
+
+  <!-- Team member list (Messenger inbox style) -->
+  <div class="conv-list" id="team-list">
+    <div class="section-hdr" data-t="myTeam">&#9889; Team ko ngayon</div>
+  </div>
+</div>
+
+<!-- ========================================= -->
 <!-- STORE DETAIL — Messenger Chat Thread      -->
 <!-- ========================================= -->
 <div id="page-store-detail" class="page" style="background:var(--bg-main)">
@@ -814,7 +847,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
-<script src="js/labels-v2.js?v=5"></script>
+<script src="js/labels-v2.js?v=6"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -832,6 +865,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/dashboard.js"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
+<script src="js/team.js?v=1"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=2"></script>
@@ -926,8 +960,9 @@ if ('serviceWorker' in navigator) {
     if (lat && lng) window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng, '_blank');
   }
 
-  // ===== Role-based home page: DSM/RSM/Admin see dashboard, TSR sees home =====
-  if (session && (session.role === 'dsm' || session.role === 'rsm' || session.role === 'admin')) {
+  // ===== Role-based home page: DSM/RSM/Exec/Admin see dashboard, TSR sees home =====
+  var MANAGER_ROLES = ['dsm','rsm','exec','admin'];
+  if (session && MANAGER_ROLES.indexOf(session.role) !== -1) {
     // Show dashboard as default page, change Home nav to point to dashboard
     document.getElementById('page-home').classList.remove('active');
     document.getElementById('page-dashboard').classList.add('active');
@@ -941,7 +976,21 @@ if ('serviceWorker' in navigator) {
     if (typeof initDashboard === 'function') {
       initDashboard();
     }
+    // Inject Team tab into bottom nav (before Profile)
+    (function () {
+      var nav = document.getElementById('bottom-nav');
+      if (!nav || nav.querySelector('.nav-item[data-page="page-team"]')) return;
+      var profileBtn = nav.querySelector('.nav-item[data-page="page-profile"]');
+      var teamBtn = document.createElement('button');
+      teamBtn.className = 'nav-item';
+      teamBtn.setAttribute('data-page', 'page-team');
+      teamBtn.setAttribute('style', 'min-height:56px');
+      teamBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span data-t="team">Team</span>';
+      teamBtn.addEventListener('click', function () { nav_safe('page-team'); });
+      if (profileBtn) nav.insertBefore(teamBtn, profileBtn); else nav.appendChild(teamBtn);
+    })();
   }
+  function nav_safe(id) { (window.nav || nav)(id); }
 
   // ===== Page Navigation (slide transitions) =====
   var _navHistory = [];
@@ -969,7 +1018,7 @@ if ('serviceWorker' in navigator) {
     target.classList.add('active');
 
     // Update bottom-nav active state
-    var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile'];
+    var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile','page-team'];
     if (_mainPages.indexOf(pageId) !== -1) {
       var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
       for (var j = 0; j < navBtns.length; j++) {
@@ -1733,6 +1782,9 @@ if ('serviceWorker' in navigator) {
     }
     if (pageId === 'page-assign') {
       initAssignPage();
+    }
+    if (pageId === 'page-team' && typeof renderTeamPage === 'function') {
+      renderTeamPage();
     }
   };
 

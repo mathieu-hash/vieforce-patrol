@@ -229,6 +229,81 @@ async function updateUser(id, data) {
   return updated;
 }
 
+// ── Team hierarchy (Sprint A: manager -> direct reports) ──
+
+async function getDirectReports(userId, role) {
+  // Users whose manager_id = this person
+  var result = await supabaseClient
+    .from('users')
+    .select('id, name, phone, role, region, district, territory')
+    .eq('manager_id', userId)
+    .eq('is_active', true);
+
+  if (result.error) { console.warn('getDirectReports:', result.error.message); return []; }
+  var members = result.data || [];
+  if (members.length === 0) return [];
+
+  var todayIso = new Date().toISOString().split('T')[0];
+
+  var enriched = await Promise.all(members.map(async function (m) {
+    var vRes = await supabaseClient
+      .from('visits')
+      .select('id', { count: 'exact', head: true })
+      .eq('tsr_id', m.id)
+      .gte('visited_at', todayIso);
+    var sRes = await supabaseClient
+      .from('stores')
+      .select('id', { count: 'exact', head: true })
+      .eq('assigned_tsr', m.id);
+    m.visits_today = vRes.count || 0;
+    m.assigned_stores = sRes.count || 0;
+    return m;
+  }));
+  return enriched;
+}
+
+async function getTeamKPIs(userId, role) {
+  var todayIso = new Date().toISOString().split('T')[0];
+
+  var reportsRes = await supabaseClient
+    .from('users')
+    .select('id')
+    .eq('manager_id', userId)
+    .eq('is_active', true);
+
+  var reportIds = ((reportsRes.data) || []).map(function (r) { return r.id; });
+  if (reportIds.length === 0) {
+    return { visits_today: 0, active_tsrs: 0, stores_covered: 0, total_reports: 0 };
+  }
+
+  var countRes = await supabaseClient
+    .from('visits')
+    .select('id', { count: 'exact', head: true })
+    .in('tsr_id', reportIds)
+    .gte('visited_at', todayIso);
+
+  var visitsRes = await supabaseClient
+    .from('visits')
+    .select('store_id, tsr_id')
+    .in('tsr_id', reportIds)
+    .gte('visited_at', todayIso);
+
+  var visits = visitsRes.data || [];
+  var uniqueStores = {};
+  var activeTsrs = {};
+  for (var i = 0; i < visits.length; i++) {
+    if (visits[i].store_id) uniqueStores[visits[i].store_id] = 1;
+    if (visits[i].tsr_id) activeTsrs[visits[i].tsr_id] = 1;
+  }
+
+  return {
+    visits_today: countRes.count || 0,
+    active_tsrs: Object.keys(activeTsrs).length,
+    stores_covered: Object.keys(uniqueStores).length,
+    total_reports: reportIds.length
+  };
+}
+
 // ── Store Assignment (DSM → TSR) ──
 
 async function getTSRsByDistrict(district) {

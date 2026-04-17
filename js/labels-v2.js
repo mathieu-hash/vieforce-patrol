@@ -246,7 +246,18 @@ var LABELS = {
     rankLabel:       function(n) { return '#' + n; },
     visitsThisWeek:  function(n) { return n + ' bisita ngayong linggo'; },
     yourRank:        'Ikaw',
-    keepGoing:       'tuloy lang!'
+    keepGoing:       'tuloy lang!',
+
+    // Team (DSM/RSM/Exec)
+    team:            'Team',
+    teamHeader:      'Team ko',
+    searchTeam:      'Hanapin ang team member...',
+    myTeam:          'Team ko ngayon',
+    visitsToday:     'Bisita ngayon',
+    activeTsrs:      'Aktibong TSR',
+    storesCovered:   'Tindahan na-bisita',
+    noTeamYet:       'Walang team member pa. Makipag-ugnayan sa admin.',
+    noActivityToday: 'Walang activity ngayon'
   },
 
   BIS: {
@@ -492,7 +503,18 @@ var LABELS = {
     rankLabel:       function(n) { return '#' + n; },
     visitsThisWeek:  function(n) { return n + ' bisita karong semana'; },
     yourRank:        'Ikaw',
-    keepGoing:       'padayon lang!'
+    keepGoing:       'padayon lang!',
+
+    // Team (DSM/RSM/Exec)
+    team:            'Team',
+    teamHeader:      'Akong Team',
+    searchTeam:      'Pangitaa ang team member...',
+    myTeam:          'Akong team karon',
+    visitsToday:     'Bisita karon',
+    activeTsrs:      'Aktibo nga TSR',
+    storesCovered:   'Tindahan na-bisita',
+    noTeamYet:       'Wala pay team member. Kontaka ang admin.',
+    noActivityToday: 'Walay activity karon'
   },
 
   EN: {
@@ -738,7 +760,18 @@ var LABELS = {
     rankLabel:       function(n) { return '#' + n; },
     visitsThisWeek:  function(n) { return n + ' visits this week'; },
     yourRank:        'You',
-    keepGoing:       'keep going!'
+    keepGoing:       'keep going!',
+
+    // Team (DSM/RSM/Exec)
+    team:            'Team',
+    teamHeader:      'My Team',
+    searchTeam:      'Search team member...',
+    myTeam:          'My team today',
+    visitsToday:     'Visits today',
+    activeTsrs:      'Active TSRs',
+    storesCovered:   'Stores covered',
+    noTeamYet:       'No team members yet. Contact your admin.',
+    noActivityToday: 'No activity today'
   }
 };
 

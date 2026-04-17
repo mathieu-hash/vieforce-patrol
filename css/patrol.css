@@ -65,6 +65,36 @@ body {
 #page-store-new.active,
 #page-farm-new.active { display: flex !important; flex-direction: column; height: 100vh; overflow: hidden; padding-bottom: 60px; }
 
+/* ===== TEAM PAGE ===== */
+.team-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--divider);
+}
+.team-kpi-strip .kpi-card {
+  background: var(--bg-chat);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  margin: 0;
+}
+.team-kpi-strip .kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.team-kpi-strip .kpi-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
 /* ===== Chatbot registration (quick-replies + input-bar) ===== */
 .quick-replies {
   display: flex;

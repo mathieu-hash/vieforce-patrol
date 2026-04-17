@@ -126,6 +126,12 @@ async function login(phone, pin) {
   }
 }
 
+// --- Post-login routing (Sprint A: all roles land on app.html; role-specific render happens inside) ---
+function redirectAfterLogin(session) {
+  // Stub for future multi-app routing (Sprint C: Google SSO may send managers to /hq)
+  window.location.href = 'app.html';
+}
+
 // --- Session Management ---
 function getSession() {
   try {
