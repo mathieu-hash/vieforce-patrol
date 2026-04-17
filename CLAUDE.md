@@ -72,7 +72,7 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 
 **Product:** VieForce Patrol — Field CRM & POS Mapping Tool
 **Company:** Vienovo Philippines Inc. (VPI) — Animal feed manufacturer, Philippines
-**Live URL:** https://web-eta-seven-26.vercel.app
+**Live URL:** https://vieforce-patrol.vercel.app
 **API URL:** https://patrol-api-*.asia-southeast1.run.app
 
 ### What's Already Built ✅
@@ -104,7 +104,7 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 ```
 Frontend:   Next.js 14 (App Router) + Tailwind CSS
             Deployed on Vercel
-            Live: web-eta-seven-26.vercel.app
+            Live: vieforce-patrol.vercel.app
 
 Backend:    Express 5 + TypeScript + Drizzle ORM
             Deployed on Google Cloud Run (asia-southeast1)

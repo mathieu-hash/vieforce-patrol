@@ -3,7 +3,8 @@
 **Date:** 2026-04-17
 **Branch:** `main` (commit `38f1d86`)
 **Vercel alias:** `patrol.vienovo.ph` (per `vercel.json`)
-**Documented deploy URL:** `https://web-eta-seven-26.vercel.app` — ⚠️ **currently serves a different Next.js app, `/app.html` = 404** (see C-01)
+**Live deploy URL:** `https://vieforce-patrol.vercel.app` — ✅ confirmed live HTTP 200 (C-01 RESOLVED post-sprint-A.1)
+**Historical note:** This report was authored when the documented URL in project memory was `web-eta-seven-26.vercel.app`, which served a different Next.js app. The correct URL was identified during Sprint A.1 close-out. Text below preserves the original bug description.
 **Edge Function:** `https://yolxcmeoovztuindrglk.supabase.co/functions/v1/verify-pin` → **HTTP 200 · 1.5s** ✅
 **Inspector:** Static code audit (METHOD A) + curl smoke tests (METHOD B) + 3 parallel deep-audit agents (Security, UI/i18n, Performance)
 **Scope:** 16 pages / features · 21 JS modules · 411 KB local static · 5 external CDNs
@@ -32,7 +33,7 @@ The app is **functionally complete** — every flow in scope (login, scorecards,
 
 **What drags it below the 80-point pilot threshold is four bounded problems, each fixable in under 90 minutes:**
 
-1. The documented live URL (`web-eta-seven-26.vercel.app`) does not serve this app — pilot TSRs cannot reach it.
+1. ~~The documented live URL (`web-eta-seven-26.vercel.app`) does not serve this app — pilot TSRs cannot reach it.~~ ✅ **RESOLVED** — correct URL is `https://vieforce-patrol.vercel.app`.
 2. The `exec` role was added to the users table but **no RLS policy lets exec users read any data** → Mat's own test account (`09180000099`) will see an empty app.
 3. `xlsx.full.min.js` (~240 KB gz, admin-only) is loaded by every TSR on every page load → blows the 500 KB cached-bundle cap dictated by CLAUDE.md Rule 2.
 4. Base `supabase/schema.sql` is out of sync with three migration files — a fresh deploy would reject `champion` + `exec` inserts on the CHECK constraint.
@@ -59,7 +60,7 @@ Fix those four and the score lifts to ~89. Everything else can slip to Sprint B 
 
 | # | ID | Severity | Title | File | Effort |
 |---|---|---|---|---|---|
-| 1 | **C-01** | 🔴 CRITICAL | Vercel URL `web-eta-seven-26.vercel.app` serves a Next.js app, not Patrol — `/app.html` returns 404 | deployment | 15 min (verify `patrol.vienovo.ph` alias, document correct URL) |
+| 1 | **C-01** | ✅ RESOLVED | ~~Vercel URL `web-eta-seven-26.vercel.app` serves a Next.js app, not Patrol — `/app.html` returns 404~~ → correct URL is `https://vieforce-patrol.vercel.app` | deployment | done |
 | 2 | **C-02** | 🔴 CRITICAL | `exec` role has zero RLS coverage — all tables' policies only list `(dsm, rsm, admin)` | `supabase/schema.sql:165, 177, 199, 214, 226` | 30 min (one migration) |
 | 3 | **C-03** | 🔴 CRITICAL | Base `schema.sql` role CHECK excludes `champion` + `exec`; migration-only values break on re-apply | `supabase/schema.sql:10` | 15 min (update CHECK or document migration order) |
 | 4 | **C-04** | 🔴 CRITICAL | `xlsx.full.min.js` (~240 KB gz, admin-only) loaded by every TSR on every page | `app.html:29` | 30 min (move to admin.html) |
@@ -374,7 +375,7 @@ Same `renderTeamPage()` as DSM — shows direct reports (DSMs in RSM's case). Le
 
 | ID | Title | File | Fix | Effort |
 |---|---|---|---|---|
-| C-01 | Vercel URL `web-eta-seven-26` serves Next.js 404 | deployment | Verify `patrol.vienovo.ph` alias resolves; document correct URL in memory + CLAUDE.md | 15 min |
+| C-01 | ✅ RESOLVED — correct URL is `https://vieforce-patrol.vercel.app` | deployment | CLAUDE.md updated | done |
 | C-02 | Exec role has zero RLS coverage | `supabase/schema.sql:165,177,199,214,226` | One migration: add `'exec'` to every `role IN (...)` list + fix `users` SELECT | 30 min |
 | C-03 | Base schema role CHECK excludes champion + exec | `supabase/schema.sql:10` | `ALTER TABLE users DROP/ADD CONSTRAINT users_role_check` | 15 min (folds into C-02 migration) |
 | C-04 | xlsx.full.min.js eager-loaded for TSRs | `app.html:29` | Move `<script src="...xlsx...">` from app.html to admin.html only | 30 min |

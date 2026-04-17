@@ -98,7 +98,7 @@ The app is fundamentally working — login, visits, sync, team hierarchy, scorec
 | CORS | ✅ Edge Function handles preflight |
 
 ### Vercel deployment
-- `https://web-eta-seven-26.vercel.app/` → HTTP 200 but serves a **Next.js app** (title "404: This page could not be found" on `/app.html`)
+- `https://vieforce-patrol.vercel.app/` → HTTP 200 but serves a **Next.js app** (title "404: This page could not be found" on `/app.html`)
 - `/app.html` on that URL → HTTP 404 returning `_next/` assets
 
 This URL is currently **not serving our static PWA**. Either the Vercel project was re-linked to a different repo, or the memory has the wrong URL. `vercel.json` has `alias: patrol.vienovo.ph` — that custom domain may be the real target. **Verify before pilot** (see R12-C1).
@@ -258,7 +258,7 @@ Math is sane. Thresholds are aggressive (90% retention for 5⭐ is high). Recomm
 
 | ID | Title | File | Impact |
 |---|---|---|---|
-| **R12-C1** | Vercel URL `web-eta-seven-26` serves wrong app (Next.js 404 on /app.html) | deployment | TSRs can't load the app at the documented URL |
+| **R12-C1** | Vercel URL `vieforce-patrol` serves wrong app (Next.js 404 on /app.html) | deployment | TSRs can't load the app at the documented URL |
 | **R3-C1** | `exec` role missing from all RLS policies | `supabase/schema.sql:165, 177, 199, 214, 226` | Exec user logs in, sees empty stores/visits/team — app appears broken |
 | **R4-H1 → C** | Base `schema.sql` role check is `(tsr,dsm,rsm,admin)`; `champion`+`exec` only in migration | `supabase/schema.sql:10` | Fresh schema deploy rejects champion/exec users |
 | **R6-C1** | `xlsx.full.min.js` (~240 KB gz) loaded on every page for admin-only feature | `app.html:29` | Every TSR downloads +240 KB on first load, blows 500 KB bundle cap |
