@@ -791,6 +791,18 @@ function setLanguage(lang) {
     var k = els[j].getAttribute('data-t');
     if (T[k]) els[j].textContent = T[k];
   }
+  // Re-render dynamic content on the currently active page (incl. store detail)
+  var activePage = document.querySelector('.page.active');
+  if (activePage) {
+    var aid = activePage.id;
+    if (aid === 'page-stores' && typeof renderStoreList === 'function') renderStoreList();
+    if (aid === 'page-home' && typeof renderStoreList === 'function') renderStoreList();
+    if (aid === 'page-visits' && typeof renderVisitList === 'function') renderVisitList();
+    if (aid === 'page-dashboard' && typeof initDashboard === 'function') initDashboard();
+    if (aid === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {
+      openStoreDetail(window._currentStoreId);
+    }
+  }
   // Reset ALL pills to inactive first
   var pills = document.querySelectorAll('.lang-pill, .login-lang-btn');
   for (var p = 0; p < pills.length; p++) {
@@ -859,6 +871,9 @@ function rerenderCurrentPage() {
   }
   if (id === 'page-dashboard' && typeof initDashboard === 'function') {
     initDashboard();
+  }
+  if (id === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {
+    openStoreDetail(window._currentStoreId);
   }
   // Profile page — update labels that are not data-t
   if (id === 'page-profile') {

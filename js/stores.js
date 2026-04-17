@@ -34,6 +34,19 @@ function formatStoreType(type) {
     .join(' ');
 }
 
+function getStoreIcon(type) {
+  var icons = {
+    'feeds_dealer': '\ud83c\udfea',
+    'farm_supply':  '\ud83c\udfea',
+    'pet_shop':     '\ud83d\udc15',
+    'veterinary':   '\ud83c\udfe5',
+    'supermarket':  '\ud83d\uded2',
+    'other':        '\ud83c\udfec'
+  };
+  return icons[type] || '\ud83c\udfea';
+}
+window.getStoreIcon = getStoreIcon;
+
 // ── Store List Rendering ──
 
 var _storeCache = [];
@@ -62,18 +75,18 @@ async function renderStoreList(filter) {
     // Check which stores were visited today
     var todayStr = new Date().toISOString().slice(0, 10);
 
-    // Gradient palettes by health for avatars
+    // Flat Messenger-style colors for conv rows (no gradients)
     var _gradients = {
-      crit: 'linear-gradient(135deg,#FA383E,#FF6B35)',
-      warn: 'linear-gradient(135deg,#F97316,#EAB308)',
-      ok:   'linear-gradient(135deg,#22C55E,#16A34A)'
+      crit: '#E8746E',
+      warn: '#F2B14A',
+      ok:   '#7EB87E'
     };
     var _gradientArr = [
-      'linear-gradient(135deg,#0084FF,#A855F7)',
-      'linear-gradient(135deg,#06B6D4,#0284C7)',
-      'linear-gradient(135deg,#8B5CF6,#EC4899)',
-      'linear-gradient(135deg,#F97316,#EAB308)',
-      'linear-gradient(135deg,#22C55E,#16A34A)'
+      '#4A90E2',
+      '#6BA3E8',
+      '#C78AD9',
+      '#7EB87E',
+      '#65676B'
     ];
 
     // Split stores into unvisited-today and visited-today
@@ -196,9 +209,14 @@ function _buildConvRow(s, todayStr, gradients, gradientArr) {
   // Health dot
   var dotClass = 'status-dot dot-' + health;
 
+  var icon = getStoreIcon(s.store_type);
+
   return '<div class="store-row conv" data-store-id="' + s.id + '" onclick="openStoreDetail(\'' + s.id + '\')">' +
     '<div class="av-wrap">' +
-      '<div class="av" style="background:' + grad + '">' + initials + '</div>' +
+      '<div class="av" style="background:' + grad + '">' +
+        '<span class="av-icon">' + icon + '</span>' +
+        '<span class="av-initials">' + initials + '</span>' +
+      '</div>' +
       '<div class="' + dotClass + '"></div>' +
     '</div>' +
     '<div class="conv-info">' +
@@ -231,6 +249,18 @@ function _hashCode(str) {
 function _renderStoryCircles(stores, gradients, gradientArr) {
   var el = document.getElementById('story-circles-row');
   if (!el) return;
+
+  // Story circles keep gradients (urgent priority visuals). Soft palette.
+  var storyGrads = {
+    crit: 'linear-gradient(135deg,#E8746E,#F0958F)',
+    warn: 'linear-gradient(135deg,#F2B14A,#F7C97A)',
+    ok:   'linear-gradient(135deg,#7EB87E,#95C695)'
+  };
+  var storyGradArr = [
+    'linear-gradient(135deg,#4A90E2,#6BA3E8)',
+    'linear-gradient(135deg,#C78AD9,#D5A0E2)',
+    'linear-gradient(135deg,#7EB87E,#95C695)'
+  ];
 
   // Filter: unvisited 5+ days, critical, or new prospects
   var priority = [];
@@ -284,12 +314,13 @@ function _renderStoryCircles(stores, gradients, gradientArr) {
       badgeText = p.days + 'd';
     }
 
-    var grad = gradients[health] || gradientArr[Math.abs(_hashCode(s.id || s.name || '')) % gradientArr.length];
+    var grad = storyGrads[health] || storyGradArr[Math.abs(_hashCode(s.id || s.name || '')) % storyGradArr.length];
+    var icon = getStoreIcon(s.store_type);
 
     html += '<div class="story" onclick="openStoreDetail(\'' + s.id + '\')">' +
       '<div class="story-ring-wrap">' +
         '<div class="' + ringClass + '">' +
-          '<div class="story-inner"><div class="story-av" style="background:' + grad + '">' + initials + '</div></div>' +
+          '<div class="story-inner"><div class="story-av" style="background:' + grad + '">' + icon + '</div></div>' +
         '</div>' +
         '<div class="story-badge" style="background:' + badgeBg + '">' + badgeText + '</div>' +
       '</div>' +

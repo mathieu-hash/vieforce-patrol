@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=10">
+<link rel="stylesheet" href="css/patrol.css?v=11">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -872,7 +872,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
-<script src="js/labels-v2.js?v=2"></script>
+<script src="js/labels-v2.js?v=3"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -1052,9 +1052,11 @@ if ('serviceWorker' in navigator) {
 
   // ===== Store Detail Page =====
   var _currentStoreId = null;
+  window._currentStoreId = null;
 
   async function openStoreDetail(storeId) {
     _currentStoreId = storeId;
+    window._currentStoreId = storeId;
     nav('page-store-detail');
 
     // Set loading state
@@ -1068,17 +1070,22 @@ if ('serviceWorker' in navigator) {
       var store = await getStoreById(storeId);
       var visits = await getVisitsByStore(storeId);
 
-      // Avatar gradient based on health
-      var _grads = { crit:'linear-gradient(135deg,#FA383E,#FF6B35)', warn:'linear-gradient(135deg,#F97316,#EAB308)', ok:'linear-gradient(135deg,#22C55E,#16A34A)' };
+      // Flat Messenger-style colors for chat header
+      var _grads = { crit:'#E8746E', warn:'#F2B14A', ok:'#7EB87E' };
       var hs = store.health_status || 'ok';
-      var grad = _grads[hs] || 'linear-gradient(135deg,#0084FF,#A855F7)';
+      var grad = _grads[hs] || '#4A90E2';
       var initial = (store.name || '?').charAt(0).toUpperCase();
       var second = (store.name || '').split(/\s+/)[1];
       var initials = initial + (second ? second.charAt(0).toUpperCase() : '');
+      var storeIcon = (typeof getStoreIcon === 'function') ? getStoreIcon(store.store_type) : '';
 
-      // Chat header
+      // Chat header — icon on top, initials below
       var chatAv = document.getElementById('detail-chat-av');
-      if (chatAv) { chatAv.style.background = grad; chatAv.textContent = initials; }
+      if (chatAv) {
+        chatAv.style.background = grad;
+        chatAv.innerHTML = (storeIcon ? '<span style="font-size:16px;line-height:1">' + storeIcon + '</span>' : '') +
+          '<span style="font-size:10px;font-weight:700;letter-spacing:0.3px;opacity:0.95">' + initials + '</span>';
+      }
       document.getElementById('detail-store-name').textContent = store.name || '--';
       var metaParts = [];
       if (store.city) metaParts.push(store.city);
