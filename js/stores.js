@@ -360,13 +360,13 @@ async function updateHomeKPIs() {
     var storesEl = document.getElementById('kpi-stores');
     if (storesEl) storesEl.textContent = stores.length;
     var storesDelta = document.getElementById('kpi-stores-delta');
-    if (storesDelta) storesDelta.textContent = 'na-map na';
+    if (storesDelta) storesDelta.textContent = (T && T.kpiMapped) || 'na-map na';
 
     // Visits this week
     var visitsEl = document.getElementById('kpi-visits');
     if (visitsEl) visitsEl.textContent = visits.length;
     var visitsDelta = document.getElementById('kpi-visits-delta');
-    if (visitsDelta) visitsDelta.textContent = 'ngayong linggo';
+    if (visitsDelta) visitsDelta.textContent = (T && T.kpiThisWeek) || 'ngayong linggo';
 
     // Critical stores
     var critCount = 0;
@@ -376,7 +376,9 @@ async function updateHomeKPIs() {
     var critEl = document.getElementById('kpi-critical');
     if (critEl) critEl.textContent = critCount;
     var critDelta = document.getElementById('kpi-critical-delta');
-    if (critDelta) critDelta.textContent = critCount > 0 ? 'kailangan ng atensyon' : 'OK lahat';
+    if (critDelta) critDelta.textContent = critCount > 0
+      ? ((T && T.kpiNeedsAttn) || 'kailangan ng atensyon')
+      : ((T && T.kpiAllOk) || 'OK lahat');
 
     // Orders this week
     var orderCount = 0;
@@ -393,7 +395,7 @@ async function updateHomeKPIs() {
     if (ordersDelta) {
       ordersDelta.textContent = orderTotal > 0
         ? '\u20b1 ' + orderTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-        : 'ngayong linggo';
+        : ((T && T.kpiThisWeek) || 'ngayong linggo');
     }
 
     // Stores subtitle

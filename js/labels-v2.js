@@ -286,7 +286,17 @@ var LABELS = {
     takePhotoNow:    'Kumuha ng litrato',
     photoMandatory:  'Mandatory para sa visit na ito',
     photoCapturedTitle: 'Na-capture na!',
-    photoRetakeHint: 'I-tap para palitan'
+    photoRetakeHint: 'I-tap para palitan',
+
+    // Home KPI labels (TSR home)
+    kpiStores:       'MGA TINDAHAN',
+    kpiWeeklyVisits: 'BISITA/LINGGO',
+    kpiCritical:     'CRITICAL',
+    kpiOrders:       'ORDERS',
+    kpiMapped:       'na-map na',
+    kpiThisWeek:     'ngayong linggo',
+    kpiNeedsAttn:    'kailangan ng atensyon',
+    kpiAllOk:        'OK lahat'
   },
 
   BIS: {
@@ -572,7 +582,17 @@ var LABELS = {
     takePhotoNow:    'Kuhai og litrato',
     photoMandatory:  'Mandatory sa bisita na ni',
     photoCapturedTitle: 'Na-capture na!',
-    photoRetakeHint: 'I-tap aron ilisan'
+    photoRetakeHint: 'I-tap aron ilisan',
+
+    // Home KPI labels (TSR home)
+    kpiStores:       'MGA TINDAHAN',
+    kpiWeeklyVisits: 'BISITA/SEMANA',
+    kpiCritical:     'KRITIKAL',
+    kpiOrders:       'ORDERS',
+    kpiMapped:       'na-map na',
+    kpiThisWeek:     'karong semana',
+    kpiNeedsAttn:    'kinahanglan atensyon',
+    kpiAllOk:        'OK tanan'
   },
 
   EN: {
@@ -858,7 +878,17 @@ var LABELS = {
     takePhotoNow:    'Take a photo',
     photoMandatory:  'Required for this visit',
     photoCapturedTitle: 'Photo captured!',
-    photoRetakeHint: 'Tap to retake'
+    photoRetakeHint: 'Tap to retake',
+
+    // Home KPI labels (TSR home)
+    kpiStores:       'STORES',
+    kpiWeeklyVisits: 'VISITS/WEEK',
+    kpiCritical:     'CRITICAL',
+    kpiOrders:       'ORDERS',
+    kpiMapped:       'mapped',
+    kpiThisWeek:     'this week',
+    kpiNeedsAttn:    'needs attention',
+    kpiAllOk:        'all OK'
   }
 };
 
@@ -932,6 +962,7 @@ function setLanguage(lang) {
     var aid = activePage.id;
     if (aid === 'page-stores' && typeof renderStoreList === 'function') renderStoreList();
     if (aid === 'page-home' && typeof renderStoreList === 'function') renderStoreList();
+    if (aid === 'page-home' && typeof updateHomeKPIs === 'function') updateHomeKPIs();
     if (aid === 'page-visits' && typeof renderVisitList === 'function') renderVisitList();
     if (aid === 'page-dashboard' && typeof initDashboard === 'function') initDashboard();
     if (aid === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {
@@ -1006,6 +1037,9 @@ function rerenderCurrentPage() {
   }
   if (id === 'page-home' && typeof renderStoreList === 'function') {
     renderStoreList();
+  }
+  if (id === 'page-home' && typeof updateHomeKPIs === 'function') {
+    updateHomeKPIs();
   }
   if (id === 'page-visits' && typeof renderVisitList === 'function') {
     renderVisitList();

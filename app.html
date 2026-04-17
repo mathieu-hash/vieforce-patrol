@@ -59,22 +59,22 @@ if ('serviceWorker' in navigator) {
 
   <div class="kpi-grid">
     <div class="kpi-card">
-      <div class="label">Mga Tindahan</div>
+      <div class="label" data-t="kpiStores">MGA TINDAHAN</div>
       <div class="value" id="kpi-stores">--</div>
       <div class="delta" id="kpi-stores-delta">...</div>
     </div>
     <div class="kpi-card">
-      <div class="label">Bisita/Linggo</div>
+      <div class="label" data-t="kpiWeeklyVisits">BISITA/LINGGO</div>
       <div class="value" id="kpi-visits">--</div>
       <div class="delta" id="kpi-visits-delta">...</div>
     </div>
     <div class="kpi-card">
-      <div class="label">Critical</div>
+      <div class="label" data-t="kpiCritical">CRITICAL</div>
       <div class="value" id="kpi-critical" style="color:var(--status-crit)">--</div>
       <div class="delta" id="kpi-critical-delta">...</div>
     </div>
     <div class="kpi-card">
-      <div class="label">Orders</div>
+      <div class="label" data-t="kpiOrders">ORDERS</div>
       <div class="value" id="kpi-orders">--</div>
       <div class="delta" id="kpi-orders-delta">...</div>
     </div>
@@ -882,7 +882,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
-<script src="js/labels-v2.js?v=8"></script>
+<script src="js/labels-v2.js?v=9"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
