@@ -216,18 +216,38 @@ function _getActiveVisitFilter() {
 }
 
 // ── Enhanced Sync Status ──
+// State machine guards:
+//   _syncInProgress — prevents concurrent / recursive syncPending calls
+//   _syncSafetyId   — forces exit from "Syncing..." after 10s if stuck
+
+var _syncInProgress = false;
+var _syncSafetyId = null;
+
+function _clearSyncSafety() {
+  if (_syncSafetyId) { clearTimeout(_syncSafetyId); _syncSafetyId = null; }
+}
+
+function _syncBarRefs() {
+  return {
+    bar:  document.getElementById('global-sync-bar'),
+    icon: document.getElementById('sync-bar-icon'),
+    text: document.getElementById('sync-bar-text'),
+    btn:  document.getElementById('sync-bar-btn')
+  };
+}
+
+function _flashSyncedThenHide() {
+  var r = _syncBarRefs();
+  if (!r.bar) return;
+  r.bar.className = 'sync-bar sync-ok';
+  if (r.icon) r.icon.textContent = '\u2713\u2713';
+  if (r.text) r.text.textContent = T.synced || 'Naka-sync na';
+  if (r.btn)  r.btn.style.display = 'none';
+  setTimeout(function () { if (r.bar) r.bar.className = 'sync-bar sync-hidden'; }, 1500);
+}
 
 async function enhancedSyncStatus() {
-  var dot = document.getElementById('sync-dot');
-  var label = document.getElementById('sync-label');
-
-  // Global sync bar
-  var bar = document.getElementById('global-sync-bar');
-  var barIcon = document.getElementById('sync-bar-icon');
-  var barText = document.getElementById('sync-bar-text');
-  var barBtn = document.getElementById('sync-bar-btn');
-
-  // Home sync button visibility
+  var r = _syncBarRefs();
   var homeSyncSection = document.getElementById('home-sync-section');
   var syncNowBtn = document.getElementById('btn-sync-now');
 
@@ -235,59 +255,71 @@ async function enhancedSyncStatus() {
     var status = await getSyncStatus();
     var pending = status.pending || 0;
 
-    // Show/hide the home sync button based on pending count
-    if (homeSyncSection) {
-      homeSyncSection.style.display = pending > 0 ? 'block' : 'none';
-    }
+    if (homeSyncSection) homeSyncSection.style.display = pending > 0 ? 'block' : 'none';
     if (syncNowBtn && pending > 0) {
       syncNowBtn.innerHTML = '&#8635; ' + T.syncNow + ' (' + T.pending(pending) + ')';
     }
 
-    if (navigator.onLine) {
-      if (pending === 0) {
-        // Online + synced — hide bar, show green dot
-        if (dot) { dot.className = 'sync-dot online'; }
-        if (label) { label.textContent = T.synced; }
-        if (bar) { bar.className = 'sync-bar sync-hidden'; }
-      } else {
-        // Online + pending — show blue syncing bar
-        if (dot) { dot.className = 'sync-dot syncing'; }
-        if (label) { label.textContent = T.syncing; }
-        if (bar) {
-          bar.className = 'sync-bar sync-working';
-          if (barIcon) barIcon.textContent = '\u21bb';
-          if (barText) barText.textContent = T.syncing;
-          if (barBtn) barBtn.style.display = 'none';
-        }
-        // Trigger sync
-        syncPending().then(function () {
-          enhancedSyncStatus();
-        }).catch(function () {
-          // Sync failed — show error bar
-          if (bar) {
-            bar.className = 'sync-bar sync-error';
-            if (barIcon) barIcon.textContent = '\u2717';
-            if (barText) barText.textContent = T.syncError;
-            if (barBtn) { barBtn.style.display = 'inline-block'; barBtn.textContent = T.retry; }
-          }
-        });
+    // Offline — orange bar with pending count, no auto-sync
+    if (!navigator.onLine) {
+      _clearSyncSafety();
+      _syncInProgress = false;
+      if (r.bar) {
+        r.bar.className = 'sync-bar sync-offline';
+        if (r.icon) r.icon.textContent = '\u25cb';
+        if (r.text) r.text.textContent = T.offline + (pending > 0 ? ' \u00b7 ' + T.pending(pending) : '');
+        if (r.btn)  { r.btn.style.display = pending > 0 ? 'inline-block' : 'none'; r.btn.textContent = T.syncNow; }
       }
-    } else {
-      // Offline — show orange bar
-      if (dot) { dot.className = 'sync-dot offline'; }
-      if (label) { label.textContent = T.offline + (pending > 0 ? ' \u00b7 ' + T.pending(pending) : ''); }
-      if (bar) {
-        bar.className = 'sync-bar sync-offline';
-        if (barIcon) barIcon.textContent = '\u25cb';
-        if (barText) barText.textContent = T.offline + (pending > 0 ? ' \u00b7 ' + T.pending(pending) : '');
-        if (barBtn) { barBtn.style.display = 'inline-block'; barBtn.textContent = T.syncNow; }
-      }
+      return;
+    }
+
+    // Online + no pending — flash synced then hide
+    if (pending === 0) {
+      _clearSyncSafety();
+      _syncInProgress = false;
+      _flashSyncedThenHide();
+      return;
+    }
+
+    // Online + pending — show working bar (only start a sync if one isn't running)
+    if (r.bar) {
+      r.bar.className = 'sync-bar sync-working';
+      if (r.icon) r.icon.textContent = '\u21bb';
+      if (r.text) r.text.textContent = T.syncing;
+      if (r.btn)  r.btn.style.display = 'none';
+    }
+    if (_syncInProgress) return;
+    _syncInProgress = true;
+
+    // Safety timeout — force-exit syncing state if something hangs
+    _clearSyncSafety();
+    _syncSafetyId = setTimeout(function () {
+      _syncInProgress = false;
+      _flashSyncedThenHide();
+    }, 10000);
+
+    try {
+      await syncPending();
+    } catch (e) {
+      console.warn('syncPending:', e);
+    }
+    _clearSyncSafety();
+    _syncInProgress = false;
+
+    // Re-check pending; if still stuck, show retry state instead of re-entering sync loop
+    var after = await getSyncStatus();
+    if ((after.pending || 0) === 0) {
+      _flashSyncedThenHide();
+    } else if (r.bar) {
+      r.bar.className = 'sync-bar sync-error';
+      if (r.icon) r.icon.textContent = '\u2717';
+      if (r.text) r.text.textContent = (T.syncError || 'Sync failed') + ' (' + after.pending + ')';
+      if (r.btn)  { r.btn.style.display = 'inline-block'; r.btn.textContent = T.retry || 'Retry'; }
     }
   } catch (e) {
-    // Fallback
-    if (dot) { dot.className = navigator.onLine ? 'sync-dot online' : 'sync-dot offline'; }
-    if (label) { label.textContent = navigator.onLine ? T.synced : T.offline; }
-    if (bar) { bar.className = 'sync-bar sync-hidden'; }
+    _clearSyncSafety();
+    _syncInProgress = false;
+    if (r.bar) r.bar.className = 'sync-bar sync-hidden';
   }
 }
 

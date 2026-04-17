@@ -48,11 +48,9 @@ if ('serviceWorker' in navigator) {
       <h1 id="home-greeting">Magandang araw</h1>
       <div class="subtitle" id="home-subtitle">Loading...</div>
     </div>
-    <div class="sync-indicator" id="sync-status" onclick="manualSync()" style="cursor:pointer">
-      <span class="sync-dot online" id="sync-dot"></span>
-      <span id="sync-label">Synced</span>
-    </div>
   </div>
+
+  <!-- Sync indicator removed — global-sync-bar at top of body is the single source of truth -->
 
   <!-- TSR scorecard hero (populated by renderTsrScorecardHero) -->
   <div id="tsr-scorecard-container"></div>
