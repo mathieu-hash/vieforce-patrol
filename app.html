@@ -890,7 +890,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/db.js"></script>
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
-<script src="js/offline.js"></script>
+<script src="js/offline.js?v=2"></script>
 <script src="js/stores.js"></script>
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js"></script>
@@ -1675,10 +1675,9 @@ if ('serviceWorker' in navigator) {
   }
 
   async function _saveFarmFromChatbot(data) {
-    // Farm table not yet in schema — queue as pending record for future table
     var payload = {
       name: data.name,
-      type: data.type || null,
+      farm_type: data.type || null,
       heads: parseInt(data.heads) || 0,
       breed: data.breed || null,
       feed_partner: data.feed_partner || null,
@@ -1688,8 +1687,8 @@ if ('serviceWorker' in navigator) {
       lat: data.lat || null,
       lng: data.lng || null
     };
-    console.log('[farm-register] queued payload', payload);
-    // TODO: wire to queueFarm once farms table/queue exists
+    await queueFarm(payload);
+    if (navigator.onLine && typeof syncPending === 'function') syncPending();
     setTimeout(function () {
       nav('page-stores');
     }, 1500);

@@ -54,6 +54,30 @@ async function updateStore(id, data) {
   return updated;
 }
 
+// ── Farms (Sprint A.1 — H-07) ──
+
+async function createFarm(farmData) {
+  var session = getSession();
+  farmData.created_by = session ? session.id : null;
+
+  // Map chatbot's generic "type" -> DB's farm_type column
+  if (farmData.type && !farmData.farm_type) {
+    farmData.farm_type = farmData.type;
+    delete farmData.type;
+  }
+  // Ensure heads is integer (chatbot text input arrives as string)
+  if (farmData.heads) farmData.heads = parseInt(farmData.heads, 10) || 0;
+
+  var { data, error } = await supabaseClient
+    .from('farms')
+    .insert(farmData)
+    .select()
+    .single();
+
+  if (error) throw new Error('createFarm: ' + error.message);
+  return data;
+}
+
 async function getStoreById(id) {
   var { data: store, error } = await supabaseClient
     .from('stores')

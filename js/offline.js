@@ -8,6 +8,14 @@ offlineDb.version(1).stores({
   cachedStores: 'id, updated_at'
 });
 
+// v2: farms queue (Sprint A.1 — H-07)
+offlineDb.version(2).stores({
+  pendingVisits: '++id, offline_id, created_at',
+  pendingStores: '++id, offline_id, created_at',
+  pendingFarms:  '++id, offline_id, created_at',
+  cachedStores:  'id, updated_at'
+});
+
 async function queueVisit(visitData) {
   visitData.offline_id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   visitData.created_at = new Date().toISOString();
@@ -21,6 +29,13 @@ async function queueStore(storeData) {
   storeData.created_at = new Date().toISOString();
   await offlineDb.pendingStores.add(storeData);
   // Update sync UI immediately after queue write
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+}
+
+async function queueFarm(farmData) {
+  farmData.offline_id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  farmData.created_at = new Date().toISOString();
+  await offlineDb.pendingFarms.add(farmData);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 }
 
@@ -52,7 +67,23 @@ async function _markRetryOrEject(table, record, err, label) {
 }
 
 async function syncPending() {
-  var results = { visits: 0, stores: 0, errors: [], ejected: 0 };
+  var results = { visits: 0, stores: 0, farms: 0, errors: [], ejected: 0 };
+
+  // Sync pending farms
+  var pendingFarms = await offlineDb.pendingFarms.toArray();
+  for (var fi = 0; fi < pendingFarms.length; fi++) {
+    var f = pendingFarms[fi];
+    try {
+      await createFarm(_queuePayload(f));
+      await offlineDb.pendingFarms.delete(f.id);
+      results.farms++;
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+    } catch (e) {
+      results.errors.push('Farm: ' + e.message);
+      var fOutcome = await _markRetryOrEject(offlineDb.pendingFarms, f, e, 'Farm');
+      if (fOutcome === 'ejected') results.ejected++;
+    }
+  }
 
   // Sync pending stores
   var pendingStores = await offlineDb.pendingStores.toArray();
@@ -107,13 +138,16 @@ async function syncPending() {
 window.patrolInspectQueue = async function () {
   var v = await offlineDb.pendingVisits.toArray();
   var s = await offlineDb.pendingStores.toArray();
+  var f = await offlineDb.pendingFarms.toArray();
   console.log('[queue] pending visits:', v);
   console.log('[queue] pending stores:', s);
-  return { visits: v, stores: s };
+  console.log('[queue] pending farms:', f);
+  return { visits: v, stores: s, farms: f };
 };
 window.patrolClearQueue = async function () {
   await offlineDb.pendingVisits.clear();
   await offlineDb.pendingStores.clear();
+  await offlineDb.pendingFarms.clear();
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   console.log('[queue] cleared');
 };
@@ -121,9 +155,10 @@ window.patrolClearQueue = async function () {
 async function getSyncStatus() {
   var pv = await offlineDb.pendingVisits.count();
   var ps = await offlineDb.pendingStores.count();
+  var pf = await offlineDb.pendingFarms.count();
   return {
-    pending: pv + ps,
-    synced: pv === 0 && ps === 0
+    pending: pv + ps + pf,
+    synced: pv === 0 && ps === 0 && pf === 0
   };
 }
 
