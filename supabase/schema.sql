@@ -93,7 +93,7 @@ create index if not exists visits_date_idx on public.visits(visited_at desc);
 create table if not exists public.farms (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  farm_type text check (farm_type in ('hog','poultry','gamefowl','aqua','dairy','mixed','other')),
+  type text check (type in ('hog','poultry','gamefowl','aqua','dairy','mixed','other')),
   owner_name text,
   phone text,
   address text,

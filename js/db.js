@@ -60,11 +60,6 @@ async function createFarm(farmData) {
   var session = getSession();
   farmData.created_by = session ? session.id : null;
 
-  // Map chatbot's generic "type" -> DB's farm_type column
-  if (farmData.type && !farmData.farm_type) {
-    farmData.farm_type = farmData.type;
-    delete farmData.type;
-  }
   // Ensure heads is integer (chatbot text input arrives as string)
   if (farmData.heads) farmData.heads = parseInt(farmData.heads, 10) || 0;
 

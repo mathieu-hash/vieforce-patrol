@@ -1677,7 +1677,7 @@ if ('serviceWorker' in navigator) {
   async function _saveFarmFromChatbot(data) {
     var payload = {
       name: data.name,
-      farm_type: data.type || null,
+      type: data.type || null,
       heads: parseInt(data.heads) || 0,
       breed: data.breed || null,
       feed_partner: data.feed_partner || null,
