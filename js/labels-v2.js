@@ -31,20 +31,22 @@ var LABELS = {
 
     // Visit outcomes
     withOrder:   'May Order',
-    noOrder:     'Walang Order',
+    noOrder:     'Nakausap \u00b7 Walang Order',
     comeback:    'Bukas ulit',
     ordered:     'Nag-order',
     noOrderNote: 'Nakausap, walang order',
     willReturn:  'Babalik bukas',
 
     // Visit form
-    whatHappened: 'Ano ang nangyari sa bisita mo?',
+    whatHappened: 'Ano ang nangyari? \ud83c\udfea',
     logVisit:    'I-log ang visit ngayon',
+    vieShare:    'VIE Share',
+    optional:    'opsyonal',
 
     // Actions
     submitVisit: 'I-SUBMIT ANG VISIT',
     takePhoto:   'Kumuha ng litrato',
-    addNotes:    'Dagdag ng notes...',
+    addNotes:    'Dagdag ng notes... (opsyonal)',
     syncNow:     'I-sync ngayon',
     refresh:     'I-refresh',
     call:        'Tawagan',
@@ -274,20 +276,22 @@ var LABELS = {
 
     // Visit outcomes
     withOrder:   'Adunay Order',
-    noOrder:     'Walay Order',
+    noOrder:     'Nakaistorya \u00b7 Walay Order',
     comeback:    'Ugma pag-usab',
     ordered:     'Nag-order',
     noOrderNote: 'Nakaistorya, walay order',
     willReturn:  'Mobalik ugma',
 
     // Visit form
-    whatHappened: 'Unsa ang nahitabo sa imong bisita?',
+    whatHappened: 'Unsa ang nahitabo? \ud83c\udfea',
     logVisit:    'I-log ang bisita karon',
+    vieShare:    'VIE Share',
+    optional:    'opsyonal',
 
     // Actions
     submitVisit: 'I-SUBMIT ANG BISITA',
-    takePhoto:   'Pagkuha og litrato',
-    addNotes:    'Dugangi og notes...',
+    takePhoto:   'Kuhai og litrato',
+    addNotes:    'Dugangi og notes... (opsyonal)',
     syncNow:     'I-sync karon',
     refresh:     'I-refresh',
     call:        'Tawagi',
@@ -517,20 +521,22 @@ var LABELS = {
 
     // Visit outcomes
     withOrder:   'With Order',
-    noOrder:     'No Order',
+    noOrder:     'Talked \u00b7 No Order',
     comeback:    'Come back later',
     ordered:     'Ordered',
     noOrderNote: 'Talked, no order',
     willReturn:  'Will return tomorrow',
 
     // Visit form
-    whatHappened: 'What happened on your visit?',
+    whatHappened: 'What happened? \ud83c\udfea',
     logVisit:    'Log visit now',
+    vieShare:    'VIE Share',
+    optional:    'optional',
 
     // Actions
     submitVisit: 'SUBMIT VISIT',
     takePhoto:   'Take a photo',
-    addNotes:    'Add notes...',
+    addNotes:    'Add notes... (optional)',
     syncNow:     'Sync now',
     refresh:     'Refresh',
     call:        'Call',
@@ -789,7 +795,13 @@ function setLanguage(lang) {
   var els = document.querySelectorAll('[data-t]');
   for (var j = 0; j < els.length; j++) {
     var k = els[j].getAttribute('data-t');
-    if (T[k]) els[j].textContent = T[k];
+    if (T[k] && typeof T[k] === 'string') els[j].textContent = T[k];
+  }
+  // data-t-placeholder elements (for inputs/textareas)
+  var phs = document.querySelectorAll('[data-t-placeholder]');
+  for (var ph = 0; ph < phs.length; ph++) {
+    var pk = phs[ph].getAttribute('data-t-placeholder');
+    if (T[pk] && typeof T[pk] === 'string') phs[ph].setAttribute('placeholder', T[pk]);
   }
   // Re-render dynamic content on the currently active page (incl. store detail)
   var activePage = document.querySelector('.page.active');
@@ -834,6 +846,12 @@ function rerenderCurrentPage() {
     if (T[key] && typeof T[key] === 'string') {
       els[i].textContent = T[key];
     }
+  }
+  // data-t-placeholder elements
+  var phs = document.querySelectorAll('[data-t-placeholder]');
+  for (var ph = 0; ph < phs.length; ph++) {
+    var pk = phs[ph].getAttribute('data-t-placeholder');
+    if (T[pk] && typeof T[pk] === 'string') phs[ph].setAttribute('placeholder', T[pk]);
   }
 
   // Reset ALL pills to inactive first

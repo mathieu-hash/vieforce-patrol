@@ -61,7 +61,7 @@ async function openVisitWizard(storeId, storeName) {
   document.getElementById('visit-extra-notes').value = '';
   document.getElementById('visit-submit-error').style.display = 'none';
   var submitBtn = document.getElementById('btn-visit-submit');
-  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '\ud83d\udce4 I-submit ang bisita'; submitBtn.className = 'sub-btn'; submitBtn.style.background = ''; }
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '\ud83d\udce4 ' + T.submitVisit; submitBtn.className = 'sub-btn'; submitBtn.style.background = ''; }
 
   // Populate store info bubble
   var infoBubble = document.getElementById('visit-store-info');

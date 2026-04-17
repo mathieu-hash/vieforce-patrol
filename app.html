@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=11">
+<link rel="stylesheet" href="css/patrol.css?v=12">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -591,7 +591,7 @@ if ('serviceWorker' in navigator) {
     <div class="input-ico" onclick="startVisitFromDetail()">&#10133;</div>
     <div class="input-ico" onclick="startVisitFromDetail()">&#128247;</div>
     <div class="input-field" onclick="startVisitFromDetail()">
-      <span class="inp-ph">Dagdag ng notes...</span>
+      <span class="inp-ph" data-t="addNotes">Dagdag ng notes...</span>
     </div>
     <div class="send" onclick="startVisitFromDetail()">&#128228;</div>
   </div>
@@ -744,13 +744,13 @@ if ('serviceWorker' in navigator) {
       <div class="sheet-store-loc" id="visit-sheet-loc">--</div>
     </div>
   </div>
-  <div class="sheet-q">Ano ang nangyari? &#127978;</div>
+  <div class="sheet-q" data-t="whatHappened">Ano ang nangyari? &#127978;</div>
 
   <div class="outcomes" id="visit-outcome-grid">
     <div class="outcome" data-outcome="order" onclick="selectOutcome('order')">
       <div class="out-ico" style="background:rgba(34,197,94,0.12)">&#128722;</div>
       <div class="out-txt">
-        <div class="out-label">May Order</div>
+        <div class="out-label" data-t="withOrder">May Order</div>
         <div class="out-sub">Adunay order &middot; With order</div>
       </div>
       <div class="out-check">&#10003;</div>
@@ -765,7 +765,7 @@ if ('serviceWorker' in navigator) {
     <div class="outcome" data-outcome="no-order" onclick="selectOutcome('no-order')">
       <div class="out-ico" style="background:rgba(0,132,255,0.1)">&#128172;</div>
       <div class="out-txt">
-        <div class="out-label">Nakausap &middot; Walang Order</div>
+        <div class="out-label" data-t="noOrder">Nakausap &middot; Walang Order</div>
         <div class="out-sub">Nag-usap pero walang order ngayon</div>
       </div>
       <div class="out-check" style="color:var(--fb-blue,#0084FF)">&#10003;</div>
@@ -774,7 +774,7 @@ if ('serviceWorker' in navigator) {
     <div class="outcome" data-outcome="comeback" onclick="selectOutcome('comeback')">
       <div class="out-ico" style="background:rgba(247,179,40,0.12)">&#128197;</div>
       <div class="out-txt">
-        <div class="out-label">Bukas ulit</div>
+        <div class="out-label" data-t="comeback">Bukas ulit</div>
         <div class="out-sub">Wala sa tindahan &middot; Susunod</div>
       </div>
       <div class="out-check" style="color:var(--status-warn)">&#10003;</div>
@@ -794,18 +794,18 @@ if ('serviceWorker' in navigator) {
     <!-- Photo capture -->
     <div class="cam-row" id="visit-photo-btn" onclick="captureVisitPhoto()">
       <div class="cam-circle">&#128247;</div>
-      <span class="cam-lbl">Kumuha ng litrato ng shelf</span>
+      <span class="cam-lbl" data-t="takePhoto">Kumuha ng litrato</span>
     </div>
     <div id="visit-photo-preview" style="margin:8px 0;display:none" onclick="captureVisitPhoto()">
       <img id="visit-photo-img" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;cursor:pointer" alt="Visit photo">
     </div>
 
     <!-- Notes -->
-    <textarea class="notes-area" id="visit-extra-notes" placeholder="Dagdag ng notes... (opsyonal)"></textarea>
+    <textarea class="notes-area" id="visit-extra-notes" data-t-placeholder="addNotes" placeholder="Dagdag ng notes... (opsyonal)"></textarea>
 
     <!-- Merch quick-check -->
     <details style="margin:12px 0">
-      <summary style="font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:8px 0">
+      <summary style="font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:8px 0" data-t="merchChecklist">
         Merch Checklist (opsyonal)
       </summary>
       <div id="visit-merch-list" style="margin-top:8px">
@@ -872,7 +872,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
-<script src="js/labels-v2.js?v=3"></script>
+<script src="js/labels-v2.js?v=4"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -956,13 +956,17 @@ if ('serviceWorker' in navigator) {
     var ov = document.getElementById('visit-overlay');
     var sh = document.getElementById('visit-sheet');
     if (ov) ov.classList.add('show');
-    if (sh) sh.classList.add('open');
+    if (sh) { sh.classList.add('open'); sh.scrollTop = 0; }
+    var bn = document.querySelector('.bottom-nav');
+    if (bn) bn.style.display = 'none';
   }
   function closeVisitSheet() {
     var ov = document.getElementById('visit-overlay');
     var sh = document.getElementById('visit-sheet');
     if (ov) ov.classList.remove('show');
     if (sh) sh.classList.remove('open');
+    var bn = document.querySelector('.bottom-nav');
+    if (bn) bn.style.display = 'flex';
   }
   function startVisitFromDetail() {
     openVisitWizard(_currentStoreId, document.getElementById('detail-store-name').textContent);
@@ -1121,8 +1125,8 @@ if ('serviceWorker' in navigator) {
             '<div class="card-lbl">\ud83c\udfea ' + T.contact + '</div>' +
             '<div class="card-row"><span class="card-key">' + T.owner + '</span><span class="card-val">' + _esc(store.owner_name || '--') + '</span></div>' +
             '<div class="card-row"><span class="card-key">' + T.phone + '</span><span class="card-val blue">' + _esc(store.phone || '--') + '</span></div>' +
-            '<div class="card-row"><span class="card-key">VIE Share</span><span class="card-val green">' + sharePct + '% \u00b7 ' + totalBags + ' bags/mo</span></div>' +
-            '<div class="card-row"><span class="card-key">' + T.lastVisitLabel + '</span><span class="card-val">' + _esc(lastVisitText) + '</span></div>' +
+            '<div class="card-row"><span class="card-key">' + T.vieShare + '</span><span class="card-val green">' + sharePct + '% \u00b7 ' + totalBags + ' ' + T.bagsMonth + '</span></div>' +
+            '<div class="card-row"><span class="card-key">' + T.lastVisit + '</span><span class="card-val">' + _esc(lastVisitText) + '</span></div>' +
           '</div>' +
         '</div>' +
       '</div>';
