@@ -47,16 +47,17 @@ async function openVisitWizard(storeId, storeName) {
   // Reset merch
   var merchChecks = document.querySelectorAll('#visit-merch-list .merch-check-item');
   for (var j = 0; j < merchChecks.length; j++) {
-    merchChecks[j].classList.remove('checked');
+    merchChecks[j].classList.remove('checked', 'on');
     var dot = merchChecks[j].querySelector('.merch-check');
-    if (dot) dot.textContent = '';
+    if (dot) dot.textContent = '\u2713';
   }
   _visitData.merch_items = {};
 
   // Reset photo + notes
-  document.getElementById('visit-photo-preview').style.display = 'none';
-  var photoBtn = document.getElementById('visit-photo-btn');
-  if (photoBtn) { photoBtn.classList.remove('has-photo'); photoBtn.innerHTML = '&#128247; ' + T.takePhoto; }
+  var _empty = document.getElementById('photo-hero-empty');
+  var _preview = document.getElementById('photo-hero-preview');
+  if (_empty) _empty.style.display = 'flex';
+  if (_preview) _preview.style.display = 'none';
   _visitData.photo = null;
   document.getElementById('visit-extra-notes').value = '';
   document.getElementById('visit-submit-error').style.display = 'none';
@@ -244,12 +245,11 @@ function toggleMerchItem(el) {
   var item = el.getAttribute('data-item');
   if (!item) return;
 
-  el.classList.toggle('checked');
-  var isChecked = el.classList.contains('checked');
-  var dot = el.querySelector('.merch-check');
-  if (dot) dot.textContent = isChecked ? '\u2713' : '';
+  el.classList.toggle('on');
+  el.classList.toggle('checked'); // keep legacy class for any leftover references
+  var isOn = el.classList.contains('on');
 
-  _visitData.merch_items[item] = isChecked;
+  _visitData.merch_items[item] = isOn;
   _updateMerchScore();
 }
 
@@ -262,25 +262,19 @@ function _updateMerchScore() {
 }
 
 async function captureVisitPhoto() {
-  var btn = document.getElementById('visit-photo-btn');
-  if (btn) btn.innerHTML = '&#128247; Kumukuha...';
+  var empty = document.getElementById('photo-hero-empty');
+  var preview = document.getElementById('photo-hero-preview');
   try {
     var blob = await capturePhoto();
     if (blob) {
       _visitData.photo = blob;
       var url = URL.createObjectURL(blob);
-      document.getElementById('visit-photo-img').src = url;
-      document.getElementById('visit-photo-preview').style.display = 'block';
-      if (btn) {
-        btn.classList.add('has-photo');
-        btn.innerHTML = '\u2713 ' + T.photoTaken + ' (' + Math.round(blob.size / 1024) + ' KB)';
-      }
-    } else {
-      if (btn) btn.innerHTML = '&#128247; ' + T.takePhoto;
+      var img = document.getElementById('visit-photo-img');
+      if (img) img.src = url;
+      if (empty) empty.style.display = 'none';
+      if (preview) preview.style.display = 'flex';
     }
-  } catch (err) {
-    if (btn) btn.innerHTML = '&#128247; ' + T.takePhoto;
-  }
+  } catch (err) { console.warn('captureVisitPhoto:', err); }
 }
 
 async function submitVisit() {

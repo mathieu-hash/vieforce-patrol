@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=16">
+<link rel="stylesheet" href="css/patrol.css?v=17">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -421,6 +421,8 @@ if ('serviceWorker' in navigator) {
     <button class="filter-chip" data-filter-label="crit" style="color:var(--status-crit)">Critical</button>
     <button class="filter-chip" data-filter-label="warn" style="color:var(--status-warn)">Babala</button>
     <button class="filter-chip" data-filter-label="ok" style="color:var(--status-ok)">OK</button>
+    <button class="filter-chip prospect" data-filter-label="prospect">Prospect</button>
+    <button class="filter-chip" data-filter-label="active" style="color:var(--fb-blue)">Active</button>
   </div>
 
   <!-- Story circles: priority stores to visit (FB Messenger stories row) -->
@@ -752,13 +754,23 @@ if ('serviceWorker' in navigator) {
 
   <!-- Expandable details (shows after outcome selection) -->
   <div id="visit-details-panel" style="display:none">
-    <!-- Photo capture -->
-    <div class="cam-row" id="visit-photo-btn" onclick="captureVisitPhoto()">
-      <div class="cam-circle">&#128247;</div>
-      <span class="cam-lbl" data-t="takePhoto">Kumuha ng litrato</span>
-    </div>
-    <div id="visit-photo-preview" style="margin:8px 0;display:none" onclick="captureVisitPhoto()">
-      <img id="visit-photo-img" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;cursor:pointer" alt="Visit photo">
+    <!-- Photo capture hero -->
+    <div class="photo-capture-hero" id="visit-photo-btn" onclick="captureVisitPhoto()">
+      <div class="photo-hero-inner" id="photo-hero-empty">
+        <div class="photo-hero-icon">&#128247;</div>
+        <div class="photo-hero-text">
+          <div class="photo-hero-title" data-t="takePhotoNow">Kumuha ng litrato</div>
+          <div class="photo-hero-sub" data-t="photoMandatory">Mandatory para sa visit na ito</div>
+        </div>
+        <div class="photo-hero-arrow">&#8594;</div>
+      </div>
+      <div class="photo-hero-inner" id="photo-hero-preview" style="display:none">
+        <img id="visit-photo-img" class="photo-thumb" alt="Visit photo">
+        <div class="photo-hero-text">
+          <div class="photo-hero-title" data-t="photoCapturedTitle">Na-capture na!</div>
+          <div class="photo-hero-sub" data-t="photoRetakeHint">I-tap para palitan</div>
+        </div>
+      </div>
     </div>
 
     <!-- Notes -->
@@ -769,26 +781,31 @@ if ('serviceWorker' in navigator) {
       <summary style="font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:8px 0" data-t="merchChecklist">
         Merch Checklist (opsyonal)
       </summary>
-      <div id="visit-merch-list" style="margin-top:8px">
-        <div class="merch-check-item" data-item="signage" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
-          <div><b style="font-size:14px">Signage</b></div>
+      <div id="visit-merch-list" class="merch-chips" style="margin-top:8px">
+        <div class="merch-chip merch-check-item" data-item="signage" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#128681;</span>
+          <span class="merch-label">Signage</span>
+          <span class="merch-check">&#10003;</span>
         </div>
-        <div class="merch-check-item" data-item="price_board" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
-          <div><b style="font-size:14px">Price Board</b></div>
+        <div class="merch-chip merch-check-item" data-item="price_board" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#128176;</span>
+          <span class="merch-label">Price Board</span>
+          <span class="merch-check">&#10003;</span>
         </div>
-        <div class="merch-check-item" data-item="flyers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
-          <div><b style="font-size:14px">Flyers</b></div>
+        <div class="merch-chip merch-check-item" data-item="flyers" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#128196;</span>
+          <span class="merch-label">Flyers</span>
+          <span class="merch-check">&#10003;</span>
         </div>
-        <div class="merch-check-item" data-item="standee" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #E4E6EB;cursor:pointer;min-height:48px">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
-          <div><b style="font-size:14px">Standee</b></div>
+        <div class="merch-chip merch-check-item" data-item="standee" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#127959;</span>
+          <span class="merch-label">Standee</span>
+          <span class="merch-check">&#10003;</span>
         </div>
-        <div class="merch-check-item" data-item="price_talkers" onclick="toggleMerchItem(this)" style="display:flex;align-items:center;gap:10px;padding:12px 0;cursor:pointer;min-height:48px">
-          <div class="merch-check" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--status-ok);flex-shrink:0"></div>
-          <div><b style="font-size:14px">Price Talkers</b></div>
+        <div class="merch-chip merch-check-item" data-item="price_talkers" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#127991;</span>
+          <span class="merch-label">Price Talker</span>
+          <span class="merch-check">&#10003;</span>
         </div>
       </div>
     </details>
@@ -865,7 +882,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
-<script src="js/labels-v2.js?v=7"></script>
+<script src="js/labels-v2.js?v=8"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -883,8 +900,8 @@ if ('serviceWorker' in navigator) {
 <script src="js/dashboard.js"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
-<script src="js/scorecard.js?v=1"></script>
-<script src="js/team.js?v=2"></script>
+<script src="js/scorecard.js?v=2"></script>
+<script src="js/team.js?v=3"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=2"></script>
@@ -1537,7 +1554,13 @@ if ('serviceWorker' in navigator) {
         { text: '\ud83c\udfec Iba pa', value: 'other' }
       ] },
     { id: 'ask_owner', msg: 'Sino ang may-ari? \ud83d\udc64', input: 'text', placeholder: 'hal. Ricardo Santos', field: 'owner_name', next: 'ask_phone' },
-    { id: 'ask_phone', msg: 'Ano ang contact number? \ud83d\udcde', input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_city' },
+    { id: 'ask_phone', msg: 'Ano ang contact number? \ud83d\udcde', input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_status' },
+    { id: 'ask_status', msg: 'Ano ang status ng tindahan? \ud83c\udfea', field: 'store_status_raw', next: 'ask_city',
+      quickReplies: [
+        { text: '\u2705 Kliyente na (may order na)', value: 'active' },
+        { text: '\ud83d\udc40 Prospect (hindi pa nag-o-order)', value: 'prospect' },
+        { text: '\ud83d\udd0d Lead (kakakilala lang)', value: 'identified' }
+      ] },
     { id: 'ask_city', msg: 'Saang lungsod/munisipyo? \ud83c\udfd9\ufe0f', input: 'text', placeholder: 'hal. Quezon City', field: 'city', next: 'ask_location' },
     { id: 'ask_location', msg: 'I-capture ang GPS? \ud83d\udccd', next: 'ask_volume',
       quickReplies: [
@@ -1559,7 +1582,7 @@ if ('serviceWorker' in navigator) {
       ] },
     { id: 'do_photo', msg: 'Binubuksan ang camera...', action: 'photo', next: 'confirm' },
     { id: 'confirm', msg: 'Salamat! Pwede na ba i-save? \u2705', summary: true,
-      fields: ['name','store_type','owner_name','phone','city','vol_class','bags_per_month'],
+      fields: ['name','store_type','store_status_raw','owner_name','phone','city','vol_class','bags_per_month'],
       quickReplies: [
         { text: '\u2705 Oo, i-save na', value: 'save', next: 'done' },
         { text: '\u274c Kanselahin', value: 'cancel' }
@@ -1609,6 +1632,12 @@ if ('serviceWorker' in navigator) {
   ];
 
   async function _saveStoreFromChatbot(data) {
+    // Map lifecycle answer -> store_status + prospect_stage
+    var rawStatus = data.store_status_raw || 'active';
+    var storeStatus = (rawStatus === 'active') ? 'active' : 'prospect';
+    var prospectStage = (rawStatus === 'active') ? null :
+                        (rawStatus === 'prospect' ? 'interested' : 'identified');
+
     var payload = {
       name: data.name,
       owner_name: data.owner_name || null,
@@ -1620,6 +1649,8 @@ if ('serviceWorker' in navigator) {
       photo_url: null,
       vol_class: data.vol_class || null,
       health_status: 'ok',
+      store_status: storeStatus,
+      prospect_stage: prospectStage,
       bags_per_month: Math.max(0, Math.min(99999, parseInt(data.bags_per_month) || 0))
     };
     if (data.photo && typeof uploadPhoto === 'function') {

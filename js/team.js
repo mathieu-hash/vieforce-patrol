@@ -32,6 +32,9 @@ async function renderTeamPage() {
   if (subtitle) subtitle.textContent = (session.role || '').toUpperCase() +
     (session.region ? ' \u00b7 ' + session.region : '');
 
+  // Top strip — today's live activity (visits/active TSRs/stores covered)
+  updateTeamKpiStrip(session);
+
   try {
     var agg = await calculateDsmScorecard(session.id);
     if (agg.empty) {
@@ -40,13 +43,9 @@ async function renderTeamPage() {
         '<div style="font-size:15px;color:var(--text-secondary);line-height:1.5">' +
         (T.noTeamYet || 'Walang team member pa. Makipag-ugnayan sa admin.') +
         '</div></div>';
-      // Clear top KPI strip too
       _setTeamKpis(0, 0, 0);
       return;
     }
-
-    // Top KPI strip values (re-using existing top strip but now showing 4-stage metrics)
-    _setTeamKpis(agg.total_new_stores, agg.total_conversions, agg.avg_retention_rate + '%');
 
     // Rebuild the rich scorecard strip inline above the leaderboard
     var html =
@@ -101,6 +100,13 @@ function _setTeamKpis(visits, active, stores) {
   if (v) v.textContent = visits;
   if (a) a.textContent = active;
   if (s) s.textContent = stores;
+}
+
+async function updateTeamKpiStrip(session) {
+  try {
+    var kpis = await getTeamKPIs(session.id, session.role);
+    _setTeamKpis(kpis.visits_today || 0, kpis.active_tsrs || 0, kpis.stores_covered || 0);
+  } catch (e) { console.warn('updateTeamKpiStrip:', e); _setTeamKpis(0, 0, 0); }
 }
 
 function _tssCard(icon, value, label) {

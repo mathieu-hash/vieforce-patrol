@@ -65,6 +65,67 @@ body {
 #page-store-new.active,
 #page-farm-new.active { display: flex !important; flex-direction: column; height: 100vh; overflow: hidden; padding-bottom: 60px; }
 
+/* ===== PHOTO CAPTURE HERO (visit sheet) ===== */
+.photo-capture-hero {
+  margin: 12px 0;
+  background: linear-gradient(135deg, #0084FF, #A855F7);
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 4px 16px rgba(0,132,255,0.25);
+}
+.photo-capture-hero:active { transform: scale(0.98); }
+.photo-hero-inner { display: flex; align-items: center; gap: 14px; color: white; }
+.photo-hero-icon {
+  font-size: 28px;
+  background: rgba(255,255,255,0.22);
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.photo-hero-text { flex: 1; }
+.photo-hero-title { font-size: 16px; font-weight: 800; }
+.photo-hero-sub { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.photo-hero-arrow { margin-left: auto; font-size: 22px; opacity: 0.75; }
+.photo-thumb {
+  width: 64px; height: 64px;
+  border-radius: 12px; object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.5);
+  flex-shrink: 0;
+}
+
+/* ===== MERCH CHIPS (visit sheet checklist) ===== */
+.merch-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
+.merch-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 14px;
+  background: var(--bg-chat);
+  border: 2px solid transparent;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  font-size: 13px; font-weight: 600;
+  color: var(--text-primary);
+  min-height: 40px;
+  -webkit-tap-highlight-color: transparent;
+}
+.merch-chip:active { transform: scale(0.95); }
+.merch-chip.on {
+  background: rgba(0,132,255,0.08);
+  border-color: #0084FF;
+  color: #0084FF;
+}
+.merch-chip .merch-icon { font-size: 16px; line-height: 1; }
+.merch-chip .merch-check {
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: #0084FF;
+  font-weight: 800;
+}
+.merch-chip.on .merch-check { opacity: 1; }
+
 /* ===== TSR SCORECARD HERO (TSR home) ===== */
 .scorecard-hero {
   margin: 12px 16px;
@@ -480,6 +541,12 @@ body {
   min-height: 48px; display: flex; align-items: center;
 }
 .filter-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+.filter-chip.prospect { border-color: #A855F7; color: #A855F7; }
+.filter-chip.prospect.active {
+  background: linear-gradient(135deg, #0084FF, #A855F7);
+  color: white;
+  border: none;
+}
 
 .kpi-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
@@ -1200,10 +1267,17 @@ body {
 .messages {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 12px 12px 8px;
   display: flex; flex-direction: column; gap: 3px;
   -webkit-overflow-scrolling: touch;
   background: var(--bg-main);
+}
+.conv-list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Date chip separator */

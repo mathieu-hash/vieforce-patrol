@@ -280,7 +280,13 @@ var LABELS = {
     overallScore:    'Overall Score',
     firstOrder:      'Unang order!',
     convertedFromProspect: 'Nag-convert si prospect',
-    loading:         'Nilo-load...'
+    loading:         'Nilo-load...',
+    daysWithoutVisit: function(n) { return n + ' araw nang hindi nabibisita'; },
+    neverVisited:    'Hindi pa nabibisita',
+    takePhotoNow:    'Kumuha ng litrato',
+    photoMandatory:  'Mandatory para sa visit na ito',
+    photoCapturedTitle: 'Na-capture na!',
+    photoRetakeHint: 'I-tap para palitan'
   },
 
   BIS: {
@@ -560,7 +566,13 @@ var LABELS = {
     overallScore:    'Overall Score',
     firstOrder:      'Unang order!',
     convertedFromProspect: 'Nag-convert ang prospect',
-    loading:         'Gi-load...'
+    loading:         'Gi-load...',
+    daysWithoutVisit: function(n) { return n + ' ka adlaw wala mabisita'; },
+    neverVisited:    'Wala pa mabisita',
+    takePhotoNow:    'Kuhai og litrato',
+    photoMandatory:  'Mandatory sa bisita na ni',
+    photoCapturedTitle: 'Na-capture na!',
+    photoRetakeHint: 'I-tap aron ilisan'
   },
 
   EN: {
@@ -840,7 +852,13 @@ var LABELS = {
     overallScore:    'Overall Score',
     firstOrder:      'First order!',
     convertedFromProspect: 'Prospect converted',
-    loading:         'Loading...'
+    loading:         'Loading...',
+    daysWithoutVisit: function(n) { return n + ' days without visit'; },
+    neverVisited:    'Never visited',
+    takePhotoNow:    'Take a photo',
+    photoMandatory:  'Required for this visit',
+    photoCapturedTitle: 'Photo captured!',
+    photoRetakeHint: 'Tap to retake'
   }
 };
 

@@ -34,6 +34,12 @@ function formatStoreType(type) {
     .join(' ');
 }
 
+function _formatDaysWithoutVisit(days) {
+  if (!days || days > 365) return (T && T.neverVisited) || 'Never visited';
+  if (T && typeof T.daysWithoutVisit === 'function') return T.daysWithoutVisit(days);
+  return days + ' days without visit';
+}
+
 function getStoreIcon(type) {
   var icons = {
     'feeds_dealer': '\ud83c\udfea',
@@ -175,7 +181,7 @@ function _buildConvRow(s, todayStr, gradients, gradientArr) {
   var previewText = '';
   if (daysSinceVisit >= 7) {
     previewClass = 'conv-last urgent';
-    previewText = '\u26a0\ufe0f ' + daysSinceVisit + ' araw nang hindi nabibisita';
+    previewText = '\u26a0\ufe0f ' + _formatDaysWithoutVisit(daysSinceVisit);
   } else if (visitedToday) {
     previewText = '\u2713 ' + T.lastVisit + ' \u00b7 ' + lastVisitText;
   } else if (s.last_visit_at) {
@@ -432,31 +438,29 @@ function initStoreFilters() {
 
   var chips = page.querySelectorAll('.filter-chip');
   for (var i = 0; i < chips.length; i++) {
-    (function (chip, idx) {
+    (function (chip) {
       chip.addEventListener('click', function () {
-        // Set active
-        for (var j = 0; j < chips.length; j++) {
-          chips[j].classList.remove('active');
-        }
+        for (var j = 0; j < chips.length; j++) chips[j].classList.remove('active');
         chip.classList.add('active');
 
-        // Determine filter
-        var filterMap = [null, 'crit', 'warn', 'ok'];
-        var healthFilter = filterMap[idx] || null;
-
+        var label = chip.getAttribute('data-filter-label') || 'all';
         var searchInput = document.getElementById('store-search');
         var searchVal = searchInput ? searchInput.value.trim() : '';
 
         var filter = {};
-        if (healthFilter) filter.health_status = healthFilter;
+        if (label === 'crit' || label === 'warn' || label === 'ok') {
+          filter.health_status = label;
+        } else if (label === 'prospect') {
+          filter.store_status = 'prospect';
+        } else if (label === 'active') {
+          filter.store_status = 'active';
+        }
         if (searchVal) filter.search = searchVal;
-
         renderStoreList(filter);
       });
-    })(chips[i], i);
+    })(chips[i]);
   }
 
-  // Initial load with counts
   renderStoreList();
 }
 
@@ -464,9 +468,11 @@ function _getActiveHealthFilter() {
   var page = document.getElementById('page-stores');
   if (!page) return null;
   var chips = page.querySelectorAll('.filter-chip');
-  var filterMap = [null, 'crit', 'warn', 'ok'];
   for (var i = 0; i < chips.length; i++) {
-    if (chips[i].classList.contains('active')) return filterMap[i] || null;
+    if (chips[i].classList.contains('active')) {
+      var l = chips[i].getAttribute('data-filter-label');
+      return (l === 'crit' || l === 'warn' || l === 'ok') ? l : null;
+    }
   }
   return null;
 }

@@ -109,10 +109,11 @@ async function loadMapMarkers() {
 
 function _addStoreMarker(store, isFarm) {
   var health = store.health_status || 'ok';
+  var status = store.store_status || 'active';
 
-  // Colors by health
+  // Prospect stores get a purple pin regardless of health
   var colorMap = { ok: '#31A24C', warn: '#F7B928', crit: '#FA383E' };
-  var color = colorMap[health] || colorMap.ok;
+  var color = (status === 'prospect') ? '#A855F7' : (colorMap[health] || colorMap.ok);
 
   // Marker element
   var el = document.createElement('div');

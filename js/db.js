@@ -15,6 +15,7 @@ async function getStores(filters) {
   if (f.territory) query = query.eq('territory', f.territory);
   if (f.region) query = query.eq('region', f.region);
   if (f.health_status) query = query.eq('health_status', f.health_status);
+  if (f.store_status) query = query.eq('store_status', f.store_status);
   if (f.search) {
     var safeSearch = f.search.replace(/[%_\\]/g, function (c) { return '\\' + c; });
     query = query.ilike('name', '%' + safeSearch + '%');
