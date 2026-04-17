@@ -184,7 +184,7 @@ function getEmptyStoreStateHTML() {
       'Makipag-ugnayan sa iyong DSM para ma-assign ang mga tindahan sa iyo.' +
     '</div>' +
     '<div style="margin-top:20px">' +
-      '<button class="big-button" style="width:auto;display:inline-flex;padding:14px 28px" onclick="openNewStoreWizard()">' +
+      '<button class="big-button" style="width:auto;display:inline-flex;padding:14px 28px" onclick="openChatbotStore()">' +
         '+ Mag-register ng bagong tindahan' +
       '</button>' +
     '</div>' +
