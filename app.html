@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/patrol.css?v=18">
 <link rel="stylesheet" href="css/rsm.css?v=1">
+<link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -575,6 +576,69 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
+<!-- DAY 1 PLACEHOLDERS (Sales / Region / More) -->
+<!-- Real content ships in Day 2. All 7 share  -->
+<!-- .page-placeholder layout from css/dsm-rsm-mobile.css. -->
+<!-- ========================================= -->
+<div class="page" id="pg-sales">
+  <div class="page-placeholder">
+    <div class="page-placeholder-icon">&#128202;</div>
+    <h2>Sales</h2>
+    <p>Coming in Day 2 &mdash; real SAP data scoped to your assigned customers (DSM) or region (RSM).</p>
+    <p class="placeholder-hint">For now, open HQ desktop for the full sales view.</p>
+    <a class="placeholder-cta" href="https://vieforce-hq.vercel.app" target="_blank" rel="noopener">Open HQ &rarr;</a>
+  </div>
+</div>
+
+<div class="page" id="pg-region">
+  <div class="page-placeholder">
+    <div class="page-placeholder-icon">&#128506;&#65039;</div>
+    <h2>Regional Overview</h2>
+    <p>Coming in Day 2 &mdash; unified regional SAP + Patrol view with all districts, distributors, and whitespace.</p>
+  </div>
+</div>
+
+<div class="page" id="pg-ar">
+  <div class="page-placeholder">
+    <div class="page-placeholder-icon">&#128176;</div>
+    <h2>AR Overview</h2>
+    <p>Coming in Day 2 &mdash; customer AR aging, SOA download, overdue alerts.</p>
+  </div>
+</div>
+
+<div class="page" id="pg-budget">
+  <div class="page-placeholder">
+    <div class="page-placeholder-icon">&#127919;</div>
+    <h2>Budget &amp; Targets</h2>
+    <p>Coming in Day 2.</p>
+  </div>
+</div>
+
+<div class="page" id="pg-insights">
+  <div class="page-placeholder">
+    <div class="page-placeholder-icon">&#129504;</div>
+    <h2>Customer Insights</h2>
+    <p>Coming in Day 2.</p>
+  </div>
+</div>
+
+<div class="page" id="pg-inventory">
+  <div class="page-placeholder">
+    <div class="page-placeholder-icon">&#128230;</div>
+    <h2>Inventory</h2>
+    <p>Coming in Day 2.</p>
+  </div>
+</div>
+
+<div class="page" id="pg-speed">
+  <div class="page-placeholder">
+    <div class="page-placeholder-icon">&#9889;</div>
+    <h2>Speed Monitor</h2>
+    <p>Coming in Day 2.</p>
+  </div>
+</div>
+
+<!-- ========================================= -->
 <!-- TSR SCORECARD DETAIL (DSM drill-down)     -->
 <!-- ========================================= -->
 <div class="page" id="page-tsr-scorecard" style="background:var(--bg-main)">
@@ -880,6 +944,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/team.js?v=4"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
+<script src="js/nav-role-device.js?v=1"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=2"></script>
@@ -1064,7 +1129,7 @@ if ('serviceWorker' in navigator) {
     target.classList.add('active');
 
     // Update bottom-nav active state
-    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-tsr-scorecard'];
+    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-tsr-scorecard','pg-sales','pg-region','pg-ar','pg-budget','pg-insights','pg-inventory','pg-speed'];
     if (_mainPages.indexOf(pageId) !== -1) {
       var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
       for (var j = 0; j < navBtns.length; j++) {
