@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VieForce — Elite Dashboards Mockup</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+:root {
+  --fb-blue: #0084FF;
+  --fb-purple: #A855F7;
+  --fb-gradient: linear-gradient(135deg, #0084FF, #A855F7);
+  --vie-navy: #00263A;
+  --vie-navy2: #004A64;
+  --vie-green: #95C93D;
+  --vie-gold: #FFC72C;
+  --s-green: #31A24C;
+  --s-orange: #F7B928;
+  --s-red: #FA383E;
+  --bg: #FFFFFF;
+  --bg2: #F0F2F5;
+  --bg3: #E4E6EB;
+  --text: #050505;
+  --text2: #65676B;
+  --text3: #BCC0C4;
+  --divider: rgba(0,0,0,0.08);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font);
+  background: #eef1f5;
+  color: var(--text);
+  padding: 24px;
+  min-height: 100vh;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 900;
+  background: var(--fb-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.page-sub {
+  text-align: center;
+  color: var(--text2);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* Role tabs */
+.role-tabs {
+  display: flex;
+  gap: 8px;
+  max-width: 1400px;
+  margin: 0 auto 24px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.role-tab {
+  background: white;
+  border: 2px solid transparent;
+  border-radius: 100px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.role-tab:hover { transform: translateY(-2px); }
+.role-tab.active {
+  background: var(--fb-gradient);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 8px 24px rgba(0,132,255,0.25);
+}
+.role-tab-icon { font-size: 18px; }
+
+.viewport {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.dashboard {
+  display: none;
+}
+.dashboard.active { display: block; }
+
+/* ===== PHONE MOCKUP (for TSR) ===== */
+.phone-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+.phone-frame {
+  width: 390px;
+  background: #1c1c1e;
+  border-radius: 40px;
+  padding: 8px;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+}
+.phone-screen {
+  background: white;
+  border-radius: 32px;
+  overflow: hidden;
+  height: 820px;
+  display: flex;
+  flex-direction: column;
+}
+.phone-status-bar {
+  height: 22px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.phone-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg2);
+}
+.phone-nav {
+  height: 56px;
+  background: white;
+  display: flex;
+  border-top: 1px solid var(--divider);
+}
+.pnav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--text2);
+}
+.pnav-item.active { color: var(--fb-blue); }
+.pnav-icon { font-size: 20px; }
+
+/* ===== DESKTOP MOCKUP (for DSM/RSM/EVP) ===== */
+.desktop-frame {
+  background: var(--vie-navy);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.desktop-topbar {
+  background: var(--vie-navy);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--vie-green);
+  color: white;
+}
+.desktop-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+  font-size: 18px;
+}
+.logo-mark {
+  width: 32px; height: 32px;
+  background: var(--vie-green);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vie-navy);
+  font-weight: 900;
+}
+.desktop-nav {
+  display: flex;
+  gap: 4px;
+}
+.dnav-item {
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+.dnav-item.active { 
+  opacity: 1; 
+  background: rgba(149,201,61,0.15);
+  border-bottom: 2px solid var(--vie-green);
+}
+.user-badge {
+  background: var(--fb-gradient);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.desktop-body {
+  background: var(--bg2);
+  padding: 24px;
+  color: var(--text);
+}
+
+/* ===== TSR-specific ===== */
+
+.tsr-greeting {
+  background: var(--vie-navy);
+  color: white;
+  padding: 16px 20px;
+}
+.tsr-greeting-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+.tsr-greeting-sub {
+  font-size: 13px;
+  opacity: 0.8;
+}
+.tsr-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(49,162,76,0.2);
+  color: #95e3a7;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* Priority Hero Card - NEXT BEST ACTION */
+.nba-hero {
+  margin: 12px;
+  background: linear-gradient(135deg, #FF6B35, #FA383E);
+  border-radius: 20px;
+  padding: 16px;
+  color: white;
+  box-shadow: 0 12px 32px rgba(255,107,53,0.3);
+}
+.nba-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  margin-bottom: 6px;
+}
+.nba-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.nba-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 10px;
+}
+.nba-reason {
+  background: rgba(255,255,255,0.15);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.nba-actions {
+  display: flex;
+  gap: 8px;
+}
+.nba-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  background: white;
+  color: #FA383E;
+  font-weight: 800;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+}
+.nba-btn.secondary {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  flex: 0.5;
+}
+
+/* Route section */
+.tsr-section {
+  margin: 12px;
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.tsr-section-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.tsr-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text2);
+}
+.tsr-section-action {
+  font-size: 12px;
+  color: var(--fb-blue);
+  font-weight: 700;
+}
+
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+  font-size: 13px;
+}
+.route-item:last-child { border: none; }
+.route-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 11px;
+}
+.route-num.done { background: var(--s-green); color: white; }
+.route-num.current { background: var(--fb-blue); color: white; }
+.route-name { flex: 1; font-weight: 600; }
+.route-time { color: var(--text2); font-size: 12px; }
+
+/* Scorecard with insights */
+.scorecard-hero {
+  margin: 12px;
+  background: var(--fb-gradient);
+  border-radius: 20px;
+  padding: 16px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(0,132,255,0.25);
+}
+.sc-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.sc-title { font-size: 15px; font-weight: 800; }
+.sc-score {
+  background: rgba(255,255,255,0.2);
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.sc-stage {
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+}
+.sc-stage-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.sc-stage-icon { font-size: 16px; }
+.sc-stage-name { font-size: 13px; font-weight: 700; flex: 1; }
+.sc-stage-stars { font-size: 12px; }
+.sc-stage-trend {
+  background: rgba(49,162,76,0.3);
+  color: #a7f0b8;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.sc-stage-trend.down {
+  background: rgba(250,56,62,0.3);
+  color: #ffb0b2;
+}
+.sc-stage-metric {
+  font-size: 11px;
+  opacity: 0.85;
+  margin-left: 24px;
+}
+.sc-stage-insight {
+  background: rgba(255,199,44,0.2);
+  color: #ffe391;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  line-height: 1.4;
+}
+.sc-stage-insight::before {
+  content: '💡';
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Streak card */
+.streak-card {
+  margin: 12px;
+  background: linear-gradient(135deg, #F59E0B, #EA580C);
+  border-radius: 16px;
+  padding: 14px;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 8px 24px rgba(245,158,11,0.25);
+}
+.streak-emoji {
+  font-size: 32px;
+  animation: flame 1.5s ease-in-out infinite alternate;
+}
+@keyframes flame {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.1); }
+}
+.streak-info { flex: 1; }
+.streak-num {
+  font-size: 20px;
+  font-weight: 900;
+}
+.streak-label {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.95;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.streak-progress {
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* Team context (TSR seeing peer comparison) */
+.peer-card {
+  margin: 12px;
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  border-left: 4px solid var(--fb-purple);
+}
+.peer-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fb-purple);
+  margin-bottom: 6px;
+}
+.peer-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.peer-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--fb-blue);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+/* ===== DSM dashboard ===== */
+.desktop-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.desktop-hdr-title {
+  font-size: 24px;
+  font-weight: 900;
+}
+.desktop-hdr-meta {
+  color: var(--text2);
+  font-size: 13px;
+}
+.period-pill {
+  background: white;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Alert strip at top */
+.alert-strip {
+  background: linear-gradient(90deg, rgba(250,56,62,0.08), rgba(247,185,40,0.08));
+  border-left: 4px solid var(--s-red);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.alert-icon { font-size: 20px; }
+.alert-body { flex: 1; font-size: 13px; }
+.alert-title { font-weight: 800; color: var(--s-red); margin-bottom: 2px; }
+.alert-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.alert-tag {
+  background: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--divider);
+}
+
+/* KPI grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.kpi-tile {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  position: relative;
+}
+.kpi-tile-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text2);
+}
+.kpi-tile-value {
+  font-size: 28px;
+  font-weight: 900;
+  margin-top: 4px;
+  color: var(--text);
+}
+.kpi-tile-trend {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.kpi-tile-trend.up { background: rgba(49,162,76,0.15); color: var(--s-green); }
+.kpi-tile-trend.down { background: rgba(250,56,62,0.15); color: var(--s-red); }
+.kpi-tile-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* 2-col layout */
+.two-col {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Table */
+.table-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.table-card-hdr {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--divider);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.table-card-title {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th {
+  text-align: left;
+  padding: 10px 16px;
+  background: var(--vie-navy);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+th:first-child { }
+th.num, td.num { text-align: right; }
+td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--divider);
+}
+td:first-child { font-weight: 700; }
+tr:last-child td { border-bottom: none; }
+
+.score-dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.dot-green { background: var(--s-green); }
+.dot-yellow { background: var(--s-orange); }
+.dot-red { background: var(--s-red); }
+
+.trend-arrow { font-size: 11px; margin-left: 4px; }
+.trend-up { color: var(--s-green); }
+.trend-down { color: var(--s-red); }
+
+/* Coaching card */
+.coaching-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border-left: 4px solid var(--fb-blue);
+}
+.coaching-card.urgent { border-color: var(--s-red); }
+.coaching-card.positive { border-color: var(--s-green); }
+.coaching-top {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.coaching-av {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--fb-gradient);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.coaching-for { font-size: 10px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.coaching-name { font-size: 15px; font-weight: 800; }
+.coaching-issue { font-size: 13px; color: var(--text); margin-bottom: 8px; }
+.coaching-suggestion {
+  background: rgba(0,132,255,0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--fb-blue);
+  font-weight: 600;
+}
+.coaching-card.urgent .coaching-suggestion {
+  background: rgba(250,56,62,0.08);
+  color: var(--s-red);
+}
+.coaching-card.positive .coaching-suggestion {
+  background: rgba(49,162,76,0.08);
+  color: var(--s-green);
+}
+
+/* Forecast card */
+.forecast-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+}
+.forecast-title {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+.forecast-bar {
+  position: relative;
+  height: 12px;
+  background: var(--bg2);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.forecast-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--fb-gradient);
+  border-radius: 6px;
+}
+.forecast-target {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 18px;
+  background: var(--s-red);
+}
+.forecast-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text2);
+  font-weight: 700;
+}
+.forecast-projection {
+  margin-top: 14px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(247,185,40,0.1), rgba(250,56,62,0.1));
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.forecast-projection b { color: var(--s-red); }
+.forecast-option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 11px;
+}
+.forecast-option::before {
+  content: '→';
+  color: var(--fb-blue);
+  font-weight: 900;
+}
+
+/* Audit flag */
+.audit-flag {
+  background: rgba(247,185,40,0.1);
+  border: 1px solid rgba(247,185,40,0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.audit-flag.critical {
+  background: rgba(250,56,62,0.1);
+  border-color: rgba(250,56,62,0.3);
+}
+.audit-flag-icon { font-size: 14px; flex-shrink: 0; }
+.audit-flag-body { flex: 1; }
+.audit-flag-who { font-weight: 800; color: var(--text); }
+
+/* ===== RSM — regional heatmap ===== */
+.heatmap-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 100px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+}
+.heatmap-row:last-child { border: none; }
+.heatmap-district { font-weight: 700; font-size: 13px; }
+.heatmap-bar {
+  height: 10px;
+  background: var(--bg2);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+.heatmap-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+.heatmap-pct {
+  font-weight: 800;
+  font-size: 14px;
+  text-align: right;
+  font-family: monospace;
+}
+
+/* Whitespace card */
+.whitespace-card {
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(0,132,255,0.08));
+  border-radius: 12px;
+  padding: 16px;
+}
+.ws-num {
+  font-size: 40px;
+  font-weight: 900;
+  background: var(--fb-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+.ws-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+.ws-detail { font-size: 13px; color: var(--text); margin-top: 8px; font-weight: 600; }
+.ws-cta { 
+  margin-top: 10px; 
+  font-size: 12px; 
+  color: var(--fb-blue); 
+  font-weight: 800; 
+  cursor: pointer;
+}
+
+/* Playbook/best practice */
+.playbook-card {
+  background: linear-gradient(135deg, rgba(49,162,76,0.08), rgba(149,201,61,0.08));
+  border-left: 4px solid var(--s-green);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+.playbook-label {
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--s-green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+.playbook-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+.playbook-list {
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.playbook-list li::before {
+  content: '•';
+  color: var(--s-green);
+  font-weight: 900;
+  margin-right: 6px;
+}
+
+/* ===== EXEC dashboard ===== */
+.exec-hero {
+  background: linear-gradient(135deg, var(--vie-navy), var(--vie-navy2));
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.exec-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%; right: -20%;
+  width: 60%; height: 200%;
+  background: radial-gradient(circle, rgba(149,201,61,0.15), transparent);
+  pointer-events: none;
+}
+.exec-hero-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--vie-green);
+  margin-bottom: 8px;
+}
+.exec-hero-title {
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 16px;
+}
+.journey-bar {
+  height: 14px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 7px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  position: relative;
+}
+.journey-fill {
+  height: 100%;
+  background: var(--vie-green);
+  border-radius: 7px;
+  width: 3.8%;
+}
+.journey-pace {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--vie-gold);
+  left: 4.5%;
+}
+.journey-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+}
+.journey-warning {
+  color: var(--vie-gold);
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.exec-pnl {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+}
+.pnl-title {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pnl-lock {
+  font-size: 10px;
+  background: var(--vie-gold);
+  color: var(--vie-navy);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+.pnl-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+  font-size: 14px;
+}
+.pnl-row:last-child { border: none; }
+.pnl-row-label { color: var(--text2); }
+.pnl-row-value { font-weight: 800; font-family: monospace; }
+.pnl-row-value.locked::after {
+  content: ' 🔒';
+  font-size: 11px;
+}
+
+/* Radars */
+.radar-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+}
+.radar-card.risk { border-left: 4px solid var(--s-red); }
+.radar-card.opp { border-left: 4px solid var(--s-green); }
+.radar-hdr {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+.radar-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--divider);
+  font-size: 12px;
+}
+.radar-item:last-child { border: none; }
+.radar-num {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.risk .radar-num { background: rgba(250,56,62,0.15); color: var(--s-red); }
+.opp .radar-num { background: rgba(49,162,76,0.15); color: var(--s-green); }
+
+.decision-card {
+  background: linear-gradient(135deg, rgba(255,199,44,0.15), rgba(247,185,40,0.1));
+  border: 1px solid rgba(255,199,44,0.3);
+  border-radius: 12px;
+  padding: 16px;
+}
+.decision-title {
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.decision-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  font-size: 12px;
+}
+.decision-item:last-child { border: none; }
+.decision-cta {
+  background: var(--vie-gold);
+  color: var(--vie-navy);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.small-title {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  color: var(--text2);
+}
+
+/* Explainer panel */
+.build-panel {
+  max-width: 1400px;
+  margin: 24px auto 0;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+.build-panel h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+.build-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.build-item {
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 14px;
+  border-left: 4px solid var(--fb-blue);
+}
+.build-item.quick { border-color: var(--s-green); }
+.build-item.medium { border-color: var(--s-orange); }
+.build-item.hard { border-color: var(--s-red); }
+.build-item.blocked { border-color: var(--text3); opacity: 0.7; }
+.build-item h4 { font-size: 13px; margin-bottom: 4px; }
+.build-item .effort {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+.build-item.quick .effort { background: rgba(49,162,76,0.15); color: var(--s-green); }
+.build-item.medium .effort { background: rgba(247,185,40,0.15); color: var(--s-orange); }
+.build-item.hard .effort { background: rgba(250,56,62,0.15); color: var(--s-red); }
+.build-item.blocked .effort { background: var(--bg3); color: var(--text2); }
+.build-item p { font-size: 11px; color: var(--text2); margin-top: 6px; line-height: 1.5; }
+
+</style>
+</head>
+<body>
+
+<div class="page-title">VieForce Elite Dashboards</div>
+<div class="page-sub">4 role-specific views · Insight-driven · Built for field excellence</div>
+
+<div class="role-tabs">
+  <div class="role-tab active" data-role="tsr"><span class="role-tab-icon">🏃</span>TSR</div>
+  <div class="role-tab" data-role="dsm"><span class="role-tab-icon">📊</span>DSM</div>
+  <div class="role-tab" data-role="rsm"><span class="role-tab-icon">🎯</span>RSM</div>
+  <div class="role-tab" data-role="evp"><span class="role-tab-icon">👔</span>EVP/CEO</div>
+</div>
+
+<div class="viewport">
+
+<!-- ===================================== -->
+<!-- TSR DASHBOARD (mobile Messenger feel) -->
+<!-- ===================================== -->
+<div class="dashboard active" data-dashboard="tsr">
+  <div class="phone-container">
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="phone-status-bar">
+          <span>9:47</span>
+          <span>📶 📶 🔋</span>
+        </div>
+        <div class="phone-content">
+          
+          <div class="tsr-greeting">
+            <div class="tsr-greeting-title">Magandang umaga, Rico! 🌅</div>
+            <div class="tsr-greeting-sub">MM-North · Feeds Territory 1</div>
+            <div class="tsr-sync-pill">● Naka-sync na</div>
+          </div>
+
+          <!-- NEXT BEST ACTION -->
+          <div class="nba-hero">
+            <div class="nba-label">🎯 ANG UNANG BISITA MO NGAYON</div>
+            <div class="nba-title">Santos Agri Center</div>
+            <div class="nba-meta">
+              <span>📍 12 mins away</span>
+              <span>💰 ₱42k AR due 18d</span>
+            </div>
+            <div class="nba-reason">
+              ⚠️ 5 days from at-risk · Last order ₱80k · High SOV customer
+            </div>
+            <div class="nba-actions">
+              <div class="nba-btn">🚀 GO NGAYON</div>
+              <div class="nba-btn secondary">Skip</div>
+            </div>
+          </div>
+
+          <!-- ROUTE TODAY -->
+          <div class="tsr-section">
+            <div class="tsr-section-hdr">
+              <div class="tsr-section-title">🗺️ Ruta ngayon · 4 stops · 3.2h</div>
+              <div class="tsr-section-action">Optimize</div>
+            </div>
+            <div class="route-item">
+              <div class="route-num current">1</div>
+              <div class="route-name">Santos Agri</div>
+              <div class="route-time">9:00 AM</div>
+            </div>
+            <div class="route-item">
+              <div class="route-num">2</div>
+              <div class="route-name">Metro Farm Supply</div>
+              <div class="route-time">10:30 AM</div>
+            </div>
+            <div class="route-item">
+              <div class="route-num">3</div>
+              <div class="route-name">Greenfield Feeds</div>
+              <div class="route-time">12:15 PM</div>
+            </div>
+            <div class="route-item">
+              <div class="route-num">4</div>
+              <div class="route-name">Nueva Feeds Malabon</div>
+              <div class="route-time">2:00 PM</div>
+            </div>
+          </div>
+
+          <!-- SCORECARD WITH INSIGHTS -->
+          <div class="scorecard-hero">
+            <div class="sc-header">
+              <div class="sc-title">📊 Scorecard ko this month</div>
+              <div class="sc-score">⭐ 2.8/5</div>
+            </div>
+
+            <div class="sc-stage">
+              <div class="sc-stage-top">
+                <span class="sc-stage-icon">🔍</span>
+                <span class="sc-stage-name">Prospection</span>
+                <span class="sc-stage-stars">⭐☆☆☆☆</span>
+                <span class="sc-stage-trend down">↓0.3</span>
+              </div>
+              <div class="sc-stage-metric">5 new / target 10</div>
+              <div class="sc-stage-insight">"Try 2 new cold calls per week to hit target"</div>
+            </div>
+
+            <div class="sc-stage">
+              <div class="sc-stage-top">
+                <span class="sc-stage-icon">🎯</span>
+                <span class="sc-stage-name">Conversion</span>
+                <span class="sc-stage-stars">⭐⭐☆☆☆</span>
+                <span class="sc-stage-trend">+0.5</span>
+              </div>
+              <div class="sc-stage-metric">2 / 12 (17%) · peer avg 24%</div>
+              <div class="sc-stage-insight">"Follow up sa Nueva Feeds — interested pero 6 days na walang balita"</div>
+            </div>
+
+            <div class="sc-stage">
+              <div class="sc-stage-top">
+                <span class="sc-stage-icon">💚</span>
+                <span class="sc-stage-name">Retention</span>
+                <span class="sc-stage-stars">⭐⭐⭐⭐⭐</span>
+                <span class="sc-stage-trend">Top 10%</span>
+              </div>
+              <div class="sc-stage-metric">95% visited on time 🏆</div>
+            </div>
+
+            <div class="sc-stage">
+              <div class="sc-stage-top">
+                <span class="sc-stage-icon">📈</span>
+                <span class="sc-stage-name">Growth</span>
+                <span class="sc-stage-stars">⭐⭐⭐☆☆</span>
+                <span class="sc-stage-trend">+12%</span>
+              </div>
+              <div class="sc-stage-metric">MoM growth · 3 accounts declining</div>
+              <div class="sc-stage-insight">"Tap to see which 3 accounts need attention"</div>
+            </div>
+          </div>
+
+          <!-- STREAK -->
+          <div class="streak-card">
+            <div class="streak-emoji">🔥</div>
+            <div class="streak-info">
+              <div class="streak-num">14-Day Streak!</div>
+              <div class="streak-label">Visit streak</div>
+              <div class="streak-progress">5 more days → "Iron TSR" badge</div>
+            </div>
+          </div>
+
+          <!-- PEER LEARNING (discreet, not toxic) -->
+          <div class="peer-card">
+            <div class="peer-title">💡 Learn from the best</div>
+            <div class="peer-text">
+              Jake Santos has 3 conversions this week using a "quick trial 2-bag" tactic. 
+              Want to see how he did it?
+            </div>
+            <div class="peer-link">Watch playbook →</div>
+          </div>
+
+          <div style="height: 20px"></div>
+        </div>
+        <div class="phone-nav">
+          <div class="pnav-item active"><span class="pnav-icon">🏠</span>Bahay</div>
+          <div class="pnav-item"><span class="pnav-icon">🏪</span>Tindahan</div>
+          <div class="pnav-item"><span class="pnav-icon">🗺️</span>Mapa</div>
+          <div class="pnav-item"><span class="pnav-icon">👤</span>Profile</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================== -->
+<!-- DSM DASHBOARD                          -->
+<!-- ===================================== -->
+<div class="dashboard" data-dashboard="dsm">
+  <div class="desktop-frame">
+    <div class="desktop-topbar">
+      <div class="desktop-logo">
+        <div class="logo-mark">V</div>
+        <span>VieForce CRM 360°</span>
+      </div>
+      <div class="desktop-nav">
+        <div class="dnav-item active">🏠 HOME</div>
+        <div class="dnav-item">💰 SALES</div>
+        <div class="dnav-item">💳 AR</div>
+        <div class="dnav-item">👥 CLIENTS</div>
+        <div class="dnav-item">🏃 PATROL</div>
+        <div class="dnav-item">⚡ SPEED</div>
+      </div>
+      <div class="user-badge">JF · DSM</div>
+    </div>
+    <div class="desktop-body">
+
+      <div class="desktop-hdr">
+        <div>
+          <div class="desktop-hdr-title">Jefrey Florentino</div>
+          <div class="desktop-hdr-meta">DSM · MM-North · 5 TSRs · 87 stores · 24 farms</div>
+        </div>
+        <div class="period-pill">MTD · Apr 2026 ▾</div>
+      </div>
+
+      <!-- ATTENTION ALERTS -->
+      <div class="alert-strip">
+        <div class="alert-icon">🚨</div>
+        <div class="alert-body">
+          <div class="alert-title">3 items need your attention today</div>
+          <div class="alert-list">
+            <span class="alert-tag">Jake · 0 visits 3 days</span>
+            <span class="alert-tag">Santos Agri · 45d walang order</span>
+            <span class="alert-tag">8 stores at-risk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI GRID WITH TRENDS -->
+      <div class="kpi-grid">
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">📊 Active TSRs</div>
+          <div class="kpi-tile-trend up">↑1</div>
+          <div class="kpi-tile-value">4/5</div>
+          <div class="kpi-tile-sub">80% · Jake idle 3d</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">🏪 Stores Visited</div>
+          <div class="kpi-tile-trend up">↑12%</div>
+          <div class="kpi-tile-value">47/87</div>
+          <div class="kpi-tile-sub">54% coverage</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">🎯 Conversions</div>
+          <div class="kpi-tile-trend up">↑3</div>
+          <div class="kpi-tile-value">8</div>
+          <div class="kpi-tile-sub">vs 5 last month</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">📈 Volume MTD</div>
+          <div class="kpi-tile-trend down">-4%</div>
+          <div class="kpi-tile-value">412 MT</div>
+          <div class="kpi-tile-sub">vs 450 target</div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD + COACHING -->
+      <div class="two-col">
+        
+        <!-- TSR Leaderboard with signals -->
+        <div class="table-card">
+          <div class="table-card-hdr">
+            <div class="table-card-title">🏆 TSR Performance</div>
+            <div class="tsr-section-action">View details →</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>TSR</th>
+                <th class="num">ACTIVE</th>
+                <th class="num">PROSP</th>
+                <th class="num">CONV</th>
+                <th class="num">SCORE</th>
+                <th>TREND</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>🥇 Maria Cruz</td>
+                <td class="num"><span class="score-dot dot-green"></span>95%</td>
+                <td class="num">7</td>
+                <td class="num">3🔥</td>
+                <td class="num">4.2</td>
+                <td><span class="trend-arrow trend-up">↑0.4</span></td>
+              </tr>
+              <tr>
+                <td>🥈 Rico Abante</td>
+                <td class="num"><span class="score-dot dot-green"></span>95%</td>
+                <td class="num">5</td>
+                <td class="num">2</td>
+                <td class="num">2.8</td>
+                <td><span class="trend-arrow trend-up">↑0.2</span></td>
+              </tr>
+              <tr>
+                <td>🥉 Ben Reyes</td>
+                <td class="num"><span class="score-dot dot-yellow"></span>78%</td>
+                <td class="num">4</td>
+                <td class="num">1</td>
+                <td class="num">2.5</td>
+                <td><span class="trend-arrow">—</span></td>
+              </tr>
+              <tr>
+                <td>Jake Santos</td>
+                <td class="num"><span class="score-dot dot-red"></span>67%</td>
+                <td class="num">3</td>
+                <td class="num">0 🔻</td>
+                <td class="num">1.9</td>
+                <td><span class="trend-arrow trend-down">↓0.8</span></td>
+              </tr>
+              <tr>
+                <td>Luis Tan</td>
+                <td class="num"><span class="score-dot dot-green"></span>88%</td>
+                <td class="num">6</td>
+                <td class="num">2</td>
+                <td class="num">3.1</td>
+                <td><span class="trend-arrow trend-up">↑0.1</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Coaching moments -->
+        <div>
+          <div class="small-title">🎯 Coaching moments (auto-generated)</div>
+          
+          <div class="coaching-card urgent">
+            <div class="coaching-top">
+              <div class="coaching-av">JS</div>
+              <div>
+                <div class="coaching-for">1:1 THIS WEEK</div>
+                <div class="coaching-name">Jake Santos</div>
+              </div>
+            </div>
+            <div class="coaching-issue">Visited same 3 stores 5 days. Scorecard -0.8 pts. GPS clustered.</div>
+            <div class="coaching-suggestion">💬 Suggested topic: "Territory coverage strategy"</div>
+          </div>
+
+          <div class="coaching-card positive">
+            <div class="coaching-top">
+              <div class="coaching-av" style="background:linear-gradient(135deg,#31A24C,#16A34A)">MC</div>
+              <div>
+                <div class="coaching-for">POSITIVE REINFORCEMENT</div>
+                <div class="coaching-name">Maria Cruz</div>
+              </div>
+            </div>
+            <div class="coaching-issue">3 conversions this week using trial tactic. Team best.</div>
+            <div class="coaching-suggestion">🌟 Ask her to record playbook video for team</div>
+          </div>
+
+          <div class="coaching-card">
+            <div class="coaching-top">
+              <div class="coaching-av" style="background:linear-gradient(135deg,#F59E0B,#EA580C)">BR</div>
+              <div>
+                <div class="coaching-for">NEEDS PUSH</div>
+                <div class="coaching-name">Ben Reyes</div>
+              </div>
+            </div>
+            <div class="coaching-issue">Retention flat 2 weeks. Visits on time but no SOV growth.</div>
+            <div class="coaching-suggestion">📝 Discuss: upsell techniques + product knowledge refresh</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORECAST + AUDIT -->
+      <div class="two-col">
+        <div class="forecast-card">
+          <div class="forecast-title">📈 End-of-month forecast</div>
+          
+          <div class="forecast-bar">
+            <div class="forecast-fill" style="width:62%"></div>
+            <div class="forecast-target" style="left:100%"></div>
+          </div>
+          <div class="forecast-labels">
+            <span>0 MT</span>
+            <span>412 MT today</span>
+            <span>450 MT target</span>
+          </div>
+
+          <div class="forecast-projection">
+            <div><b>Projected end of month: 428 MT</b> — short 22 MT</div>
+            <div class="forecast-option">Close gap with 8 more conversions (easier)</div>
+            <div class="forecast-option">OR 15% uplift top-10 accounts</div>
+            <div class="forecast-option">OR reactivate 3 lost customers</div>
+          </div>
+
+          <div class="small-title" style="margin-top:16px">📊 DSM personal metrics</div>
+          <div style="font-size:12px;line-height:1.6;color:var(--text2)">
+            🏃 Own field visits this week: <b style="color:var(--text)">3</b><br>
+            📞 Distributor calls: <b style="color:var(--text)">8</b><br>
+            🎪 Marketing requests approved: <b style="color:var(--text)">4</b>
+          </div>
+        </div>
+
+        <div>
+          <div class="small-title">🔍 Audit flags (AI-detected)</div>
+          
+          <div class="audit-flag critical">
+            <div class="audit-flag-icon">⚠️</div>
+            <div class="audit-flag-body">
+              <div class="audit-flag-who">Jake Santos</div>
+              3 visits in 4 mins on Apr 15 · GPS clustered within 50m
+              <div style="margin-top:6px;color:var(--fb-blue);font-weight:700">Review →</div>
+            </div>
+          </div>
+
+          <div class="audit-flag">
+            <div class="audit-flag-icon">📸</div>
+            <div class="audit-flag-body">
+              <div class="audit-flag-who">Rico Abante</div>
+              2 visits missing mandatory photo
+            </div>
+          </div>
+
+          <div class="audit-flag">
+            <div class="audit-flag-icon">⏰</div>
+            <div class="audit-flag-body">
+              <div class="audit-flag-who">Ben Reyes</div>
+              Avg visit duration 4.2 min — below 8-min threshold
+            </div>
+          </div>
+
+          <div class="audit-flag">
+            <div class="audit-flag-icon">🔁</div>
+            <div class="audit-flag-body">
+              <div class="audit-flag-who">Luis Tan</div>
+              Metro North Feeds visited 4x this week — why?
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================================== -->
+<!-- RSM DASHBOARD                          -->
+<!-- ===================================== -->
+<div class="dashboard" data-dashboard="rsm">
+  <div class="desktop-frame">
+    <div class="desktop-topbar">
+      <div class="desktop-logo">
+        <div class="logo-mark">V</div>
+        <span>VieForce CRM 360°</span>
+      </div>
+      <div class="desktop-nav">
+        <div class="dnav-item active">🏠 HOME</div>
+        <div class="dnav-item">💰 SALES</div>
+        <div class="dnav-item">📊 BUDGET</div>
+        <div class="dnav-item">🎯 DSMs</div>
+        <div class="dnav-item">🏃 PATROL</div>
+        <div class="dnav-item">📈 INTEL</div>
+      </div>
+      <div class="user-badge">RM · RSM</div>
+    </div>
+    <div class="desktop-body">
+
+      <div class="desktop-hdr">
+        <div>
+          <div class="desktop-hdr-title">Rina Morales</div>
+          <div class="desktop-hdr-meta">RSM · LUZON · 5 DSMs · 23 TSRs · 412 stores</div>
+        </div>
+        <div class="period-pill">MTD · Apr 2026 ▾</div>
+      </div>
+
+      <!-- REGIONAL KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">💰 Revenue MTD</div>
+          <div class="kpi-tile-trend up">↑5%</div>
+          <div class="kpi-tile-value">₱8.2M</div>
+          <div class="kpi-tile-sub">91% of ₱9M target</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">📦 Volume</div>
+          <div class="kpi-tile-trend up">↑8%</div>
+          <div class="kpi-tile-value">2,400 MT</div>
+          <div class="kpi-tile-sub">vs 2,600 target</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">👥 Active Customers</div>
+          <div class="kpi-tile-trend up">↑12</div>
+          <div class="kpi-tile-value">847</div>
+          <div class="kpi-tile-sub">+1.4% this month</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-label">💳 AR Overdue</div>
+          <div class="kpi-tile-trend down">-8%</div>
+          <div class="kpi-tile-value">₱1.2M</div>
+          <div class="kpi-tile-sub">15 accounts</div>
+        </div>
+      </div>
+
+      <!-- HEATMAP -->
+      <div class="two-col">
+        <div class="table-card">
+          <div class="table-card-hdr">
+            <div class="table-card-title">🗺️ Regional Performance Heatmap</div>
+            <div class="tsr-section-action">Drill →</div>
+          </div>
+          <div style="padding:14px 16px">
+            <div class="heatmap-row">
+              <div class="heatmap-district">🔥 MM-East</div>
+              <div class="heatmap-bar"><div class="heatmap-fill" style="width:100%;background:var(--s-green)"></div></div>
+              <div class="heatmap-pct" style="color:var(--s-green)">112%</div>
+            </div>
+            <div class="heatmap-row">
+              <div class="heatmap-district">MM-North</div>
+              <div class="heatmap-bar"><div class="heatmap-fill" style="width:89%;background:var(--fb-blue)"></div></div>
+              <div class="heatmap-pct">89%</div>
+            </div>
+            <div class="heatmap-row">
+              <div class="heatmap-district">South Luzon</div>
+              <div class="heatmap-bar"><div class="heatmap-fill" style="width:85%;background:var(--fb-blue)"></div></div>
+              <div class="heatmap-pct">85%</div>
+            </div>
+            <div class="heatmap-row">
+              <div class="heatmap-district">⚠️ MM-South</div>
+              <div class="heatmap-bar"><div class="heatmap-fill" style="width:62%;background:var(--s-orange)"></div></div>
+              <div class="heatmap-pct" style="color:var(--s-orange)">62%</div>
+            </div>
+            <div class="heatmap-row">
+              <div class="heatmap-district">🔻 North Luzon</div>
+              <div class="heatmap-bar"><div class="heatmap-fill" style="width:45%;background:var(--s-red)"></div></div>
+              <div class="heatmap-pct" style="color:var(--s-red)">45%</div>
+            </div>
+          </div>
+
+          <!-- Playbook -->
+          <div style="padding:0 16px 16px">
+            <div class="playbook-card">
+              <div class="playbook-label">🏆 What MM-East is doing right</div>
+              <div class="playbook-title">Replicate this playbook regionally</div>
+              <ul class="playbook-list">
+                <li>3x more prospection visits than avg</li>
+                <li>Conversion cycle 12 days vs 22 days regional avg</li>
+                <li>Daily DSM-TSR huddle before field</li>
+                <li>Targeted vet mission on top-20 farms</li>
+              </ul>
+              <div style="margin-top:10px;font-size:11px;color:var(--s-green);font-weight:800">→ Share to other 4 districts</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DSM scorecards -->
+        <div class="table-card">
+          <div class="table-card-hdr">
+            <div class="table-card-title">🎯 DSM Scorecards</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>DSM</th>
+                <th class="num">PROS</th>
+                <th class="num">CONV</th>
+                <th class="num">RET</th>
+                <th class="num">GR</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Jojo M · MM-East</td>
+                <td class="num">⭐⭐⭐⭐</td>
+                <td class="num">⭐⭐⭐</td>
+                <td class="num">⭐⭐⭐⭐</td>
+                <td class="num">⭐⭐⭐</td>
+              </tr>
+              <tr>
+                <td>Jefrey F · MM-North</td>
+                <td class="num">⭐⭐⭐</td>
+                <td class="num">⭐⭐</td>
+                <td class="num">⭐⭐⭐⭐</td>
+                <td class="num">⭐⭐</td>
+              </tr>
+              <tr>
+                <td>Lee R · South</td>
+                <td class="num">⭐⭐⭐</td>
+                <td class="num">⭐⭐⭐</td>
+                <td class="num">⭐⭐⭐</td>
+                <td class="num">⭐⭐</td>
+              </tr>
+              <tr>
+                <td>⚠️ Marvin D · MM-South</td>
+                <td class="num">⭐⭐</td>
+                <td class="num">⭐</td>
+                <td class="num">⭐⭐⭐</td>
+                <td class="num">⭐</td>
+              </tr>
+              <tr>
+                <td>🔻 Andres P · NL</td>
+                <td class="num">⭐</td>
+                <td class="num">⭐</td>
+                <td class="num">⭐⭐</td>
+                <td class="num">⭐</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Distributor health -->
+          <div style="padding:16px;border-top:1px solid var(--divider)">
+            <div class="small-title">📦 Distributor Health (from SAP)</div>
+            <div style="font-size:12px;line-height:1.8">
+              ✅ Top 5 distributors active<br>
+              ⚠️ <b>Santos Dist.</b> — AR aging 60d<br>
+              🔻 <b>Metro N.</b> — Volume -12% MoM<br>
+              🔴 <b>Pacific Feed Co.</b> — 0 orders 30d
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WHITESPACE + AUDIT + VET ROI -->
+      <div class="two-col">
+        <div>
+          <div class="whitespace-card">
+            <div class="ws-num">18</div>
+            <div class="ws-label">Towns with 0 POS coverage</div>
+            <div class="ws-detail">Est. untapped revenue: ₱3.2M/month</div>
+            <div class="ws-cta">📍 View on regional map →</div>
+          </div>
+
+          <div class="whitespace-card" style="margin-top:12px;background:linear-gradient(135deg,rgba(49,162,76,0.08),rgba(149,201,61,0.08))">
+            <div class="ws-num" style="background:linear-gradient(135deg,#31A24C,#95C93D);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">3.4x</div>
+            <div class="ws-label">💊 Vet Mission ROI</div>
+            <div class="ws-detail">₱47k cost → +18% uplift on 34 farms</div>
+            <div class="ws-cta" style="color:var(--s-green)">📊 View cost breakdown →</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="small-title">🚨 Audit alerts (cross-DSM)</div>
+
+          <div class="audit-flag critical">
+            <div class="audit-flag-icon">🔴</div>
+            <div class="audit-flag-body">
+              <div class="audit-flag-who">MM-South district</div>
+              42% of DSM's own visits have no photo. Pattern suggests fraud.
+              <div style="margin-top:6px;color:var(--fb-blue);font-weight:700">Deep dive →</div>
+            </div>
+          </div>
+
+          <div class="audit-flag critical">
+            <div class="audit-flag-icon">⚠️</div>
+            <div class="audit-flag-body">
+              <div class="audit-flag-who">3 customers</div>
+              Tagged "lost" in Patrol but still invoicing in SAP
+              <div style="margin-top:6px;color:var(--fb-blue);font-weight:700">Reconcile →</div>
+            </div>
+          </div>
+
+          <div class="audit-flag">
+            <div class="audit-flag-icon">📉</div>
+            <div class="audit-flag-body">
+              <div class="audit-flag-who">NL district</div>
+              Only 45% of target — RSM intervention recommended
+            </div>
+          </div>
+
+          <!-- Strategic questions -->
+          <div class="decision-card" style="margin-top:14px">
+            <div class="decision-title">🎯 Strategic decisions for COMEX</div>
+            <div class="decision-item">
+              <span>Expand NL with 2 new DSMs?</span>
+              <span class="decision-cta">Decide</span>
+            </div>
+            <div class="decision-item">
+              <span>Scale MM-East playbook region-wide?</span>
+              <span class="decision-cta">Plan</span>
+            </div>
+            <div class="decision-item">
+              <span>Increase vet mission budget Q3?</span>
+              <span class="decision-cta">Review</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================================== -->
+<!-- EVP DASHBOARD                          -->
+<!-- ===================================== -->
+<div class="dashboard" data-dashboard="evp">
+  <div class="desktop-frame">
+    <div class="desktop-topbar">
+      <div class="desktop-logo">
+        <div class="logo-mark">V</div>
+        <span>VieForce CRM 360°</span>
+      </div>
+      <div class="desktop-nav">
+        <div class="dnav-item active">🏠 HOME</div>
+        <div class="dnav-item">💰 P&L</div>
+        <div class="dnav-item">📊 MARGINS</div>
+        <div class="dnav-item">🌏 REGIONS</div>
+        <div class="dnav-item">🏆 TEAMS</div>
+        <div class="dnav-item">🔒 EXEC</div>
+      </div>
+      <div class="user-badge" style="background:linear-gradient(135deg,#FFC72C,#F7B928);color:var(--vie-navy)">MG · EVP</div>
+    </div>
+    <div class="desktop-body">
+
+      <div class="desktop-hdr">
+        <div>
+          <div class="desktop-hdr-title">Mathieu Guillaume</div>
+          <div class="desktop-hdr-meta">CEO · National View · Full access incl. margins 🔒</div>
+        </div>
+        <div class="period-pill">MTD · Apr 2026 ▾</div>
+      </div>
+
+      <!-- 2033 JOURNEY HERO -->
+      <div class="exec-hero">
+        <div class="exec-hero-label">🎯 2033 VISION · 1M MT · TOP 3 PHILIPPINES</div>
+        <div class="exec-hero-title">Journey to 2033</div>
+        <div class="journey-bar">
+          <div class="journey-fill"></div>
+          <div class="journey-pace"></div>
+        </div>
+        <div class="journey-meta">
+          <span>YTD: 38k MT (3.8%)</span>
+          <span>Pace needed: 4.5%</span>
+          <span>Target: 1M MT</span>
+        </div>
+        <div class="journey-warning">⚠️ 8% behind pace · Action required to stay on trajectory</div>
+      </div>
+
+      <!-- P&L SNAPSHOT -->
+      <div class="two-col">
+        <div class="exec-pnl">
+          <div class="pnl-title">
+            💰 National P&L Snapshot
+            <span class="pnl-lock">LOCKED</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Revenue MTD</span>
+            <span class="pnl-row-value">₱42M <span style="color:var(--s-green);font-size:11px">↑8%</span></span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Gross Margin</span>
+            <span class="pnl-row-value locked">18.3% <span style="color:var(--s-red);font-size:11px">↓0.4%</span></span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">EBITDA</span>
+            <span class="pnl-row-value locked">₱5.8M</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Unit margin</span>
+            <span class="pnl-row-value locked">₱780/bag</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Volume MTD</span>
+            <span class="pnl-row-value">18,400 MT</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Target this month</span>
+            <span class="pnl-row-value">20,000 MT</span>
+          </div>
+
+          <div style="margin-top:16px">
+            <div class="small-title">🌏 Regional revenue mix</div>
+            <div style="font-size:12px;line-height:2">
+              Luzon &nbsp; <span style="color:var(--fb-blue);font-weight:800">████████████</span> 45% · ₱19M<br>
+              Visayas <span style="color:var(--fb-blue);font-weight:800">████████</span> 30% · ₱13M<br>
+              Mindanao <span style="color:var(--fb-blue);font-weight:800">██████</span> 25% · ₱10M
+            </div>
+          </div>
+        </div>
+
+        <!-- Strategic KPIs -->
+        <div class="exec-pnl">
+          <div class="pnl-title">📊 Strategic KPIs</div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Active customers</span>
+            <span class="pnl-row-value">847 <span style="color:var(--s-green);font-size:11px">↑34 MTD</span></span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Churn rate</span>
+            <span class="pnl-row-value">1.2% <span style="color:var(--s-red);font-size:11px">↑0.2%</span></span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Conversion velocity</span>
+            <span class="pnl-row-value">18 days</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Cost to acquire</span>
+            <span class="pnl-row-value locked">₱8.4k/customer</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Cost to retain</span>
+            <span class="pnl-row-value locked">₱280/bag</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Vet mission ROI</span>
+            <span class="pnl-row-value" style="color:var(--s-green)">3.4x</span>
+          </div>
+          <div class="pnl-row">
+            <span class="pnl-row-label">Marketing ROAS</span>
+            <span class="pnl-row-value">2.1x</span>
+          </div>
+
+          <div style="margin-top:16px">
+            <div class="small-title">🏆 Top performers MTD</div>
+            <div style="font-size:12px;line-height:2">
+              🥇 Region: <b>Luzon</b> (Rina Morales)<br>
+              🥇 District: <b>MM-East</b> +112% vs target<br>
+              🥇 DSM: <b>Jojo Marquez</b><br>
+              🥇 TSR: <b>Rico Abante</b> (28 visits/wk)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RISK + OPPORTUNITY RADARS -->
+      <div class="two-col">
+        <div class="radar-card risk">
+          <div class="radar-hdr">⚠️ Risk Radar · Top 5</div>
+          <div class="radar-item">
+            <div class="radar-num">1</div>
+            <div><b>Margin decline in Vol C segment</b> — -1.2pts this quarter. Product mix worsening.</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">2</div>
+            <div><b>AR aging >60d: ₱2.1M</b> — concentrated in 3 distributors (MM-South)</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">3</div>
+            <div><b>3 DSMs underperforming</b> — risk to ₱1.4M revenue if not corrected by Q3</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">4</div>
+            <div><b>Vet cost +18% MoM</b> unexplained — audit RSM budget control</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">5</div>
+            <div><b>Competitor X</b> gaining share in MM-South — -4% SOV last 60 days</div>
+          </div>
+        </div>
+
+        <div class="radar-card opp">
+          <div class="radar-hdr">🎯 Opportunity Radar · Top 5</div>
+          <div class="radar-item">
+            <div class="radar-num">1</div>
+            <div><b>White-space: 18 towns</b> in North Luzon — ₱3.2M/mo potential</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">2</div>
+            <div><b>Upsell 120 A-class customers</b> at SOV below 30% — ₱8M upside</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">3</div>
+            <div><b>Vet Mission ROI 3.4x</b> — scale to all 5 regions</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">4</div>
+            <div><b>MM-East playbook</b> → replicate to other 4 districts (~₱4M MoM uplift)</div>
+          </div>
+          <div class="radar-item">
+            <div class="radar-num">5</div>
+            <div><b>DCEM launch Q3</b> — pending lab confirmation of NaCl content</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STRATEGIC DECISIONS + COMEX -->
+      <div class="two-col">
+        <div class="decision-card">
+          <div class="decision-title">💡 Decisions needed from you</div>
+          <div class="decision-item">
+            <span>Approve 2 new DSMs for NL expansion?</span>
+            <span class="decision-cta">Review</span>
+          </div>
+          <div class="decision-item">
+            <span>Cebu plant land title subdivision</span>
+            <span class="decision-cta">Escalate</span>
+          </div>
+          <div class="decision-item">
+            <span>Vet budget FY26 — increase 20%?</span>
+            <span class="decision-cta">Decide</span>
+          </div>
+          <div class="decision-item">
+            <span>DCEM capex deployment pending lab</span>
+            <span class="decision-cta">Monitor</span>
+          </div>
+        </div>
+
+        <div class="exec-pnl">
+          <div class="pnl-title">📋 Weekly agenda</div>
+          <div style="font-size:13px;line-height:1.8">
+            <b>Thu Apr 23 · COMEX 9am</b><br>
+            <span style="color:var(--text2);font-size:12px">3 agenda items pending review</span><br>
+            <br>
+            <b>Fri Apr 24 · DSM monthly</b><br>
+            <span style="color:var(--text2);font-size:12px">Recognize MM-East, address NL</span><br>
+            <br>
+            <b>Mon Apr 27 · RSM 1:1 Rina</b><br>
+            <span style="color:var(--text2);font-size:12px">Audit MM-South photo compliance</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- BUILD PLAN PANEL -->
+<div class="build-panel">
+  <h3>🔨 Build plan — what ships when</h3>
+  <p style="font-size:13px;color:var(--text2)">Color legend: 🟢 quick win (today) · 🟡 medium (tomorrow) · 🔴 hard (sprint B) · ⚫ blocked (needs SAP/HQ)</p>
+  
+  <div class="build-grid">
+    <div class="build-item quick">
+      <h4>TSR · Next Best Action card</h4>
+      <span class="effort">QUICK · 2h</span>
+      <p>Rule-based: pick store with highest (at_risk × days_no_visit × AR_due)</p>
+    </div>
+    <div class="build-item quick">
+      <h4>TSR · Trend arrows on KPIs</h4>
+      <span class="effort">QUICK · 1h</span>
+      <p>Compare this week vs last week. Already have the data.</p>
+    </div>
+    <div class="build-item quick">
+      <h4>TSR · Streak counter</h4>
+      <span class="effort">QUICK · 1h</span>
+      <p>Count consecutive days with ≥1 visit. Unlocks badges at 7/14/30.</p>
+    </div>
+    <div class="build-item medium">
+      <h4>TSR · Scorecard insights</h4>
+      <span class="effort">MEDIUM · 3h</span>
+      <p>Rule-based "why + what to do" under each star rating.</p>
+    </div>
+    <div class="build-item medium">
+      <h4>TSR · Peer learning cards</h4>
+      <span class="effort">MEDIUM · 4h</span>
+      <p>Surface team best-practice tactics. Needs playbook content.</p>
+    </div>
+    <div class="build-item quick">
+      <h4>DSM · Attention strip</h4>
+      <span class="effort">QUICK · 2h</span>
+      <p>3 urgent items: TSR idle, stores at-risk, AR alerts.</p>
+    </div>
+    <div class="build-item medium">
+      <h4>DSM · Coaching moments</h4>
+      <span class="effort">MEDIUM · 3h</span>
+      <p>Rule-based coaching cards per TSR (urgent/positive/push).</p>
+    </div>
+    <div class="build-item medium">
+      <h4>DSM · End-of-month forecast</h4>
+      <span class="effort">MEDIUM · 2h</span>
+      <p>Simple linear projection: current pace × days remaining.</p>
+    </div>
+    <div class="build-item medium">
+      <h4>DSM · Audit flags</h4>
+      <span class="effort">MEDIUM · 4h</span>
+      <p>GPS clustering, short visit duration, missing photos.</p>
+    </div>
+    <div class="build-item hard">
+      <h4>RSM · Regional heatmap</h4>
+      <span class="effort">HARD · 6h</span>
+      <p>Aggregated district view. Needs DSM-level aggregation SQL.</p>
+    </div>
+    <div class="build-item hard">
+      <h4>RSM · Whitespace analysis</h4>
+      <span class="effort">HARD · 8h</span>
+      <p>Geo query + territory planning layer. New capability.</p>
+    </div>
+    <div class="build-item hard">
+      <h4>RSM · Playbook engine</h4>
+      <span class="effort">HARD · 5h</span>
+      <p>Detect top-performer patterns automatically.</p>
+    </div>
+    <div class="build-item blocked">
+      <h4>EVP · P&L snapshot</h4>
+      <span class="effort">BLOCKED · 6h</span>
+      <p>Needs SAP integration (VieForce HQ sprint).</p>
+    </div>
+    <div class="build-item blocked">
+      <h4>EVP · Margin views 🔒</h4>
+      <span class="effort">BLOCKED · 4h</span>
+      <p>Needs SAP + RBAC lock. HQ Sprint 2.</p>
+    </div>
+    <div class="build-item hard">
+      <h4>EVP · 2033 journey tracker</h4>
+      <span class="effort">HARD · 4h</span>
+      <p>YTD aggregation + monthly target tracking. Patrol data available.</p>
+    </div>
+    <div class="build-item hard">
+      <h4>EVP · Risk/Opportunity radars</h4>
+      <span class="effort">HARD · 8h</span>
+      <p>Multi-source anomaly + trend detection. Most strategic.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:24px;padding:16px;background:linear-gradient(135deg,rgba(0,132,255,0.08),rgba(168,85,247,0.08));border-radius:12px">
+    <b style="font-size:14px">💡 Suggested build order for today</b>
+    <div style="font-size:13px;margin-top:8px;line-height:1.8">
+      <b>Agent 1 (morning):</b> TSR next-best-action + trend arrows + streak · <b>4h</b><br>
+      <b>Agent 2 (morning):</b> DSM attention strip + coaching + forecast · <b>7h</b><br>
+      <b>Agent 3 (afternoon):</b> RSM heatmap (MVP) · <b>6h</b><br>
+      <b>Agent 4 (afternoon):</b> EVP 2033 journey + strategic KPIs · <b>6h</b><br>
+      <br>
+      Tomorrow: audit flags · whitespace · peer learning · scorecard insights<br>
+      Sprint B: everything else + SAP integration for EVP P&L
+    </div>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.role-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.role-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    var role = tab.getAttribute('data-role');
+    document.querySelectorAll('.dashboard').forEach(function(d) {
+      d.classList.toggle('active', d.getAttribute('data-dashboard') === role);
+    });
+  });
+});
+</script>
+
+</body>
+</html>
