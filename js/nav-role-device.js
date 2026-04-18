@@ -23,7 +23,8 @@
   var HQ_URL = 'https://vieforce-hq.vercel.app';
   var MOBILE_BREAKPOINT = 900;
   var EXEC_ROLES = ['exec', 'ceo', 'evp'];
-  var REDIRECT_FLAG = 'patrol_exec_redirect_prompted';
+  var OBSERVER_FLAG = 'patrol_observer_mode';
+  var SPLASH_SECONDS = 3;
 
   // page: must match an id on an existing .page section. Use existing
   // page IDs where we have them so nav()'s active-state logic keeps
@@ -90,18 +91,13 @@
     b.classList.remove('role-tsr','role-champion','role-dsm','role-rsm','role-exec','role-ceo','role-evp','role-admin');
     b.classList.add('role-' + role);
 
-    // Exec-like roles on mobile: offer to jump to HQ. One prompt per
-    // session (sessionStorage flag), so back-button navigation doesn't
-    // re-prompt. Admin stays on Patrol.
-    if (EXEC_ROLES.indexOf(role) !== -1 && isMobile()) {
-      if (!sessionStorage.getItem(REDIRECT_FLAG)) {
-        sessionStorage.setItem(REDIRECT_FLAG, '1');
-        setTimeout(function () {
-          if (confirm('Exec access detected — open the HQ desktop dashboard for the full view?')) {
-            window.location.href = HQ_URL;
-          }
-        }, 100);
-      }
+    // Exec-like roles: full-screen splash → auto-redirect to HQ in 3s,
+    // with an escape link to "observer mode" (banner + visit controls
+    // disabled + no bottom nav). Fires on both mobile and desktop —
+    // HQ is the canonical exec experience. Admin is NOT included.
+    if (EXEC_ROLES.indexOf(role) !== -1) {
+      handleExecRoute();
+      return; // never render field-user nav for execs
     }
 
     // Desktop: leave everything alone.
@@ -135,6 +131,106 @@
     // Mark active based on currently visible page
     var activePage = document.querySelector('.page.active');
     if (activePage) updateNavActive(activePage.id);
+  }
+
+  // ── Exec splash + observer mode ──────────────────────────────────
+  function handleExecRoute() {
+    if (sessionStorage.getItem(OBSERVER_FLAG) === '1') {
+      enableObserverMode();
+    } else {
+      showExecRedirectSplash();
+    }
+  }
+
+  function redirectToHq() {
+    // Clear any splash timer before navigating so the interval doesn't
+    // re-fire during the redirect.
+    var splash = document.getElementById('exec-splash');
+    if (splash && splash._timerId) clearInterval(splash._timerId);
+    window.location.href = HQ_URL;
+  }
+
+  function showExecRedirectSplash() {
+    if (document.getElementById('exec-splash')) return; // idempotent
+
+    var splash = document.createElement('div');
+    splash.id = 'exec-splash';
+    splash.innerHTML =
+      '<div class="splash-content">' +
+        '<div class="splash-icon">\ud83d\udc54</div>' +
+        '<div class="splash-title">EVP Dashboard is on HQ</div>' +
+        '<div class="splash-countdown" id="splash-count">' + SPLASH_SECONDS + '</div>' +
+        '<div class="splash-sub">Redirecting\u2026</div>' +
+        '<button type="button" class="splash-escape">Continue to Patrol (observer mode)</button>' +
+      '</div>';
+    document.body.appendChild(splash);
+
+    // Escape link MUST stop propagation — otherwise the outer click
+    // handler (tap-anywhere redirects) also fires and sends them away.
+    var escapeBtn = splash.querySelector('.splash-escape');
+    escapeBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      enterObserverMode();
+    });
+
+    // Tap anywhere else on the splash → immediate redirect.
+    splash.addEventListener('click', function () { redirectToHq(); });
+
+    var count = SPLASH_SECONDS;
+    var timerId = setInterval(function () {
+      count--;
+      var el = document.getElementById('splash-count');
+      if (el) el.textContent = count;
+      if (count <= 0) {
+        clearInterval(timerId);
+        redirectToHq();
+      }
+    }, 1000);
+    splash._timerId = timerId;
+  }
+
+  function enterObserverMode() {
+    sessionStorage.setItem(OBSERVER_FLAG, '1');
+    var splash = document.getElementById('exec-splash');
+    if (splash) {
+      if (splash._timerId) clearInterval(splash._timerId);
+      splash.remove();
+    }
+    enableObserverMode();
+  }
+
+  function enableObserverMode() {
+    if (document.body.classList.contains('observer-mode')) return; // idempotent
+    document.body.classList.add('observer-mode');
+
+    // Banner
+    var banner = document.createElement('div');
+    banner.id = 'observer-banner';
+    banner.innerHTML =
+      '<span class="observer-banner-label">\ud83d\udc41\ufe0f Observer Mode \u00b7 You\u2019re viewing Patrol as a field user</span>' +
+      '<a id="observer-back-hq" class="observer-banner-link">\ud83c\udfe0 Back to HQ</a>';
+    document.body.prepend(banner);
+    document.getElementById('observer-back-hq').addEventListener('click', redirectToHq);
+
+    // Disable visit-submission affordances
+    disableVisitControls();
+
+    // Hide bottom nav — exec doesn't need field-worker nav here
+    var nav = document.getElementById('bottom-nav');
+    if (nav) nav.style.display = 'none';
+  }
+
+  function disableVisitControls() {
+    // FAB is the primary "+ Log visit" entry; extra selectors cover
+    // any button explicitly marked by data-attr or class.
+    var sel = '#fab-btn, [data-action="log-visit"], .btn-log-visit';
+    var targets = document.querySelectorAll(sel);
+    for (var i = 0; i < targets.length; i++) {
+      var t = targets[i];
+      if ('disabled' in t) t.disabled = true;
+      t.setAttribute('aria-disabled', 'true');
+      t.title = 'Disabled in observer mode';
+    }
   }
 
   function updateNavActive(pageId) {
@@ -217,6 +313,9 @@
   window.navTo = navTo;
   window.openMoreSheet = openMoreSheet;
   window.closeMoreSheet = closeMoreSheet;
+  window.enterObserverMode = enterObserverMode;
+  window.enableObserverMode = enableObserverMode;
+  window.showExecRedirectSplash = showExecRedirectSplash;
 
   // Defer one tick so the inline app.html bootstrapper (Team-tab inject,
   // homeNav rewire) runs first, then our final role-aware layout takes
