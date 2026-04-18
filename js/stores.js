@@ -26,6 +26,26 @@ function formatRelativeTime(dateStr) {
   return years + ' year' + (years > 1 ? 's' : '') + ' ago';
 }
 
+// Sprint B-TSR: trend badge helper for KPI cards
+function _setKpiTrend(elId, current, previous) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  if (current == null || previous == null) {
+    el.className = 'kpi-trend';
+    el.textContent = '';
+    return;
+  }
+  if (previous === 0) {
+    if (current === 0) { el.className = 'kpi-trend flat'; el.textContent = '\u2014'; }
+    else { el.className = 'kpi-trend up'; el.textContent = '\u2191 NEW'; }
+    return;
+  }
+  var pct = Math.round(((current - previous) / previous) * 100);
+  if (pct > 0)      { el.className = 'kpi-trend up';   el.textContent = '\u2191 ' + pct + '%'; }
+  else if (pct < 0) { el.className = 'kpi-trend down'; el.textContent = '\u2193 ' + Math.abs(pct) + '%'; }
+  else              { el.className = 'kpi-trend flat'; el.textContent = '\u2014'; }
+}
+
 function formatStoreType(type) {
   if (!type) return '';
   return type
@@ -344,17 +364,31 @@ async function updateHomeKPIs() {
   if (!session) return;
 
   try {
-    // Fetch stores and visits in parallel
-    var weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    var weekAgoDate = weekAgo.toISOString();
+    // Fetch stores + this-week + previous-week visits in parallel
+    var now = new Date();
+    var weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+    var twoWeeksAgo = new Date(now); twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
     var storesPromise = getStores();
-    var visitsPromise = getVisitsByTSR(session.id, weekAgoDate);
+    var visitsPromise = getVisitsByTSR(session.id, weekAgo.toISOString());
+    var prevVisitsPromise = getVisitsByTSR(session.id, twoWeeksAgo.toISOString());
 
-    var results = await Promise.all([storesPromise, visitsPromise]);
+    var results = await Promise.all([storesPromise, visitsPromise, prevVisitsPromise]);
     var stores = results[0];
     var visits = results[1];
+    var allRecentVisits = results[2] || [];
+
+    // Sprint B-TSR: previous-week metrics for trend arrows
+    var weekAgoMs = weekAgo.getTime();
+    var prevWeekVisits = allRecentVisits.filter(function (v) {
+      return v.visited_at && new Date(v.visited_at).getTime() < weekAgoMs;
+    });
+    var prevOrderCount = 0;
+    for (var pv = 0; pv < prevWeekVisits.length; pv++) {
+      if (prevWeekVisits[pv].order_taken) prevOrderCount++;
+    }
+    _setKpiTrend('kpi-stores-trend', null, null);
+    _setKpiTrend('kpi-visits-trend', visits.length, prevWeekVisits.length);
 
     // Total stores
     var storesEl = document.getElementById('kpi-stores');
@@ -397,6 +431,10 @@ async function updateHomeKPIs() {
         ? '\u20b1 ' + orderTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
         : ((T && T.kpiThisWeek) || 'ngayong linggo');
     }
+
+    // Sprint B-TSR: trend arrows (this week vs prev week) for orders + critical
+    _setKpiTrend('kpi-orders-trend', orderCount, prevOrderCount);
+    _setKpiTrend('kpi-critical-trend', null, null); // critical is a snapshot, not delta
 
     // Stores subtitle
     var subtitleEl = document.getElementById('stores-subtitle');

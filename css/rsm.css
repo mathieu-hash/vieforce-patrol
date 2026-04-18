@@ -1,0 +1,441 @@
+/* ============================================================
+ * RSM Elite Dashboard — corporate desktop look
+ * Scope: #page-rsm-home  (all selectors below live under it)
+ * Palette matches docs/elite-dashboards-mockup.html (RSM tab).
+ * ============================================================ */
+
+#page-rsm-home {
+  --rsm-navy:   #00263A;
+  --rsm-navy2:  #004A64;
+  --rsm-green:  #95C93D;
+  --rsm-gold:   #FFC72C;
+  --rsm-blue:   #0084FF;
+  --rsm-purple: #A855F7;
+  --rsm-grad:   linear-gradient(135deg, #0084FF, #A855F7);
+  --rsm-s-green:  #31A24C;
+  --rsm-s-orange: #F7B928;
+  --rsm-s-red:    #FA383E;
+  --rsm-bg:     #F0F2F5;
+  --rsm-bg2:    #E4E6EB;
+  --rsm-text:   #050505;
+  --rsm-text2:  #65676B;
+  --rsm-text3:  #BCC0C4;
+  --rsm-div:    rgba(0,0,0,0.08);
+
+  background: var(--rsm-bg);
+  color: var(--rsm-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+
+#page-rsm-home * { box-sizing: border-box; }
+
+/* ── Top bar + header ───────────────────────────────────── */
+#page-rsm-home .rsm-topbar {
+  background: var(--rsm-navy);
+  color: #fff;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--rsm-green);
+}
+#page-rsm-home .rsm-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 800; font-size: 16px;
+}
+#page-rsm-home .rsm-logo-mark {
+  width: 30px; height: 30px; border-radius: 6px;
+  background: var(--rsm-green); color: var(--rsm-navy);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900;
+}
+#page-rsm-home .rsm-user-badge {
+  background: var(--rsm-grad);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#page-rsm-home .rsm-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+#page-rsm-home .rsm-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#page-rsm-home .rsm-hdr-name {
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+#page-rsm-home .rsm-hdr-meta {
+  color: var(--rsm-text2);
+  font-size: 13px;
+  margin-top: 2px;
+}
+#page-rsm-home .rsm-period-pill {
+  background: #fff;
+  border: 1px solid var(--rsm-div);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── KPI grid ───────────────────────────────────────────── */
+#page-rsm-home .rsm-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+#page-rsm-home .rsm-kpi-tile {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  position: relative;
+  min-height: 96px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+#page-rsm-home .rsm-kpi-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--rsm-text2);
+}
+#page-rsm-home .rsm-kpi-value {
+  font-size: 26px;
+  font-weight: 900;
+  margin-top: 6px;
+  color: var(--rsm-text);
+  line-height: 1.1;
+}
+#page-rsm-home .rsm-kpi-trend {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+#page-rsm-home .rsm-kpi-trend.up {
+  background: rgba(49,162,76,0.15);
+  color: var(--rsm-s-green);
+}
+#page-rsm-home .rsm-kpi-trend.down {
+  background: rgba(250,56,62,0.15);
+  color: var(--rsm-s-red);
+}
+#page-rsm-home .rsm-kpi-trend.flat {
+  background: rgba(101,103,107,0.12);
+  color: var(--rsm-text2);
+}
+#page-rsm-home .rsm-kpi-sub {
+  font-size: 11px;
+  color: var(--rsm-text2);
+  margin-top: 4px;
+}
+
+/* ── 2-col grid ─────────────────────────────────────────── */
+#page-rsm-home .rsm-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+#page-rsm-home .rsm-col { min-width: 0; }
+
+/* ── Card shell ─────────────────────────────────────────── */
+#page-rsm-home .rsm-card {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+#page-rsm-home .rsm-card-hdr {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rsm-div);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#page-rsm-home .rsm-card-title {
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+#page-rsm-home .rsm-card-action {
+  font-size: 12px;
+  color: var(--rsm-blue);
+  font-weight: 700;
+  cursor: pointer;
+}
+#page-rsm-home .rsm-card-body { padding: 14px 16px; }
+
+#page-rsm-home .rsm-small-title {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  color: var(--rsm-text2);
+}
+
+/* ── Heatmap rows ───────────────────────────────────────── */
+#page-rsm-home .heatmap-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 70px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--rsm-div);
+}
+#page-rsm-home .heatmap-row:last-child { border-bottom: none; }
+#page-rsm-home .heatmap-district {
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#page-rsm-home .heatmap-bar {
+  height: 10px;
+  background: var(--rsm-bg);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+#page-rsm-home .heatmap-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+#page-rsm-home .heatmap-pct {
+  font-weight: 800;
+  font-size: 14px;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+/* ── Playbook card ──────────────────────────────────────── */
+#page-rsm-home .playbook-card {
+  background: linear-gradient(135deg, rgba(49,162,76,0.08), rgba(149,201,61,0.08));
+  border-left: 4px solid var(--rsm-s-green);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+#page-rsm-home .playbook-label {
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--rsm-s-green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+#page-rsm-home .playbook-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+#page-rsm-home .playbook-list {
+  list-style: none;
+  font-size: 12px;
+  line-height: 1.7;
+  padding: 0;
+  margin: 0;
+}
+#page-rsm-home .playbook-list li {
+  padding-left: 14px;
+  position: relative;
+}
+#page-rsm-home .playbook-list li::before {
+  content: '•';
+  color: var(--rsm-s-green);
+  font-weight: 900;
+  position: absolute;
+  left: 0;
+}
+#page-rsm-home .playbook-share {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--rsm-s-green);
+  font-weight: 800;
+}
+
+/* ── DSM scorecards table ───────────────────────────────── */
+#page-rsm-home .rsm-dsm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+#page-rsm-home .rsm-dsm-table th {
+  text-align: left;
+  padding: 10px 16px;
+  background: var(--rsm-navy);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+#page-rsm-home .rsm-dsm-table th.num,
+#page-rsm-home .rsm-dsm-table td.num { text-align: right; }
+#page-rsm-home .rsm-dsm-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--rsm-div);
+}
+#page-rsm-home .rsm-dsm-table td:first-child { font-weight: 700; }
+#page-rsm-home .rsm-dsm-table tr:last-child td { border-bottom: none; }
+#page-rsm-home .rsm-dsm-table .stars { white-space: nowrap; font-family: Arial, sans-serif; }
+
+/* ── Whitespace card ────────────────────────────────────── */
+#page-rsm-home .whitespace-card {
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(0,132,255,0.08));
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+#page-rsm-home .whitespace-card + .whitespace-card { margin-top: 12px; }
+#page-rsm-home .whitespace-card.roi {
+  background: linear-gradient(135deg, rgba(49,162,76,0.08), rgba(149,201,61,0.08));
+}
+#page-rsm-home .ws-num {
+  font-size: 40px;
+  font-weight: 900;
+  background: var(--rsm-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+#page-rsm-home .whitespace-card.roi .ws-num {
+  background: linear-gradient(135deg, #31A24C, #95C93D);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+#page-rsm-home .ws-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rsm-text2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+}
+#page-rsm-home .ws-detail {
+  font-size: 13px;
+  color: var(--rsm-text);
+  margin-top: 8px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+#page-rsm-home .ws-cta {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--rsm-blue);
+  font-weight: 800;
+  cursor: pointer;
+}
+#page-rsm-home .whitespace-card.roi .ws-cta { color: var(--rsm-s-green); }
+
+/* ── Audit flags ────────────────────────────────────────── */
+#page-rsm-home .audit-flag {
+  background: rgba(247,185,40,0.1);
+  border: 1px solid rgba(247,185,40,0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+#page-rsm-home .audit-flag.critical {
+  background: rgba(250,56,62,0.1);
+  border-color: rgba(250,56,62,0.3);
+}
+#page-rsm-home .audit-flag-icon { font-size: 14px; flex-shrink: 0; }
+#page-rsm-home .audit-flag-body { flex: 1; }
+#page-rsm-home .audit-flag-who { font-weight: 800; color: var(--rsm-text); }
+#page-rsm-home .audit-flag-link {
+  margin-top: 4px;
+  color: var(--rsm-blue);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Decisions card ─────────────────────────────────────── */
+#page-rsm-home .decision-card {
+  background: linear-gradient(135deg, rgba(255,199,44,0.15), rgba(247,185,40,0.1));
+  border: 1px solid rgba(255,199,44,0.3);
+  border-radius: 12px;
+  padding: 16px;
+}
+#page-rsm-home .decision-title {
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+#page-rsm-home .decision-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  font-size: 12px;
+  gap: 10px;
+}
+#page-rsm-home .decision-item:last-child { border-bottom: none; }
+#page-rsm-home .decision-cta {
+  background: var(--rsm-gold);
+  color: var(--rsm-navy);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 11px;
+  cursor: pointer;
+  border: none;
+  flex-shrink: 0;
+}
+
+/* ── Skeleton loaders (no spinners) ─────────────────────── */
+#page-rsm-home .rsm-skel {
+  background: linear-gradient(90deg, #e4e6eb 25%, #f0f2f5 50%, #e4e6eb 75%);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  color: transparent;
+  animation: rsm-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes rsm-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Responsive (narrow desktops + tablets) ────────────── */
+@media (max-width: 960px) {
+  #page-rsm-home .rsm-kpis { grid-template-columns: repeat(2, 1fr); }
+  #page-rsm-home .rsm-grid { grid-template-columns: 1fr; }
+  #page-rsm-home .heatmap-row { grid-template-columns: 120px 1fr 60px; }
+}
+@media (max-width: 560px) {
+  #page-rsm-home .rsm-shell { padding: 14px; }
+  #page-rsm-home .rsm-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  #page-rsm-home .rsm-kpi-value { font-size: 22px; }
+  #page-rsm-home .heatmap-row { grid-template-columns: 100px 1fr 52px; gap: 8px; }
+}

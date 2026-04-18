@@ -296,7 +296,22 @@ var LABELS = {
     kpiMapped:       'na-map na',
     kpiThisWeek:     'ngayong linggo',
     kpiNeedsAttn:    'kailangan ng atensyon',
-    kpiAllOk:        'OK lahat'
+    kpiAllOk:        'OK lahat',
+
+    // Sprint B-TSR — Next Best Action + Streak
+    nbaLabel:        'ANG UNANG BISITA MO NGAYON',
+    nbaGo:           'GO NGAYON',
+    nbaSkip:         'Skip',
+    streakStart:     'Magsimula ng streak!',
+    streakStartHint: 'Mag-log ng visit ngayon \ud83d\udd25',
+    streakLabel:     'Visit streak',
+    streakDays:      'Day Streak!',
+    streakDaysTo:    'more days',
+    streakLegendary: 'Legendary streak — keep going!',
+    badgeReliable:   'Reliable TSR',
+    badgeIron:       'Iron TSR',
+    badgeElite:      'Elite TSR',
+    badgeLegend:     'Legend TSR'
   },
 
   BIS: {
@@ -592,7 +607,22 @@ var LABELS = {
     kpiMapped:       'na-map na',
     kpiThisWeek:     'karong semana',
     kpiNeedsAttn:    'kinahanglan atensyon',
-    kpiAllOk:        'OK tanan'
+    kpiAllOk:        'OK tanan',
+
+    // Sprint B-TSR
+    nbaLabel:        'IMONG UNANG BISITA KARON',
+    nbaGo:           'GO KARON',
+    nbaSkip:         'Skip',
+    streakStart:     'Sugdi ang streak!',
+    streakStartHint: 'Mag-log og bisita karon \ud83d\udd25',
+    streakLabel:     'Visit streak',
+    streakDays:      'ka-Adlaw Streak!',
+    streakDaysTo:    'ka adlaw pa',
+    streakLegendary: 'Legendary streak \u2014 padayon!',
+    badgeReliable:   'Reliable TSR',
+    badgeIron:       'Iron TSR',
+    badgeElite:      'Elite TSR',
+    badgeLegend:     'Legend TSR'
   },
 
   EN: {
@@ -888,7 +918,22 @@ var LABELS = {
     kpiMapped:       'mapped',
     kpiThisWeek:     'this week',
     kpiNeedsAttn:    'needs attention',
-    kpiAllOk:        'all OK'
+    kpiAllOk:        'all OK',
+
+    // Sprint B-TSR
+    nbaLabel:        'YOUR FIRST VISIT TODAY',
+    nbaGo:           'GO NOW',
+    nbaSkip:         'Skip',
+    streakStart:     'Start a streak!',
+    streakStartHint: 'Log a visit today \ud83d\udd25',
+    streakLabel:     'Visit streak',
+    streakDays:      'Day Streak!',
+    streakDaysTo:    'more days',
+    streakLegendary: 'Legendary streak \u2014 keep going!',
+    badgeReliable:   'Reliable TSR',
+    badgeIron:       'Iron TSR',
+    badgeElite:      'Elite TSR',
+    badgeLegend:     'Legend TSR'
   }
 };
 
@@ -963,6 +1008,9 @@ function setLanguage(lang) {
     if (aid === 'page-stores' && typeof renderStoreList === 'function') renderStoreList();
     if (aid === 'page-home' && typeof renderStoreList === 'function') renderStoreList();
     if (aid === 'page-home' && typeof updateHomeKPIs === 'function') updateHomeKPIs();
+    if (aid === 'page-home' && typeof renderTsrScorecardHero === 'function') renderTsrScorecardHero();
+    if (aid === 'page-home' && typeof renderNbaHero === 'function') renderNbaHero();
+    if (aid === 'page-home' && typeof renderStreakCard === 'function') renderStreakCard();
     if (aid === 'page-visits' && typeof renderVisitList === 'function') renderVisitList();
     if (aid === 'page-dashboard' && typeof initDashboard === 'function') initDashboard();
     if (aid === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {

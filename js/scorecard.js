@@ -61,19 +61,46 @@ async function calculateTsrScorecard(tsrId, month) {
 
   var overall = (prospectScore + conversionScore + retentionScore + growthScore) / 4;
 
+  // ── Sprint B-TSR — insight messages (rule-based, Taglish where applicable) ──
+  var insights = {
+    prospection:
+      prospectScore < 1 ? 'Try 2 new cold calls per week' :
+      prospectScore < 3 ? 'Magdagdag ng prospects para sa pipeline' :
+      prospectScore >= 4 ? 'Top performer in prospection \ud83c\udfc6' : '',
+    conversion:
+      (convertedThisMonth.length === 0 && prospects.length > 0)
+        ? 'Follow up sa prospects mo \u2014 interested pero hindi pa nag-o-order'
+        : conversionRate < 15 ? 'Conversion rate mababa \u2014 1:1 sa DSM mo'
+        : conversionRate >= 30 ? 'Converting like a pro!'
+        : '',
+    retention:
+      retentionRate < 60
+        ? Math.max(0, activeStores.length - visitedCount) + ' stores hindi pa nabibisita ngayong buwan'
+        : atRiskCount > 3 ? atRiskCount + ' accounts at-risk \u2014 bisitahin agad'
+        : retentionRate >= 90 ? 'Top 10% retention \ud83c\udfc6'
+        : '',
+    growth:
+      growthPct < -10 ? 'Declining accounts \u2014 needs attention'
+      : growthPct < 0 ? 'Volume bumababa \u2014 try upsell tactics'
+      : growthPct >= 15 ? 'Strong growth \u2014 keep going!'
+      : ''
+  };
+
   return {
     prospection: {
       score: Math.round(prospectScore * 10) / 10,
       new_stores: newStores.length,
       prospects_count: prospects.length,
-      stars: Math.round(prospectScore)
+      stars: Math.round(prospectScore),
+      insight: insights.prospection
     },
     conversion: {
       score: Math.round(conversionScore * 10) / 10,
       converted: convertedThisMonth.length,
       pipeline: totalPipeline,
       rate: Math.round(conversionRate),
-      stars: Math.round(conversionScore)
+      stars: Math.round(conversionScore),
+      insight: insights.conversion
     },
     retention: {
       score: Math.round(retentionScore * 10) / 10,
@@ -82,14 +109,16 @@ async function calculateTsrScorecard(tsrId, month) {
       total_active: activeStores.length,
       at_risk: atRiskCount,
       churned: churnedCount,
-      stars: Math.round(retentionScore)
+      stars: Math.round(retentionScore),
+      insight: insights.retention
     },
     growth: {
       score: Math.round(growthScore * 10) / 10,
       growth_pct: Math.round(growthPct * 10) / 10,
       mtd_mt: Math.round(totalMtd * 10) / 10,
       avg_sov: Math.round(avgSov),
-      stars: Math.round(growthScore)
+      stars: Math.round(growthScore),
+      insight: insights.growth
     },
     overall: Math.round(overall * 10) / 10,
     overall_stars: Math.round(overall)
@@ -181,7 +210,7 @@ function getGradient(seed) {
   return palette[Math.abs(h) % palette.length];
 }
 
-// ── TSR Home hero card ──
+// ── TSR Home hero card (Sprint B-TSR: row-based stages with insights) ──
 async function renderTsrScorecardHero() {
   var session = getSession();
   if (!session) return;
@@ -199,23 +228,37 @@ async function renderTsrScorecardHero() {
           '<div class="sc-title">\ud83d\udcca ' + title + '</div>' +
           '<div class="sc-rank">\u2b50 ' + sc.overall + ' / 5</div>' +
         '</div>' +
-        '<div class="sc-grid">' +
-          _scCell('prospection', '\ud83d\udd0d', T.prospection || 'Prospeksyon', sc.prospection.stars, sc.prospection.new_stores + ' ' + (T.newShort || 'bago')) +
-          _scCell('conversion', '\ud83c\udfaf', T.conversion || 'Konbersyon', sc.conversion.stars, sc.conversion.converted + ' ' + (T.converted || 'converted')) +
-          _scCell('retention', '\ud83d\udc9a', T.retention || 'Retention', sc.retention.stars, sc.retention.visited_pct + '% ' + (T.visited || 'na-bisita')) +
-          _scCell('growth', '\ud83d\udcc8', T.growth || 'Paglago', sc.growth.stars, (sc.growth.growth_pct >= 0 ? '+' : '') + sc.growth.growth_pct + '%') +
+        '<div class="sc-stages">' +
+          _scStage('\ud83d\udd0d', T.prospection || 'Prospeksyon', sc.prospection.stars,
+            sc.prospection.new_stores + ' ' + (T.newShort || 'bago') +
+              ' \u00b7 ' + sc.prospection.prospects_count + ' prospects', sc.prospection.insight) +
+          _scStage('\ud83c\udfaf', T.conversion || 'Konbersyon', sc.conversion.stars,
+            sc.conversion.converted + ' ' + (T.converted || 'converted') +
+              ' \u00b7 ' + sc.conversion.rate + '% rate', sc.conversion.insight) +
+          _scStage('\ud83d\udc9a', T.retention || 'Retention', sc.retention.stars,
+            sc.retention.visited_pct + '% ' + (T.visited || 'na-bisita') +
+              ' \u00b7 ' + sc.retention.at_risk + ' at-risk', sc.retention.insight) +
+          _scStage('\ud83d\udcc8', T.growth || 'Paglago', sc.growth.stars,
+            (sc.growth.growth_pct >= 0 ? '+' : '') + sc.growth.growth_pct + '% MoM' +
+              ' \u00b7 ' + sc.growth.mtd_mt + ' MT', sc.growth.insight) +
         '</div>' +
       '</div>';
     container.innerHTML = html;
   } catch (e) { console.warn('renderTsrScorecardHero:', e); }
 }
 
-function _scCell(cat, icon, label, stars, metric) {
-  return '<div class="sc-cell" onclick="showScorecardDetail(\'' + cat + '\')">' +
-    '<div class="sc-icon">' + icon + '</div>' +
-    '<div class="sc-label">' + label + '</div>' +
-    '<div class="sc-stars">' + renderStars(stars) + '</div>' +
-    '<div class="sc-metric">' + metric + '</div>' +
+function _scStage(icon, name, stars, metric, insight) {
+  var insightHtml = insight
+    ? '<div class="sc-stage-insight">' + insight + '</div>'
+    : '';
+  return '<div class="sc-stage">' +
+    '<div class="sc-stage-top">' +
+      '<span class="sc-stage-icon">' + icon + '</span>' +
+      '<span class="sc-stage-name">' + name + '</span>' +
+      '<span class="sc-stage-stars">' + renderStars(stars) + '</span>' +
+    '</div>' +
+    '<div class="sc-stage-metric">' + metric + '</div>' +
+    insightHtml +
   '</div>';
 }
 

@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=17">
+<link rel="stylesheet" href="css/patrol.css?v=18">
+<link rel="stylesheet" href="css/rsm.css?v=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -52,26 +53,36 @@ if ('serviceWorker' in navigator) {
 
   <!-- Sync indicator removed — global-sync-bar at top of body is the single source of truth -->
 
+  <!-- Sprint B-TSR: Next Best Action hero (populated by renderNbaHero) -->
+  <div id="tsr-nba-container"></div>
+
   <!-- TSR scorecard hero (populated by renderTsrScorecardHero) -->
   <div id="tsr-scorecard-container"></div>
 
+  <!-- Sprint B-TSR: Streak counter (populated by renderStreakCard) -->
+  <div id="tsr-streak-container"></div>
+
   <div class="kpi-grid">
     <div class="kpi-card">
+      <div class="kpi-trend" id="kpi-stores-trend"></div>
       <div class="label" data-t="kpiStores">MGA TINDAHAN</div>
       <div class="value" id="kpi-stores">--</div>
       <div class="delta" id="kpi-stores-delta">...</div>
     </div>
     <div class="kpi-card">
+      <div class="kpi-trend" id="kpi-visits-trend"></div>
       <div class="label" data-t="kpiWeeklyVisits">BISITA/LINGGO</div>
       <div class="value" id="kpi-visits">--</div>
       <div class="delta" id="kpi-visits-delta">...</div>
     </div>
     <div class="kpi-card">
+      <div class="kpi-trend" id="kpi-critical-trend"></div>
       <div class="label" data-t="kpiCritical">CRITICAL</div>
       <div class="value" id="kpi-critical" style="color:var(--status-crit)">--</div>
       <div class="delta" id="kpi-critical-delta">...</div>
     </div>
     <div class="kpi-card">
+      <div class="kpi-trend" id="kpi-orders-trend"></div>
       <div class="label" data-t="kpiOrders">ORDERS</div>
       <div class="value" id="kpi-orders">--</div>
       <div class="delta" id="kpi-orders-delta">...</div>
@@ -600,6 +611,67 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
+<!-- RSM ELITE DASHBOARD (page-rsm-home)       -->
+<!-- ========================================= -->
+<div class="page" id="page-rsm-home">
+  <div class="rsm-topbar">
+    <div class="rsm-logo">
+      <div class="rsm-logo-mark">V</div>
+      <span>VieForce CRM 360&deg;</span>
+    </div>
+    <div class="rsm-user-badge" id="rsm-user-badge">RSM</div>
+  </div>
+
+  <div class="rsm-shell">
+
+    <div class="rsm-hdr">
+      <div>
+        <div class="rsm-hdr-name" id="rsm-name">Loading...</div>
+        <div class="rsm-hdr-meta" id="rsm-meta">RSM &middot; --</div>
+      </div>
+      <div class="rsm-period-pill">MTD &middot; <span id="rsm-period-label"></span> &#9662;</div>
+    </div>
+
+    <div class="rsm-kpis" id="rsm-kpis"></div>
+
+    <div class="rsm-grid">
+      <div class="rsm-col">
+        <div class="rsm-card">
+          <div class="rsm-card-hdr">
+            <div class="rsm-card-title">&#128506;&#65039; Regional Performance Heatmap</div>
+            <div class="rsm-card-action">Drill &rarr;</div>
+          </div>
+          <div class="rsm-card-body" id="rsm-heatmap"></div>
+          <div style="padding:0 16px 16px" id="rsm-playbook"></div>
+        </div>
+      </div>
+
+      <div class="rsm-col">
+        <div class="rsm-card">
+          <div class="rsm-card-hdr">
+            <div class="rsm-card-title">&#127919; DSM Scorecards</div>
+          </div>
+          <div id="rsm-dsm-table"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rsm-grid">
+      <div class="rsm-col">
+        <div id="rsm-whitespace"></div>
+        <div id="rsm-vet-roi"></div>
+      </div>
+      <div class="rsm-col">
+        <div class="rsm-small-title">&#128680; Audit alerts (cross-DSM)</div>
+        <div id="rsm-audit"></div>
+        <div id="rsm-decisions" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========================================= -->
 <!-- TSR SCORECARD DETAIL (DSM drill-down)     -->
 <!-- ========================================= -->
 <div class="page" id="page-tsr-scorecard" style="background:var(--bg-main)">
@@ -880,7 +952,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
-<script src="js/labels-v2.js?v=9"></script>
+<script src="js/labels-v2.js?v=10"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -898,8 +970,10 @@ if ('serviceWorker' in navigator) {
 <script src="js/dashboard.js"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
-<script src="js/scorecard.js?v=2"></script>
+<script src="js/scorecard.js?v=3"></script>
 <script src="js/team.js?v=3"></script>
+<script src="js/home-extras.js?v=1"></script>
+<script src="js/rsm.js?v=1"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=2"></script>
@@ -994,7 +1068,7 @@ if ('serviceWorker' in navigator) {
     if (lat && lng) window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng, '_blank');
   }
 
-  // ===== Role-based home page: DSM/RSM/Exec/Admin see dashboard, TSR sees home =====
+  // ===== Role-based home page: RSM → page-rsm-home, DSM/Exec/Admin → dashboard, TSR → home =====
   var MANAGER_ROLES = ['dsm','rsm','exec','admin'];
   if (session && MANAGER_ROLES.indexOf(session.role) !== -1) {
     // Lazy-load xlsx (~240 KB gz) only for managers — TSRs never need export
@@ -1004,19 +1078,43 @@ if ('serviceWorker' in navigator) {
       s.async = true;
       document.head.appendChild(s);
     })();
-    // Show dashboard as default page, change Home nav to point to dashboard
-    document.getElementById('page-home').classList.remove('active');
-    document.getElementById('page-dashboard').classList.add('active');
-    // Update first nav button to point to dashboard
+
     var homeNav = document.querySelector('.nav-item[data-page="page-home"]');
+    var landingPageId, landingLabel, landingInit;
+
+    if (session.role === 'rsm') {
+      landingPageId = 'page-rsm-home';
+      landingLabel = 'Region';
+      landingInit = function () { if (typeof initRsmHome === 'function') initRsmHome(); };
+      // Period pill label
+      var periodLabel = document.getElementById('rsm-period-label');
+      if (periodLabel) {
+        periodLabel.textContent = new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' });
+      }
+      // User badge initials
+      var badge = document.getElementById('rsm-user-badge');
+      if (badge && session.name) {
+        var initials = session.name.split(' ').map(function (w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+        badge.textContent = initials + ' \u00b7 RSM';
+      }
+    } else {
+      landingPageId = 'page-dashboard';
+      landingLabel = 'Dashboard';
+      landingInit = function () { if (typeof initDashboard === 'function') initDashboard(); };
+    }
+
+    // Activate the landing page
+    document.getElementById('page-home').classList.remove('active');
+    var landingEl = document.getElementById(landingPageId);
+    if (landingEl) landingEl.classList.add('active');
+
+    // Rewire first nav button to point to the landing page
     if (homeNav) {
-      homeNav.setAttribute('data-page', 'page-dashboard');
-      homeNav.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>Dashboard';
+      homeNav.setAttribute('data-page', landingPageId);
+      homeNav.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>' + landingLabel;
     }
-    // Initialize dashboard
-    if (typeof initDashboard === 'function') {
-      initDashboard();
-    }
+
+    landingInit();
     // Inject Team tab into bottom nav (before Profile)
     (function () {
       var nav = document.getElementById('bottom-nav');
@@ -1059,7 +1157,7 @@ if ('serviceWorker' in navigator) {
     target.classList.add('active');
 
     // Update bottom-nav active state
-    var _mainPages = ['page-home','page-dashboard','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-tsr-scorecard'];
+    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-tsr-scorecard'];
     if (_mainPages.indexOf(pageId) !== -1) {
       var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
       for (var j = 0; j < navBtns.length; j++) {
@@ -1814,6 +1912,9 @@ if ('serviceWorker' in navigator) {
   // ===== Phase 3: TSR scorecard hero on home =====
   if (session && (session.role === 'tsr' || session.role === 'champion')) {
     if (typeof renderTsrScorecardHero === 'function') renderTsrScorecardHero();
+    // Sprint B-TSR: Next Best Action + Streak counter
+    if (typeof renderNbaHero === 'function') renderNbaHero();
+    if (typeof renderStreakCard === 'function') renderStreakCard();
   }
 
   // ===== Initialize champion team + leaderboard widgets (TSR home) =====
@@ -1844,6 +1945,9 @@ if ('serviceWorker' in navigator) {
     }
     if (pageId === 'page-team' && typeof renderTeamPage === 'function') {
       renderTeamPage();
+    }
+    if (pageId === 'page-rsm-home' && typeof initRsmHome === 'function') {
+      initRsmHome();
     }
     if (pageId === 'page-tsr-scorecard' && typeof renderTsrScorecardDetail === 'function' && window._selectedTsrId) {
       renderTsrScorecardDetail(window._selectedTsrId);
