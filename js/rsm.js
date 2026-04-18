@@ -16,6 +16,16 @@
     'Mindanao':  90
   };
 
+  // Hardcoded regional volume target (MT/month). Used until a per-region
+  // targets table ships — without it we fall back to 110% of last month
+  // which returns 1 when the chain has no data at all.
+  var REGIONAL_VOLUME_TARGET_MT = {
+    'Luzon':    2400,
+    'Visayas': 1800,
+    'Mindanao': 2000
+  };
+  var DEFAULT_VOLUME_TARGET_MT = 2400;
+
   var _esc = function (s) {
     if (s === null || s === undefined) return '';
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -96,23 +106,44 @@
     return (res && res.data) || [];
   }
 
-  async function fetchStoresForRegion(region, tsrIds) {
-    // Broad pull — we need mtd_volume, prev_month_volume, district, city, status, assigned_tsr, last_order_at
-    var base = supabaseClient
-      .from('stores')
-      .select('id,name,city,region,district,territory,assigned_tsr,mtd_volume_mt,prev_month_volume_mt,store_status,last_visit_at,last_order_at,photo_url');
+  var STORE_COLS = 'id,name,city,region,district,territory,assigned_tsr,created_by,mtd_volume_mt,prev_month_volume_mt,store_status,last_visit_at,last_order_at,photo_url';
 
-    // Prefer assigned_tsr IN (tsrIds) when we have them — narrowest filter.
+  // Multi-strategy store pull. The RSM org tree has stores reachable via
+  // four routes — assigned_tsr, created_by (TSR-made), created_by (DSM-made),
+  // or bare region match. We union all four, dedup by id, so the same store
+  // never double-counts even if two routes claim it.
+  async function fetchStoresForRsm(region, tsrIds, dsmIds) {
+    var all = {};
+
+    async function pull(filterFn) {
+      try {
+        var q = supabaseClient.from('stores').select(STORE_COLS);
+        q = filterFn(q);
+        var res = await q;
+        var rows = (res && res.data) || [];
+        for (var i = 0; i < rows.length; i++) all[rows[i].id] = rows[i];
+      } catch (e) {
+        console.warn('fetchStoresForRsm route failed:', e && e.message);
+      }
+    }
+
     if (tsrIds && tsrIds.length > 0) {
-      var res = await base.in('assigned_tsr', tsrIds);
-      return (res && res.data) || [];
+      await pull(function (q) { return q.in('assigned_tsr', tsrIds); });
+      await pull(function (q) { return q.in('created_by',   tsrIds); });
     }
-    // Fallback — region-wide
-    if (region) {
-      var res2 = await base.eq('region', region);
-      return (res2 && res2.data) || [];
+    if (dsmIds && dsmIds.length > 0) {
+      await pull(function (q) { return q.in('created_by',   dsmIds); });
     }
-    return [];
+    if (region && Object.keys(all).length === 0) {
+      // Last resort — region column. Skip if we already have data via the
+      // manager chain so we don't pick up other RSMs' stores that happen
+      // to share a region name.
+      await pull(function (q) { return q.eq('region', region); });
+    }
+
+    var out = [];
+    for (var k in all) out.push(all[k]);
+    return out;
   }
 
   async function fetchVisitsThisMonth(tsrIds) {
@@ -195,7 +226,9 @@
     if (!wrap) return;
 
     if (!districtRows || districtRows.length === 0) {
-      wrap.innerHTML = '<div style="padding:24px 16px;color:#65676B;font-size:13px">No districts found under this RSM. Assign DSMs first.</div>';
+      wrap.innerHTML = '<div style="padding:24px 16px;color:#65676B;font-size:13px">' +
+        'No DSMs under this RSM yet. Assign DSMs (set <code>manager_id</code> on DSM users to this RSM\u2019s id) to populate the heatmap.' +
+        '</div>';
       return;
     }
 
@@ -355,7 +388,7 @@
 
   // ── Aggregation ────────────────────────────────────────
 
-  function aggregate(stores, visitsNow, visitsPrev, dsms, tsrs) {
+  function aggregate(stores, visitsNow, visitsPrev, dsms, tsrs, region) {
     // Revenue: sum of order_amount this month
     var revenue = 0;
     var revenuePrev = 0;
@@ -389,9 +422,12 @@
     }
     var activeNet = activeCustomers - Object.keys(activePrev).length;
 
-    // Targets (heuristic — no targets table yet): 110% of last month's revenue/volume
+    // Targets — heuristic. Revenue: 110% of last month. Volume: hardcoded
+    // regional ceiling (until a targets table ships) so a stale month of
+    // prev_month_volume_mt=0 doesn't render "X / 1 MT target".
     var revenueTarget = Math.max(revenuePrev * 1.1, revenue * 1.1, 1);
-    var volumeTargetMt = Math.max(volumePrev * 1.1, volumeMt * 1.1, 1);
+    var regionalTarget = (region && REGIONAL_VOLUME_TARGET_MT[region]) || DEFAULT_VOLUME_TARGET_MT;
+    var volumeTargetMt = Math.max(regionalTarget, volumePrev * 1.1, volumeMt * 1.1);
 
     return {
       revenue_mtd: revenue,
@@ -405,48 +441,105 @@
     };
   }
 
-  // District-level aggregate for heatmap + playbook
-  function buildDistrictRows(stores, visitsNow, dsms) {
-    // Group stores by district
-    var byDistrict = {};
-    var storesByDistrict = {};
-    for (var i = 0; i < stores.length; i++) {
-      var d = stores[i].district || '(unassigned)';
-      if (!byDistrict[d]) {
-        byDistrict[d] = { district: d, active: 0, visited: 0, mtd: 0, prev: 0, stores: 0 };
-        storesByDistrict[d] = [];
-      }
-      storesByDistrict[d].push(stores[i]);
-      byDistrict[d].stores++;
-      if (stores[i].store_status === 'active' || !stores[i].store_status) byDistrict[d].active++;
-      byDistrict[d].mtd  += parseFloat(stores[i].mtd_volume_mt) || 0;
-      byDistrict[d].prev += parseFloat(stores[i].prev_month_volume_mt) || 0;
+  // District-level aggregate for heatmap + playbook.
+  // Seeds districts from the DSM roster (so every DSM shows even with no
+  // stores yet), then buckets stores via TSR→DSM chain. Falls back to the
+  // store's own district column, or "(Other)" when nothing matches.
+  function buildDistrictRows(stores, visitsNow, dsms, tsrs) {
+    var tsrToDsm = {};
+    for (var i = 0; i < tsrs.length; i++) {
+      if (tsrs[i].manager_id) tsrToDsm[tsrs[i].id] = tsrs[i].manager_id;
     }
 
-    // Mark visited stores this month
+    function dsmLabel(d) {
+      return d.district || d.territory || d.region || d.name || 'Unassigned';
+    }
+
+    var byDistrict = {};
+    for (var j = 0; j < dsms.length; j++) {
+      var lbl = dsmLabel(dsms[j]);
+      if (!byDistrict[lbl]) {
+        byDistrict[lbl] = {
+          district: lbl,
+          dsm_id: dsms[j].id,
+          dsm_name: dsms[j].name,
+          active: 0, visited: 0, mtd: 0, prev: 0, stores: 0, visits: 0
+        };
+      }
+    }
+
+    function resolveLabel(store) {
+      var dsmId = null;
+      if (store.assigned_tsr && tsrToDsm[store.assigned_tsr]) dsmId = tsrToDsm[store.assigned_tsr];
+      else if (store.created_by && tsrToDsm[store.created_by]) dsmId = tsrToDsm[store.created_by];
+      if (dsmId) {
+        for (var m = 0; m < dsms.length; m++) if (dsms[m].id === dsmId) return dsmLabel(dsms[m]);
+      }
+      if (store.district && byDistrict[store.district]) return store.district;
+      if (store.district) {
+        byDistrict[store.district] = {
+          district: store.district, active: 0, visited: 0, mtd: 0, prev: 0, stores: 0, visits: 0
+        };
+        return store.district;
+      }
+      if (!byDistrict['(Other)']) {
+        byDistrict['(Other)'] = {
+          district: '(Other)', active: 0, visited: 0, mtd: 0, prev: 0, stores: 0, visits: 0
+        };
+      }
+      return '(Other)';
+    }
+
+    for (var s = 0; s < stores.length; s++) {
+      var lbl2 = resolveLabel(stores[s]);
+      var bucket = byDistrict[lbl2];
+      bucket.stores++;
+      if (stores[s].store_status === 'active' || !stores[s].store_status) bucket.active++;
+      bucket.mtd  += parseFloat(stores[s].mtd_volume_mt) || 0;
+      bucket.prev += parseFloat(stores[s].prev_month_volume_mt) || 0;
+    }
+
+    var storeById = {};
+    for (var sx = 0; sx < stores.length; sx++) storeById[stores[sx].id] = stores[sx];
     var visitedStoreIds = {};
     for (var v = 0; v < visitsNow.length; v++) {
       if (visitsNow[v].store_id) visitedStoreIds[visitsNow[v].store_id] = 1;
-    }
-    for (var key in byDistrict) {
-      var list = storesByDistrict[key];
-      for (var s = 0; s < list.length; s++) {
-        if (visitedStoreIds[list[s].id]) byDistrict[key].visited++;
+      var store = storeById[visitsNow[v].store_id];
+      if (store) {
+        var lbl3 = resolveLabel(store);
+        byDistrict[lbl3].visits++;
       }
     }
+    for (var sid in visitedStoreIds) {
+      var st = storeById[sid];
+      if (st) byDistrict[resolveLabel(st)].visited++;
+    }
 
-    // Build rows — % achievement = retention rate (% of active visited this month)
+    // Volume-based % when we have MTD data, else visit-coverage %, else 0
     var rows = [];
     for (var k in byDistrict) {
       var dd = byDistrict[k];
-      var pct = dd.active > 0 ? (dd.visited / dd.active) * 100 : 0;
+      var pct;
+      if (dd.prev > 0 || dd.mtd > 0) {
+        // Progress vs prev month * 1.1 (implied target)
+        var target = Math.max(dd.prev * 1.1, 1);
+        pct = (dd.mtd / target) * 100;
+      } else if (dd.active > 0) {
+        pct = (dd.visited / dd.active) * 100;
+      } else {
+        pct = 0;
+      }
       rows.push({
         district: dd.district,
-        pct: pct,
+        dsm_id: dd.dsm_id,
+        dsm_name: dd.dsm_name,
+        pct: Math.max(0, pct),
         active: dd.active,
         visited: dd.visited,
+        visits: dd.visits,
         mtd: dd.mtd,
-        prev: dd.prev
+        prev: dd.prev,
+        stores: dd.stores
       });
     }
     rows.sort(function (a, b) { return b.pct - a.pct; });
@@ -556,30 +649,22 @@
 
     try {
       var dsms = await fetchDsms(session.id);
-      var tsrs = await fetchTsrsByManagers(dsms.map(function (d) { return d.id; }));
+      var dsmIds = dsms.map(function (d) { return d.id; });
+      var tsrs = await fetchTsrsByManagers(dsmIds);
       var tsrIds = tsrs.map(function (t) { return t.id; });
-      var allManagedIds = tsrIds.concat(dsms.map(function (d) { return d.id; }));
 
-      var storesRes = await fetchStoresForRegion(session.region, tsrIds);
-      // If nothing came back (fresh region with no assignments yet), fall back to region match
-      var stores = storesRes;
-      if (stores.length === 0 && session.region) {
-        var fallback = await supabaseClient
-          .from('stores')
-          .select('id,name,city,region,district,territory,assigned_tsr,mtd_volume_mt,prev_month_volume_mt,store_status,last_visit_at,last_order_at,photo_url')
-          .eq('region', session.region);
-        stores = (fallback && fallback.data) || [];
-      }
+      // Union stores across assigned_tsr, created_by (TSR & DSM), and region
+      var stores = await fetchStoresForRsm(session.region, tsrIds, dsmIds);
 
       var visitsNow  = await fetchVisitsThisMonth(tsrIds);
       var visitsPrev = await fetchVisitsLastMonth(tsrIds);
 
       renderHeader(session, { dsms: dsms.length, tsrs: tsrs.length, stores: stores.length });
 
-      var kpis = aggregate(stores, visitsNow, visitsPrev, dsms, tsrs);
+      var kpis = aggregate(stores, visitsNow, visitsPrev, dsms, tsrs, session.region);
       renderKpis(kpis);
 
-      var districtRows = buildDistrictRows(stores, visitsNow, dsms);
+      var districtRows = buildDistrictRows(stores, visitsNow, dsms, tsrs);
       renderHeatmap(districtRows);
 
       var pb = buildPlaybookAvg(districtRows, dsms, visitsNow);
@@ -595,10 +680,10 @@
             : null;
 
           if (sc && !sc.empty && sc.tsr_scorecards && sc.tsr_scorecards.length > 0) {
-            var pros = avg(sc.tsr_scorecards, 'prospection');
-            var conv = avg(sc.tsr_scorecards, 'conversion');
-            var ret  = avg(sc.tsr_scorecards, 'retention');
-            var gro  = avg(sc.tsr_scorecards, 'growth');
+            var pros = (sc.prospection_stars != null) ? sc.prospection_stars : avg(sc.tsr_scorecards, 'prospection');
+            var conv = (sc.conversion_stars  != null) ? sc.conversion_stars  : avg(sc.tsr_scorecards, 'conversion');
+            var ret  = (sc.retention_stars   != null) ? sc.retention_stars   : avg(sc.tsr_scorecards, 'retention');
+            var gro  = (sc.growth_stars      != null) ? sc.growth_stars      : avg(sc.tsr_scorecards, 'growth');
             dsmRows.push({
               dsm_id: dsm.id,
               name: dsm.name,
@@ -608,7 +693,9 @@
               conversion: conv,
               retention: ret,
               growth: gro,
-              overall: (pros + conv + ret + gro) / 4
+              active_tsrs: sc.tsr_scorecards.length,
+              total_conversions: sc.total_conversions || 0,
+              overall: sc.overall_stars != null ? sc.overall_stars : (pros + conv + ret + gro) / 4
             });
           } else {
             dsmRows.push({

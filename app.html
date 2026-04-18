@@ -976,7 +976,8 @@ if ('serviceWorker' in navigator) {
 
   // ===== Role-based home page: RSM → page-rsm-home, DSM/Exec/Admin → dashboard, TSR → home =====
   var MANAGER_ROLES = ['dsm','rsm','exec','admin'];
-  if (session && MANAGER_ROLES.indexOf(session.role) !== -1) {
+  var _roleLc = session && session.role ? session.role.toLowerCase() : '';
+  if (session && MANAGER_ROLES.indexOf(_roleLc) !== -1) {
     // Lazy-load xlsx (~240 KB gz) only for managers — TSRs never need export
     (function () {
       var s = document.createElement('script');
@@ -988,7 +989,7 @@ if ('serviceWorker' in navigator) {
     var homeNav = document.querySelector('.nav-item[data-page="page-home"]');
     var landingPageId, landingLabel, landingInit;
 
-    if (session.role === 'rsm') {
+    if (_roleLc === 'rsm') {
       landingPageId = 'page-rsm-home';
       landingLabel = 'Region';
       landingInit = function () { if (typeof initRsmHome === 'function') initRsmHome(); };

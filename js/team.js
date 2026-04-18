@@ -224,10 +224,163 @@ function _renderLeaderboard(agg) {
   return head + rows + '</div>';
 }
 
+// ── RSM Team view ─────────────────────────────────────────────
+// Direct reports for an RSM are DSMs, not TSRs. Treating them with the
+// DSM leaderboard layout (per-TSR columns, coaching, forecast) is wrong —
+// RSM needs DSM-level aggregates. This branch runs instead of the DSM
+// renderer when session.role === 'rsm'.
+async function _renderRsmTeam(session) {
+  var panel = document.getElementById('dsm-panel-root');
+  var subtitle = document.getElementById('team-subtitle');
+  if (!panel) return;
+
+  if (subtitle) subtitle.textContent = 'RSM \u00b7 ' + (session.region || 'Region');
+
+  panel.innerHTML =
+    '<div class="alert-strip" style="background:white;border-left-color:var(--fb-blue)">' +
+      '<div class="alert-icon">\u23f3</div>' +
+      '<div class="alert-body"><div class="alert-title" style="color:var(--fb-blue)">Loading region\u2026</div></div>' +
+    '</div>';
+
+  try {
+    var dsmsRes = await supabaseClient
+      .from('users')
+      .select('id,name,role,region,district,territory')
+      .eq('manager_id', session.id)
+      .eq('role', 'dsm')
+      .eq('is_active', true);
+    var dsms = (dsmsRes && dsmsRes.data) || [];
+
+    if (dsms.length === 0) {
+      panel.innerHTML =
+        '<div style="text-align:center;padding:60px 24px;background:white;border-radius:12px">' +
+          '<div style="font-size:48px;margin-bottom:16px">\ud83c\udfaf</div>' +
+          '<div style="font-size:15px;color:var(--text-secondary);line-height:1.5">' +
+            'No DSMs under this RSM yet. Assign DSMs (set <code>manager_id</code> on DSM users to this RSM\u2019s id).' +
+          '</div>' +
+        '</div>';
+      return;
+    }
+
+    // Compute scorecards in parallel — each DSM's aggregate pulls its TSRs.
+    var dsmScorecards = await Promise.all(dsms.map(async function (d) {
+      var sc = null;
+      try { sc = await calculateDsmScorecard(d.id); } catch (e) { console.warn('calculateDsmScorecard', d.id, e); }
+      var empty = !sc || sc.empty;
+      return {
+        dsm_id: d.id,
+        name: d.name || 'DSM',
+        district: d.district || d.territory || d.region || 'Unassigned',
+        active_tsrs:   empty ? 0 : (sc.tsr_scorecards ? sc.tsr_scorecards.length : 0),
+        total_conversions: empty ? 0 : (sc.total_conversions || 0),
+        total_new_stores:  empty ? 0 : (sc.total_new_stores  || 0),
+        retention_rate:    empty ? 0 : (sc.avg_retention_rate || 0),
+        prospection_stars: empty ? 0 : (sc.prospection_stars || 0),
+        conversion_stars:  empty ? 0 : (sc.conversion_stars  || 0),
+        retention_stars:   empty ? 0 : (sc.retention_stars   || 0),
+        growth_stars:      empty ? 0 : (sc.growth_stars      || 0),
+        overall_stars:     empty ? 0 : (sc.overall_stars     || 0),
+        overall_score:     empty ? 0 : (sc.avg_overall_score || 0),
+        empty: empty
+      };
+    }));
+
+    dsmScorecards.sort(function (a, b) { return b.overall_score - a.overall_score; });
+    dsmScorecards.forEach(function (d, i) { d.rank = i + 1; });
+
+    // Roll-up KPIs
+    var totalTsrs = 0, totalConv = 0, totalNew = 0, scoreSum = 0, retSum = 0, retN = 0;
+    dsmScorecards.forEach(function (d) {
+      totalTsrs += d.active_tsrs;
+      totalConv += d.total_conversions;
+      totalNew  += d.total_new_stores;
+      scoreSum  += d.overall_score;
+      if (!d.empty) { retSum += d.retention_rate; retN++; }
+    });
+    var avgScore = dsmScorecards.length > 0 ? Math.round((scoreSum / dsmScorecards.length) * 10) / 10 : 0;
+    var avgRet   = retN > 0 ? Math.round(retSum / retN) : 0;
+
+    var kpiHtml =
+      '<div class="kpi-tile-grid">' +
+        '<div class="kpi-tile">' +
+          '<div class="kpi-tile-label">\ud83c\udfaf DSMs</div>' +
+          '<div class="kpi-tile-value">' + dsms.length + '</div>' +
+          '<div class="kpi-tile-sub">' + totalTsrs + ' TSRs total</div>' +
+        '</div>' +
+        '<div class="kpi-tile">' +
+          '<div class="kpi-tile-label">\ud83d\udd0d New Prospects</div>' +
+          '<div class="kpi-tile-value">' + totalNew + '</div>' +
+          '<div class="kpi-tile-sub">region-wide MTD</div>' +
+        '</div>' +
+        '<div class="kpi-tile">' +
+          '<div class="kpi-tile-label">\ud83c\udfc6 Conversions</div>' +
+          '<div class="kpi-tile-value">' + totalConv + '</div>' +
+          '<div class="kpi-tile-sub">region-wide MTD</div>' +
+        '</div>' +
+        '<div class="kpi-tile">' +
+          '<div class="kpi-tile-label">\u2b50 Avg DSM Score</div>' +
+          '<div class="kpi-tile-value">' + avgScore + '</div>' +
+          '<div class="kpi-tile-sub">' + avgRet + '% avg coverage</div>' +
+        '</div>' +
+      '</div>';
+
+    // DSM performance leaderboard
+    var head =
+      '<div class="dsm-table-card">' +
+        '<div class="dsm-table-card-hdr">' +
+          '<div class="dsm-table-card-title">\ud83c\udfc6 DSM Performance</div>' +
+          '<div style="font-size:11px;color:var(--text-secondary);font-weight:700">MTD</div>' +
+        '</div>' +
+        '<div class="dsm-lb-row dsm-lb-head">' +
+          '<div>DSM</div>' +
+          '<div class="dsm-lb-num">TSRs</div>' +
+          '<div class="dsm-lb-num dsm-lb-hide-mobile">CONV</div>' +
+          '<div class="dsm-lb-num">COVERAGE</div>' +
+          '<div class="dsm-lb-num">SCORE</div>' +
+        '</div>';
+
+    var rows = '';
+    dsmScorecards.forEach(function (d) {
+      var medal = d.rank === 1 ? '\ud83e\udd47 ' :
+                  d.rank === 2 ? '\ud83e\udd48 ' :
+                  d.rank === 3 ? '\ud83e\udd49 ' : '';
+      var dot = d.retention_rate >= 85 ? 'dot-green' : d.retention_rate >= 65 ? 'dot-yellow' : 'dot-red';
+      var arrow = d.overall_score >= 3.5 ? 'trend-up' : d.overall_score < 2 ? 'trend-down' : 'trend-flat';
+      var convCell = d.total_conversions > 0
+        ? d.total_conversions + (d.total_conversions >= 3 ? ' \ud83d\udd25' : '')
+        : '0 \ud83d\udd3b';
+      var label = _teamEsc(d.name) + ' \u00b7 ' + _teamEsc(d.district);
+      rows += '<div class="dsm-lb-row">' +
+        '<div class="dsm-lb-name">' + medal + label + '</div>' +
+        '<div class="dsm-lb-num">' + d.active_tsrs + '</div>' +
+        '<div class="dsm-lb-num dsm-lb-hide-mobile">' + convCell + '</div>' +
+        '<div class="dsm-lb-num"><span class="score-dot ' + dot + '"></span>' + Math.round(d.retention_rate) + '%</div>' +
+        '<div class="dsm-lb-num"><b>' + d.overall_score + '</b> <span class="trend-arrow ' + arrow + '">' +
+          (arrow === 'trend-up' ? '\u2197' : arrow === 'trend-down' ? '\u2198' : '\u2014') +
+        '</span></div>' +
+      '</div>';
+    });
+
+    panel.innerHTML = kpiHtml + head + rows + '</div>';
+  } catch (err) {
+    console.warn('_renderRsmTeam:', err);
+    panel.innerHTML =
+      '<div style="padding:24px;color:var(--sync-error);text-align:center;background:white;border-radius:12px">' +
+        (T.loadError || 'Hindi ma-load.') +
+        '<br><small style="opacity:0.7">' + _teamEsc(err.message || err) + '</small>' +
+      '</div>';
+  }
+}
+
 // ── Main render ───────────────────────────────────────────────
 async function renderTeamPage() {
   var session = getSession();
   if (!session) return;
+
+  // RSM needs a completely different leaderboard (DSMs, not TSRs).
+  if ((session.role || '').toLowerCase() === 'rsm') {
+    return _renderRsmTeam(session);
+  }
 
   var panel = document.getElementById('dsm-panel-root');
   var subtitle = document.getElementById('team-subtitle');

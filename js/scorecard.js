@@ -6,13 +6,23 @@ async function calculateTsrScorecard(tsrId, month) {
   month = month || new Date().toISOString().slice(0, 7); // YYYY-MM
   var startDate = month + '-01';
 
-  // Get all stores assigned to this TSR
+  // Stores owned by this TSR — assigned OR created-by (field-made).
+  // In prod many stores lack assigned_tsr (known schema gap), so the
+  // or-filter is what keeps DSM/RSM rollups non-zero. Dedup by id.
   var storesRes = await supabaseClient
     .from('stores')
-    .select('id,store_status,prospect_stage,last_visit_at,last_order_at,mtd_volume_mt,prev_month_volume_mt,share_of_stomach,risk_status,converted_at,created_at,name')
-    .eq('assigned_tsr', tsrId);
+    .select('id,store_status,prospect_stage,last_visit_at,last_order_at,mtd_volume_mt,prev_month_volume_mt,share_of_stomach,risk_status,converted_at,created_at,name,assigned_tsr,created_by')
+    .or('assigned_tsr.eq.' + tsrId + ',created_by.eq.' + tsrId);
 
-  var stores = (storesRes && storesRes.data) || [];
+  var rawStores = (storesRes && storesRes.data) || [];
+  var _seen = {};
+  var stores = [];
+  for (var _si = 0; _si < rawStores.length; _si++) {
+    if (!_seen[rawStores[_si].id]) {
+      _seen[rawStores[_si].id] = 1;
+      stores.push(rawStores[_si]);
+    }
+  }
 
   // Get this month's visits by TSR
   var visitsRes = await supabaseClient
@@ -179,6 +189,21 @@ async function calculateDsmScorecard(dsmId, month) {
   agg.avg_retention_rate = Math.round(agg.avg_retention_rate / n);
   agg.avg_growth_pct = Math.round((agg.avg_growth_pct / n) * 10) / 10;
   agg.avg_overall_score = Math.round((agg.avg_overall_score / n) * 10) / 10;
+
+  // DSM-level star ratings = mean of TSR stars per stage. Exposed so
+  // RSM scorecard table can render stars without re-aggregating.
+  var _sum = function (key) {
+    var s = 0;
+    for (var k = 0; k < tsrScorecards.length; k++) s += (tsrScorecards[k][key] && tsrScorecards[k][key].stars) || 0;
+    return s;
+  };
+  agg.prospection_stars = Math.round(_sum('prospection') / n);
+  agg.conversion_stars  = Math.round(_sum('conversion')  / n);
+  agg.retention_stars   = Math.round(_sum('retention')   / n);
+  agg.growth_stars      = Math.round(_sum('growth')      / n);
+  agg.overall_stars     = Math.round(
+    (agg.prospection_stars + agg.conversion_stars + agg.retention_stars + agg.growth_stars) / 4
+  );
 
   tsrScorecards.sort(function (a, b) { return b.overall - a.overall; });
   tsrScorecards.forEach(function (sc, i) { sc.rank = i + 1; });
