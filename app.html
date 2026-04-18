@@ -123,87 +123,8 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 
-  <!-- 6 KPI cards -->
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="label">Total Stores</div>
-      <div class="value" id="dsm-kpi-stores">--</div>
-      <div class="delta" id="dsm-delta-stores">Loading...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Total Farms</div>
-      <div class="value" id="dsm-kpi-farms">--</div>
-      <div class="delta" id="dsm-delta-farms">Loading...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Critical</div>
-      <div class="value" id="dsm-kpi-critical" style="color:var(--pink)">--</div>
-      <div class="delta" id="dsm-delta-critical">Loading...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Visits This Week</div>
-      <div class="value" id="dsm-kpi-visits" style="color:var(--green)">--</div>
-      <div class="delta" id="dsm-delta-visits">Loading...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Orders</div>
-      <div class="value" id="dsm-kpi-orders">--</div>
-      <div class="delta" id="dsm-delta-orders">Loading...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Avg Merch Score</div>
-      <div class="value" id="dsm-kpi-merch">--</div>
-      <div class="delta" id="dsm-delta-merch">/5 across all POS</div>
-    </div>
-  </div>
-
-  <!-- Store Segment Matrix -->
-  <div class="section-title">Store Segment Matrix</div>
-  <div class="segment-matrix" id="dsm-segment-matrix">
-    <!-- Populated by JS -->
-  </div>
-
-  <!-- Product Penetration -->
-  <div class="section-title">Product Penetration</div>
-  <div class="card" id="dsm-product-pen">
-    <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading...</p>
-  </div>
-
-  <!-- Visit Trend Chart -->
-  <div class="section-title">Visit Trend (Last 4 Weeks)</div>
-  <div class="card">
-    <canvas id="dsm-visit-chart" height="180"></canvas>
-  </div>
-
-  <!-- TSR Leaderboard -->
-  <div class="section-title" style="display:flex;justify-content:space-between;align-items:center">
-    TSR Leaderboard
-    <button onclick="nav('page-assign')" style="background:#004D71;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">I-assign ang Stores</button>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden" id="dsm-leaderboard">
-    <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading...</p>
-  </div>
-
-  <!-- Critical Alerts -->
-  <div class="section-title">Critical Alerts</div>
-  <div class="card" style="border-left:3px solid var(--pink)" id="dsm-alerts">
-    <p style="font-size:12px;color:#888;text-align:center;padding:12px 0">Loading...</p>
-  </div>
-
-  <!-- Export Section (DSM/Admin only) -->
-  <div class="section-title">Export Data</div>
-  <div class="card" id="dsm-export-section">
-    <div id="export-status" style="display:none;font-size:13px;color:var(--accent);text-align:center;padding:8px 0;margin-bottom:8px;font-weight:600"></div>
-    <button class="big-button" style="background:var(--accent-dark);margin-bottom:8px" onclick="ExportModule.exportVisits()">
-      &#128229; I-download ang Visits (Excel)
-    </button>
-    <button class="big-button" style="background:var(--accent-dark);margin-bottom:8px" onclick="ExportModule.exportStores()">
-      &#128229; I-download ang Stores (Excel)
-    </button>
-    <button class="big-button" style="background:var(--accent-dark)" onclick="ExportModule.exportSummary()">
-      &#128229; I-download ang Summary (Excel)
-    </button>
-  </div>
+  <!-- Sprint B-DSM v2: hero + segment matrix + penetration + trend + leaderboard + alerts + team CTA + export -->
+  <div class="dsm-dash" id="dsm-dash-v2-root"></div>
 </div>
 
 <!-- ========================================= -->
@@ -949,7 +870,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js"></script>
 <script src="js/map.js"></script>
-<script src="js/dashboard.js"></script>
+<script src="js/dashboard.js?v=2"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
 <script src="js/scorecard.js?v=3"></script>

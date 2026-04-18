@@ -2585,3 +2585,435 @@ body {
   .dsm-panel .dsm-lb-hide-mobile { display: none; }
 }
 
+/* ============================================================ */
+/* DSM DASHBOARD ELITE REDESIGN — Sprint B-DSM v2               */
+/* Scoped under .dsm-dash (applied to #dsm-dash-v2-root) so no  */
+/* TSR/RSM/Team classes collide.                                */
+/* ============================================================ */
+
+.dsm-dash {
+  background: #F0F2F5;
+  min-height: calc(100vh - 120px);
+  padding-bottom: 80px;
+}
+
+/* ── Shared card chrome ── */
+.dsm-dash .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dsm-dash .card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #050505;
+}
+.dsm-dash .card-sub {
+  font-size: 12px;
+  color: #65676B;
+  margin-bottom: 12px;
+}
+.dsm-dash .card-help {
+  font-size: 14px;
+  color: #BCC0C4;
+  cursor: help;
+}
+.dsm-dash .card-period {
+  font-size: 11px;
+  color: #65676B;
+  font-weight: 700;
+}
+
+/* ── 1. Hero metric ── */
+.dsm-dash .hero-metric {
+  margin: 12px 16px;
+  background: linear-gradient(135deg, #0084FF, #A855F7);
+  border-radius: 24px;
+  padding: 24px;
+  color: white;
+  box-shadow: 0 12px 32px rgba(0,132,255,0.25);
+}
+.dsm-dash .hero-label {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.dsm-dash .hero-value {
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  margin: 8px 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+.dsm-dash .hero-unit { font-size: 24px; font-weight: 600; opacity: 0.85; }
+.dsm-dash .hero-trend { font-size: 14px; font-weight: 700; }
+.dsm-dash .hero-trend.up   { color: #b8f5c5; }
+.dsm-dash .hero-trend.down { color: #ffb0b2; }
+.dsm-dash .hero-trend.flat { color: rgba(255,255,255,0.75); }
+.dsm-dash .hero-progress { margin-top: 16px; }
+.dsm-dash .hero-progress-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.dsm-dash .hero-progress-fill {
+  height: 100%;
+  background: white;
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+.dsm-dash .hero-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.dsm-dash .hero-projection {
+  margin-top: 12px;
+  background: rgba(255,255,255,0.15);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── 2. Segment matrix ── */
+.dsm-dash .segment-card {
+  margin: 12px 16px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.dsm-dash .matrix-grid {
+  display: grid;
+  grid-template-columns: 60px 1fr 1fr 1fr;
+  gap: 6px;
+  margin: 12px 0;
+}
+.dsm-dash .matrix-cell-hdr {
+  font-size: 10px;
+  font-weight: 800;
+  color: #65676B;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 4px;
+}
+.dsm-dash .matrix-cell-hdr-y {
+  font-size: 10px;
+  font-weight: 800;
+  color: #65676B;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dsm-dash .matrix-cell {
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.dsm-dash .matrix-cell:active { transform: scale(0.95); }
+.dsm-dash .matrix-cell-num { font-size: 22px; font-weight: 900; line-height: 1; }
+.dsm-dash .matrix-cell-label { font-size: 9px; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+.dsm-dash .matrix-cell.champion   { background: linear-gradient(135deg, #34D399, #10B981); color: white; }
+.dsm-dash .matrix-cell.grow-vol   { background: rgba(0,132,255,0.1);  color: #0084FF; }
+.dsm-dash .matrix-cell.underperf  { background: linear-gradient(135deg, #FCA5A5, #FA383E); color: white; }
+.dsm-dash .matrix-cell.cross-sell { background: rgba(168,85,247,0.1); color: #A855F7; }
+.dsm-dash .matrix-cell.solid-mid  { background: rgba(0,132,255,0.1);  color: #0084FF; }
+.dsm-dash .matrix-cell.nurture    { background: linear-gradient(135deg, #FCD34D, #F59E0B); color: white; }
+.dsm-dash .matrix-cell.goldmine   { background: linear-gradient(135deg, #FFC72C, #F59E0B); color: white; }
+.dsm-dash .matrix-cell.entry      { background: rgba(168,85,247,0.1); color: #A855F7; }
+.dsm-dash .matrix-cell.monitor    { background: rgba(0,0,0,0.05);     color: #65676B; }
+.dsm-dash .matrix-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+  color: #65676B;
+  font-weight: 700;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+.dsm-dash .legend-item { font-size: 14px; line-height: 1; margin-right: 2px; }
+.dsm-dash .legend-good { color: #10B981; }
+.dsm-dash .legend-warn { color: #F59E0B; }
+.dsm-dash .legend-bad  { color: #FA383E; }
+
+/* ── 3. Product penetration ── */
+.dsm-dash .penetration-card {
+  margin: 12px 16px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.dsm-dash .pen-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 60px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.dsm-dash .pen-row:last-child { border: none; }
+.dsm-dash .pen-icon {
+  width: 36px; height: 36px;
+  background: rgba(0,132,255,0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+.dsm-dash .pen-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; color: #050505; }
+.dsm-dash .pen-bar {
+  height: 8px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.dsm-dash .pen-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+.dsm-dash .pen-bar-fill.hog      { background: linear-gradient(90deg, #F472B6, #EC4899); }
+.dsm-dash .pen-bar-fill.poultry  { background: linear-gradient(90deg, #FBBF24, #F59E0B); }
+.dsm-dash .pen-bar-fill.gamefowl { background: linear-gradient(90deg, #FB7185, #FA383E); }
+.dsm-dash .pen-bar-fill.aqua     { background: linear-gradient(90deg, #60A5FA, #0084FF); }
+.dsm-dash .pen-bar-fill.pet      { background: linear-gradient(90deg, #C084FC, #A855F7); }
+.dsm-dash .pen-bar-fill.dairy    { background: linear-gradient(90deg, #34D399, #10B981); }
+.dsm-dash .pen-stat { text-align: right; }
+.dsm-dash .pen-pct { font-size: 16px; font-weight: 800; color: #050505; }
+.dsm-dash .pen-count { font-size: 11px; color: #65676B; font-weight: 600; }
+.dsm-dash .pen-empty {
+  padding: 14px;
+  text-align: center;
+  font-size: 12px;
+  color: #65676B;
+  background: rgba(0,132,255,0.04);
+  border-radius: 12px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ── 4. Visit trend ── */
+.dsm-dash .trend-card {
+  margin: 12px 16px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.dsm-dash .trend-summary {
+  display: flex;
+  gap: 24px;
+  margin: 12px 0 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.dsm-dash .trend-stat .trend-num {
+  font-size: 22px;
+  font-weight: 900;
+  color: #050505;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.dsm-dash .trend-stat .trend-num.up   { color: #10B981; }
+.dsm-dash .trend-stat .trend-num.down { color: #FA383E; }
+.dsm-dash .trend-stat .trend-lbl {
+  font-size: 11px;
+  color: #65676B;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-top: 4px;
+}
+.dsm-dash .trend-chart-wrap {
+  position: relative;
+  height: 200px;
+}
+
+/* ── 5. Leaderboard card (wraps existing dsm-leaderboard output) ── */
+.dsm-dash .lb-card {
+  margin: 12px 16px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px 16px 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.dsm-dash .lb-card .assign-cta {
+  background: linear-gradient(135deg, #0084FF, #A855F7);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dsm-dash .lb-host { margin-top: 10px; }
+.dsm-dash .lb-host .list-row {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.dsm-dash .lb-host .list-row:last-child { border: none; }
+
+/* ── 6. Critical alerts ── */
+.dsm-dash .alerts-card {
+  margin: 12px 16px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.dsm-dash .alert-count {
+  background: #FA383E;
+  color: white;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.dsm-dash .alert-count.zero { background: #10B981; }
+.dsm-dash .alert-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 20px;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+  cursor: pointer;
+  transition: background 0.15s;
+  align-items: center;
+}
+.dsm-dash .alert-row:active { background: rgba(0,0,0,0.03); }
+.dsm-dash .alert-row:last-child { border: none; }
+.dsm-dash .alert-av {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.dsm-dash .alert-name { font-size: 14px; font-weight: 800; color: #050505; }
+.dsm-dash .alert-desc { font-size: 12px; color: #65676B; margin-top: 2px; }
+.dsm-dash .alert-meta { font-size: 10px; color: #BCC0C4; margin-top: 4px; font-weight: 600; }
+.dsm-dash .alert-arrow { font-size: 18px; color: #BCC0C4; justify-self: end; }
+.dsm-dash .alerts-empty {
+  padding: 20px;
+  text-align: center;
+  color: #10B981;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ── 7. Team CTA ── */
+.dsm-dash .team-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 16px 12px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.dsm-dash .team-cta:active {
+  transform: scale(0.99);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+.dsm-dash .team-cta-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #050505;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dsm-dash .team-cta-sub {
+  font-size: 12px;
+  color: #65676B;
+  margin-top: 2px;
+}
+.dsm-dash .team-cta-arrow {
+  font-size: 22px;
+  color: #0084FF;
+  font-weight: 800;
+}
+
+/* ── 8. Export section (retained, restyled) ── */
+.dsm-dash .export-card {
+  margin: 12px 16px;
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+.dsm-dash .export-btn {
+  display: block;
+  width: 100%;
+  background: rgba(0,132,255,0.08);
+  color: #0084FF;
+  border: 1px solid rgba(0,132,255,0.2);
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 8px;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.15s;
+}
+.dsm-dash .export-btn:last-child { margin-bottom: 0; }
+.dsm-dash .export-btn:active { background: rgba(0,132,255,0.16); }
+.dsm-dash .export-status {
+  display: none;
+  font-size: 12px;
+  color: #0084FF;
+  text-align: center;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+/* ── Mobile collapse ── */
+@media (max-width: 720px) {
+  .dsm-dash .hero-metric { padding: 20px; border-radius: 20px; margin: 10px 12px; }
+  .dsm-dash .hero-value { font-size: 44px; }
+  .dsm-dash .segment-card,
+  .dsm-dash .penetration-card,
+  .dsm-dash .trend-card,
+  .dsm-dash .lb-card,
+  .dsm-dash .alerts-card,
+  .dsm-dash .export-card,
+  .dsm-dash .team-cta { margin-left: 12px; margin-right: 12px; border-radius: 16px; }
+}
+
+
