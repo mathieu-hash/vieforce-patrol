@@ -1,5 +1,6 @@
-// Team Module — Manager view (DSM/RSM/Exec/Admin) with Phase 3 scorecards
-// Renders on #page-team. Drill-down renders on #page-tsr-scorecard.
+// Team Module — Manager view (DSM/RSM/Exec/Admin)
+// Sprint B-DSM upgrade: attention strip + KPI tiles + coaching + forecast + audit flags.
+// TSR drill-down (page-tsr-scorecard) kept in place unchanged.
 
 function _teamEsc(s) {
   if (s == null) return '';
@@ -16,107 +17,331 @@ function _initials(name) {
   return first + second;
 }
 
+function _teamFmtInt(n) {
+  return (parseFloat(n) || 0).toLocaleString('en-PH');
+}
+
+// ── Attention strip data fetchers ─────────────────────────────
+async function _fetchAtRiskStores(tsrIds) {
+  if (!tsrIds || tsrIds.length === 0) return [];
+  // Need id, name, last_visit_at, risk_status — all in stores table.
+  try {
+    var res = await supabaseClient
+      .from('stores')
+      .select('id,name,risk_status,last_visit_at,assigned_tsr')
+      .in('assigned_tsr', tsrIds)
+      .eq('risk_status', 'at_risk');
+    return (res && res.data) || [];
+  } catch (e) {
+    console.warn('_fetchAtRiskStores:', e);
+    return [];
+  }
+}
+
+function _daysSince(iso) {
+  if (!iso) return Infinity;
+  var t = new Date(iso).getTime();
+  if (!t) return Infinity;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
+// Build the 3 attention items. Returns HTML for the strip.
+function _renderAttentionStrip(tsrs, recentVisits, atRiskStores) {
+  var items = [];
+
+  // Item 1 — Idle TSRs (0 visits in last 3 days)
+  var threeDaysAgo = Date.now() - 3 * 86400000;
+  var activeInLast3 = {};
+  (recentVisits || []).forEach(function (v) {
+    if (!v.visited_at) return;
+    var t = new Date(v.visited_at).getTime();
+    if (t >= threeDaysAgo && v.tsr_id) activeInLast3[v.tsr_id] = 1;
+  });
+  var idleTsrs = (tsrs || []).filter(function (t) { return !activeInLast3[t.id]; });
+  if (idleTsrs.length > 0) {
+    var firstIdle = idleTsrs[0];
+    var firstName = (firstIdle.name || '').split(/\s+/)[0] || 'TSR';
+    var extra = idleTsrs.length > 1 ? ' +' + (idleTsrs.length - 1) : '';
+    items.push(_teamEsc(firstName) + ' \u00b7 0 visits 3 days' + extra);
+  }
+
+  // Item 2 — Critical account (top 1 at-risk + >30d no visit)
+  var critical = (atRiskStores || [])
+    .filter(function (s) { return _daysSince(s.last_visit_at) > 30; })
+    .sort(function (a, b) { return _daysSince(b.last_visit_at) - _daysSince(a.last_visit_at); });
+  if (critical.length > 0) {
+    var top = critical[0];
+    var days = _daysSince(top.last_visit_at);
+    var daysLabel = days === Infinity ? 'walang visit record' : days + 'd walang order';
+    items.push(_teamEsc(top.name || 'Store') + ' \u00b7 ' + daysLabel);
+  }
+
+  // Item 3 — At-risk count
+  if (atRiskStores && atRiskStores.length > 0) {
+    items.push(atRiskStores.length + ' stores at-risk');
+  }
+
+  if (items.length === 0) {
+    return '<div class="alert-strip empty">' +
+      '<div class="alert-icon">\u2705</div>' +
+      '<div class="alert-body">' +
+        '<div class="alert-title">All clear \u2014 walang urgent items today</div>' +
+        '<div class="alert-list"><span class="alert-tag">Team active \u00b7 pipeline healthy</span></div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  var tags = items.map(function (i) { return '<span class="alert-tag">' + i + '</span>'; }).join('');
+  return '<div class="alert-strip">' +
+    '<div class="alert-icon">\ud83d\udea8</div>' +
+    '<div class="alert-body">' +
+      '<div class="alert-title">' + items.length + ' item' + (items.length === 1 ? '' : 's') + ' need your attention today</div>' +
+      '<div class="alert-list">' + tags + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── KPI tiles ─────────────────────────────────────────────────
+function _trendPill(dir, label) {
+  // dir: 'up' | 'down' | 'flat'
+  return '<div class="kpi-tile-trend ' + dir + '">' + _teamEsc(label) + '</div>';
+}
+
+function _renderKpiTiles(agg, kpis, tsrs, storesTotal) {
+  var tsrCount = (tsrs && tsrs.length) || (agg && agg.tsr_count) || 0;
+  var activeToday = (kpis && kpis.active_tsrs) || 0;
+
+  // Idle TSRs subtitle (first idle name)
+  var idleLabel = '';
+  if (tsrs && tsrs.length) {
+    var idleNames = tsrs.filter(function (t) {
+      return !agg.tsr_scorecards.some(function (sc) {
+        // Treat TSR as "active this period" if they had any visit MTD.
+        return sc.tsr_id === t.id && sc.retention.visited_count > 0;
+      });
+    }).map(function (t) { return (t.name || '').split(/\s+/)[0]; });
+    if (idleNames.length) idleLabel = ' \u00b7 ' + _teamEsc(idleNames[0]) + ' idle';
+  }
+
+  // Stores Visited coverage — from scorecards
+  var visitedSum = 0, activeSum = 0;
+  (agg.tsr_scorecards || []).forEach(function (sc) {
+    visitedSum += sc.retention.visited_count || 0;
+    activeSum += sc.retention.total_active || 0;
+  });
+  var coveragePct = activeSum > 0 ? Math.round((visitedSum / activeSum) * 100) : 0;
+
+  // Volume MTD
+  var volMtd = agg.total_mt || 0;
+  var growthPct = agg.avg_growth_pct || 0;
+  var volTrendDir = growthPct > 1 ? 'up' : growthPct < -1 ? 'down' : 'flat';
+  var volTrendLabel = (growthPct >= 0 ? '\u2191' : '\u2193') + Math.abs(growthPct) + '%';
+  if (volTrendDir === 'flat') volTrendLabel = '\u2014';
+
+  // Conversions
+  var conv = agg.total_conversions || 0;
+  var convTrendDir = conv >= 3 ? 'up' : 'flat';
+  var convTrendLabel = conv >= 3 ? '\u2191' + conv : '\u2014';
+
+  // Active TSRs trend — up if activeToday >= tsrCount - 1, flat otherwise
+  var actTrendDir = tsrCount > 0 && activeToday >= tsrCount - 1 ? 'up' : activeToday === 0 ? 'down' : 'flat';
+  var actTrendLabel = actTrendDir === 'up' ? '\u2191' : actTrendDir === 'down' ? '\u2193' : '\u2014';
+
+  // Stores Visited trend
+  var covTrendDir = coveragePct >= 60 ? 'up' : coveragePct < 30 ? 'down' : 'flat';
+  var covTrendLabel = coveragePct >= 60 ? '\u2191' + coveragePct + '%' : covTrendDir === 'down' ? '\u2193' + coveragePct + '%' : '\u2014';
+
+  var denomStores = storesTotal || activeSum;
+
+  return '<div class="kpi-tile-grid">' +
+    '<div class="kpi-tile">' +
+      '<div class="kpi-tile-label">\ud83d\udcca Active TSRs</div>' +
+      _trendPill(actTrendDir, actTrendLabel) +
+      '<div class="kpi-tile-value">' + activeToday + '/' + tsrCount + '</div>' +
+      '<div class="kpi-tile-sub">' + (tsrCount > 0 ? Math.round(activeToday / tsrCount * 100) : 0) + '% today' + idleLabel + '</div>' +
+    '</div>' +
+    '<div class="kpi-tile">' +
+      '<div class="kpi-tile-label">\ud83c\udfea Stores Visited</div>' +
+      _trendPill(covTrendDir, covTrendLabel) +
+      '<div class="kpi-tile-value">' + visitedSum + '/' + denomStores + '</div>' +
+      '<div class="kpi-tile-sub">' + coveragePct + '% coverage MTD</div>' +
+    '</div>' +
+    '<div class="kpi-tile">' +
+      '<div class="kpi-tile-label">\ud83c\udfaf Conversions</div>' +
+      _trendPill(convTrendDir, convTrendLabel) +
+      '<div class="kpi-tile-value">' + conv + '</div>' +
+      '<div class="kpi-tile-sub">' + (agg.total_new_stores || 0) + ' bagong prospects</div>' +
+    '</div>' +
+    '<div class="kpi-tile">' +
+      '<div class="kpi-tile-label">\ud83d\udcc8 Volume MTD</div>' +
+      _trendPill(volTrendDir, volTrendLabel) +
+      '<div class="kpi-tile-value">' + _teamFmtInt(Math.round(volMtd)) + ' MT</div>' +
+      '<div class="kpi-tile-sub">vs 450 MT target</div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── Leaderboard (elite table style) ───────────────────────────
+function _renderLeaderboard(agg) {
+  var tsrs = agg.tsr_scorecards || [];
+  var head =
+    '<div class="dsm-table-card">' +
+      '<div class="dsm-table-card-hdr">' +
+        '<div class="dsm-table-card-title">\ud83c\udfc6 TSR Performance</div>' +
+        '<div style="font-size:11px;color:var(--text-secondary);font-weight:700">MTD</div>' +
+      '</div>' +
+      '<div class="dsm-lb-row dsm-lb-head">' +
+        '<div>TSR</div>' +
+        '<div class="dsm-lb-num">ACTIVE</div>' +
+        '<div class="dsm-lb-num dsm-lb-hide-mobile">PROSP</div>' +
+        '<div class="dsm-lb-num">CONV</div>' +
+        '<div class="dsm-lb-num">SCORE</div>' +
+      '</div>';
+
+  var rows = '';
+  tsrs.forEach(function (t) {
+    var medal = t.rank === 1 ? '\ud83e\udd47 ' :
+                t.rank === 2 ? '\ud83e\udd48 ' :
+                t.rank === 3 ? '\ud83e\udd49 ' : '';
+    var vp = t.retention.visited_pct || 0;
+    var dot = vp >= 85 ? 'dot-green' : vp >= 65 ? 'dot-yellow' : 'dot-red';
+    var scoreDir = t.overall >= 3.5 ? 'trend-up' : t.overall < 2 ? 'trend-down' : 'trend-flat';
+    var convCell = t.conversion.converted > 0
+      ? t.conversion.converted + (t.conversion.converted >= 3 ? ' \ud83d\udd25' : '')
+      : '0 \ud83d\udd3b';
+
+    rows += '<div class="dsm-lb-row" onclick="openTsrScorecard(\'' + _teamEsc(t.tsr_id) + '\')">' +
+      '<div class="dsm-lb-name">' + medal + _teamEsc(t.tsr_name || 'TSR') + '</div>' +
+      '<div class="dsm-lb-num"><span class="score-dot ' + dot + '"></span>' + vp + '%</div>' +
+      '<div class="dsm-lb-num dsm-lb-hide-mobile">' + (t.prospection.new_stores || 0) + '</div>' +
+      '<div class="dsm-lb-num">' + convCell + '</div>' +
+      '<div class="dsm-lb-num"><b>' + t.overall + '</b> <span class="trend-arrow ' + scoreDir + '">' +
+        (scoreDir === 'trend-up' ? '\u2197' : scoreDir === 'trend-down' ? '\u2198' : '\u2014') +
+      '</span></div>' +
+    '</div>';
+  });
+
+  return head + rows + '</div>';
+}
+
+// ── Main render ───────────────────────────────────────────────
 async function renderTeamPage() {
   var session = getSession();
   if (!session) return;
 
-  var container = document.getElementById('team-list');
+  var panel = document.getElementById('dsm-panel-root');
   var subtitle = document.getElementById('team-subtitle');
-  if (!container) return;
-
-  container.innerHTML = '<div class="section-hdr">\u26a1 ' + (T.myTeam || 'Team ko ngayon') + '</div>' +
-    '<div class="store-row conv"><div class="skeleton skeleton-circle"></div>' +
-    '<div class="conv-info"><div class="skeleton skeleton-line w60"></div>' +
-    '<div class="skeleton skeleton-line w40"></div></div></div>';
+  if (!panel) return;
 
   if (subtitle) subtitle.textContent = (session.role || '').toUpperCase() +
     (session.region ? ' \u00b7 ' + session.region : '');
 
-  // Top strip — today's live activity (visits/active TSRs/stores covered)
-  updateTeamKpiStrip(session);
+  panel.innerHTML =
+    '<div class="alert-strip" style="background:white;border-left-color:var(--fb-blue)">' +
+      '<div class="alert-icon">\u23f3</div>' +
+      '<div class="alert-body"><div class="alert-title" style="color:var(--fb-blue)">Loading team data\u2026</div></div>' +
+    '</div>';
 
   try {
-    var agg = await calculateDsmScorecard(session.id);
-    if (agg.empty) {
-      container.innerHTML = '<div style="text-align:center;padding:48px 24px">' +
-        '<div style="font-size:48px;margin-bottom:16px">\ud83d\udc65</div>' +
-        '<div style="font-size:15px;color:var(--text-secondary);line-height:1.5">' +
-        (T.noTeamYet || 'Walang team member pa. Makipag-ugnayan sa admin.') +
-        '</div></div>';
-      _setTeamKpis(0, 0, 0);
+    // Step 1: who's on the team?
+    var tsrsRes = await supabaseClient
+      .from('users')
+      .select('id,name,role')
+      .eq('manager_id', session.id)
+      .eq('is_active', true);
+    var tsrs = (tsrsRes && tsrsRes.data) || [];
+    var tsrIds = tsrs.map(function (t) { return t.id; });
+    var tsrNameById = {};
+    tsrs.forEach(function (t) { tsrNameById[t.id] = t.name; });
+
+    if (tsrIds.length === 0) {
+      panel.innerHTML =
+        '<div style="text-align:center;padding:60px 24px;background:white;border-radius:12px">' +
+          '<div style="font-size:48px;margin-bottom:16px">\ud83d\udc65</div>' +
+          '<div style="font-size:15px;color:var(--text-secondary);line-height:1.5">' +
+            (T.noTeamYet || 'Walang team member pa. Makipag-ugnayan sa admin.') +
+          '</div>' +
+        '</div>';
       return;
     }
 
-    // Rebuild the rich scorecard strip inline above the leaderboard
-    var html =
-      '<div class="team-scorecard-strip">' +
-        _tssCard('\ud83d\udd0d', agg.total_new_stores, T.newStores || 'Bagong') +
-        _tssCard('\ud83c\udfaf', agg.total_conversions, T.converted || 'Converted') +
-        _tssCard('\ud83d\udc9a', agg.avg_retention_rate + '%', T.retention || 'Retention') +
-        _tssCard('\ud83d\udcc8', (agg.avg_growth_pct >= 0 ? '+' : '') + agg.avg_growth_pct + '%', T.growth || 'Growth') +
+    // Step 2: parallel-fetch everything else we need for the panel.
+    // calculateDsmScorecard issues its own query set — we'd refactor that into a single RPC in a Sprint B perf pass (see H-02).
+    var aggP      = calculateDsmScorecard(session.id);
+    var kpisP     = (typeof getTeamKPIs === 'function') ? getTeamKPIs(session.id, session.role) : Promise.resolve({ active_tsrs: 0 });
+    var auditP    = (typeof fetchAuditData === 'function') ? fetchAuditData(tsrIds) : Promise.resolve({ visits: [] });
+    var atRiskP   = _fetchAtRiskStores(tsrIds);
+    var allStoresP = supabaseClient.from('stores').select('id,name', { count: 'exact', head: false }).in('assigned_tsr', tsrIds);
+
+    var results = await Promise.all([aggP, kpisP, auditP, atRiskP, allStoresP]);
+    var agg       = results[0];
+    var kpis      = results[1] || {};
+    var auditData = results[2] || { visits: [] };
+    var atRisk    = results[3] || [];
+    var storesRes = results[4] || {};
+    var storeList = (storesRes && storesRes.data) || [];
+    var storesTotal = storeList.length;
+
+    var storeNameById = {};
+    storeList.forEach(function (s) { storeNameById[s.id] = s.name; });
+
+    if (!agg || agg.empty) {
+      panel.innerHTML =
+        '<div style="text-align:center;padding:60px 24px;background:white;border-radius:12px">' +
+          '<div style="font-size:48px;margin-bottom:16px">\ud83d\udcca</div>' +
+          '<div style="font-size:15px;color:var(--text-secondary);line-height:1.5">Walang scorecard data pa para sa team.</div>' +
+        '</div>';
+      return;
+    }
+
+    // Step 3: audit flags — compute from visits and map by TSR for coaching hookup.
+    var auditFlags = (typeof detectAuditFlags === 'function')
+      ? detectAuditFlags(auditData.visits || [], tsrNameById, storeNameById)
+      : [];
+    var flagsByTsr = (typeof flagsByTsrId === 'function') ? flagsByTsrId(auditFlags) : {};
+
+    // Step 4: render sections.
+    var attentionHtml = _renderAttentionStrip(tsrs, auditData.visits || [], atRisk);
+    var kpiHtml       = _renderKpiTiles(agg, kpis, tsrs, storesTotal);
+    var lbHtml        = _renderLeaderboard(agg);
+    var coachingHtml  = (typeof generateCoachingCards === 'function')
+      ? generateCoachingCards(agg, flagsByTsr)
+      : '<div class="coaching-empty">Coaching module not loaded.</div>';
+    var forecastHtml  = (typeof renderDsmForecastCard === 'function')
+      ? renderDsmForecastCard(agg)
+      : '<div class="forecast-card">Forecast module not loaded.</div>';
+    var auditHtml     = (typeof renderAuditFlags === 'function')
+      ? renderAuditFlags(auditFlags)
+      : '<div class="audit-flag-clean">Audit module not loaded.</div>';
+
+    panel.innerHTML =
+      attentionHtml +
+      kpiHtml +
+      '<div class="dsm-two-col">' +
+        '<div>' + lbHtml + '</div>' +
+        '<div>' +
+          '<div class="dsm-small-title">\ud83c\udfaf Coaching moments (auto-generated)</div>' +
+          coachingHtml +
+        '</div>' +
       '</div>' +
-      '<div class="section-hdr">\ud83c\udfc6 ' + (T.leaderboard || 'TSR Leaderboard') + '</div>';
-
-    agg.tsr_scorecards.forEach(function (tsr) {
-      var medal = tsr.rank === 1 ? '\ud83e\udd47' :
-                  tsr.rank === 2 ? '\ud83e\udd48' :
-                  tsr.rank === 3 ? '\ud83e\udd49' : '\u2022';
-      var grad = getGradient(tsr.tsr_id);
-      var initials = _initials(tsr.tsr_name);
-      var summary = '\u2b50 ' + tsr.overall +
-        ' \u00b7 ' + tsr.prospection.new_stores + ' new' +
-        ' \u00b7 ' + tsr.conversion.converted + ' conv' +
-        ' \u00b7 ' + tsr.retention.visited_pct + '% visited';
-
-      html += '<div class="store-row conv" onclick="openTsrScorecard(\'' + _teamEsc(tsr.tsr_id) + '\')">' +
-        '<div class="av-wrap">' +
-          '<div class="av" style="background:' + grad + '">' +
-            '<span class="av-initials" style="font-size:15px;opacity:1">' + _teamEsc(initials) + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="conv-info">' +
-          '<div class="conv-name">' + medal + ' ' + _teamEsc(tsr.tsr_name) + '</div>' +
-          '<div class="conv-last">' + summary + '</div>' +
-        '</div>' +
-        '<div class="conv-meta">' +
-          '<span class="conv-time">#' + tsr.rank + '</span>' +
-          '<span class="ticks">\u2192</span>' +
+      '<div class="dsm-two-col">' +
+        forecastHtml +
+        '<div>' +
+          '<div class="dsm-small-title">\ud83d\udd0d Audit flags (AI-detected)</div>' +
+          auditHtml +
         '</div>' +
       '</div>';
-    });
-
-    container.innerHTML = html;
   } catch (err) {
     console.warn('renderTeamPage:', err);
-    container.innerHTML = '<div style="padding:20px;color:var(--sync-error);text-align:center">' +
-      (T.loadError || 'Hindi ma-load.') + '<br><small>' + _teamEsc(err.message || err) + '</small></div>';
+    panel.innerHTML =
+      '<div style="padding:24px;color:var(--sync-error);text-align:center;background:white;border-radius:12px">' +
+        (T.loadError || 'Hindi ma-load.') +
+        '<br><small style="opacity:0.7">' + _teamEsc(err.message || err) + '</small>' +
+      '</div>';
   }
 }
 
-function _setTeamKpis(visits, active, stores) {
-  var v = document.getElementById('team-visits-today');
-  var a = document.getElementById('team-active-tsrs');
-  var s = document.getElementById('team-stores-covered');
-  if (v) v.textContent = visits;
-  if (a) a.textContent = active;
-  if (s) s.textContent = stores;
-}
-
-async function updateTeamKpiStrip(session) {
-  try {
-    var kpis = await getTeamKPIs(session.id, session.role);
-    _setTeamKpis(kpis.visits_today || 0, kpis.active_tsrs || 0, kpis.stores_covered || 0);
-  } catch (e) { console.warn('updateTeamKpiStrip:', e); _setTeamKpis(0, 0, 0); }
-}
-
-function _tssCard(icon, value, label) {
-  return '<div class="tss-card">' +
-    '<div class="tss-icon">' + icon + '</div>' +
-    '<div class="tss-value">' + value + '</div>' +
-    '<div class="tss-label">' + label + '</div>' +
-  '</div>';
-}
-
+// ── TSR drill-down (unchanged from pre-sprint) ────────────────
 async function openTsrScorecard(tsrId) {
   window._selectedTsrId = tsrId;
   if (typeof nav === 'function') nav('page-tsr-scorecard');

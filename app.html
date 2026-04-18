@@ -588,26 +588,8 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 
-  <!-- KPI Strip -->
-  <div class="team-kpi-strip">
-    <div class="kpi-card">
-      <div class="kpi-value" id="team-visits-today">&mdash;</div>
-      <div class="kpi-label" data-t="visitsToday">Bisita ngayon</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value" id="team-active-tsrs">&mdash;</div>
-      <div class="kpi-label" data-t="activeTsrs">Aktibong TSR</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value" id="team-stores-covered">&mdash;</div>
-      <div class="kpi-label" data-t="storesCovered">Tindahan na-bisita</div>
-    </div>
-  </div>
-
-  <!-- Team member list (Messenger inbox style) -->
-  <div class="conv-list" id="team-list">
-    <div class="section-hdr" data-t="myTeam">&#9889; Team ko ngayon</div>
-  </div>
+  <!-- Sprint B-DSM: attention + KPI tiles + leaderboard/coaching + forecast/audit -->
+  <div class="dsm-panel" id="dsm-panel-root"></div>
 </div>
 
 <!-- ========================================= -->
@@ -971,7 +953,10 @@ if ('serviceWorker' in navigator) {
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
 <script src="js/scorecard.js?v=3"></script>
-<script src="js/team.js?v=3"></script>
+<script src="js/dsm-coaching.js?v=1"></script>
+<script src="js/dsm-forecast.js?v=1"></script>
+<script src="js/dsm-audit.js?v=1"></script>
+<script src="js/team.js?v=4"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
 <script src="js/export.js"></script>
