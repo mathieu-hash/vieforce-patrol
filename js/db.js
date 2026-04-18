@@ -1,5 +1,45 @@
 // Database Module — all Supabase CRUD queries
 
+// ── SAP Proxy fetch helper ─────────────────────────────────────────────
+// AGENT 3: Review this helper. Added by Agent 1 during Day 1
+// Patrol-as-hub backend sprint.
+// Usage: await sapFetch('/api/sap/sales?period=MTD')
+// Handles Supabase session token auth + error handling.
+//
+// NOTE FROM AGENT 1: Mat's brief snippet used localStorage key 'vf_session',
+// but Patrol's actual key is 'patrol_session' (see js/auth.js:10 SESSION_KEY).
+// Using the real key here so the helper actually works on first try. Also
+// preferring getSession() if available (it does TTL validation) over a raw
+// localStorage parse, with a fallback for robustness.
+async function sapFetch(endpoint) {
+  try {
+    var session = (typeof getSession === 'function')
+      ? getSession()
+      : JSON.parse(localStorage.getItem('patrol_session') || 'null');
+    if (!session || !session.id) throw new Error('No session');
+
+    var res = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-session-id': session.id
+      },
+      credentials: 'include'
+    });
+
+    if (!res.ok) {
+      console.error('[SAP] ' + res.status + ' ' + endpoint);
+      return { error: 'FETCH_FAILED', status: res.status };
+    }
+    return await res.json();
+  } catch (err) {
+    console.error('[SAP] fetch error:', err.message);
+    return { error: 'FETCH_EXCEPTION', message: err.message };
+  }
+}
+
+window.sapFetch = sapFetch;
+
 // ── Stores ──
 
 async function getStores(filters) {
