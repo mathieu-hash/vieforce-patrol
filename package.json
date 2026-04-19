@@ -6,7 +6,8 @@
   "scripts": {
     "test": "playwright test",
     "test:e2e": "playwright test",
-    "test:e2e:report": "playwright test --reporter=html"
+    "test:e2e:report": "playwright test --reporter=html",
+    "test:unit": "node --test tests/unit/hq-client.test.js tests/unit/scope.test.js"
   },
   "repository": {
     "type": "git",
