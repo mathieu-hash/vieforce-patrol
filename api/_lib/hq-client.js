@@ -1,36 +1,30 @@
 // HTTP client to the HQ Cloud Run API. Server-to-server only.
 // ─────────────────────────────────────────────────────────────────────────────
-// Phase C (2026-04-19): added callHqProxy — Bearer auth, scope=user:<uuid>,
+// Phase D (2026-04-19): deprecated callHqApi / callHqApiCached removed.
+// Single public entry: callHqProxy — Bearer auth, scope=user:<uuid>,
 // retry-once on 5xx, 10s timeout, structured {status, body} response.
-// Old callHqApi / callHqApiCached kept alive for the 6 existing /api/sap/*
-// endpoints until Phase D refactors them.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Env-var name resolution: the original endpoint commit used HQ_API_BASE.
-// The new Day-2 brief calls it HQ_API_BASE_URL. We accept either so Phase D
-// can pivot Vercel env at its own pace without a big-bang rename.
+// Env-var name resolution: accept either HQ_API_BASE_URL (new) or HQ_API_BASE
+// (legacy) so existing Vercel deployments don't break mid-rollout.
 const DEFAULT_HQ_BASE = 'https://vieforce-hq-api-1057619753074.asia-southeast1.run.app';
 function _hqBase() {
   return process.env.HQ_API_BASE_URL || process.env.HQ_API_BASE || DEFAULT_HQ_BASE;
 }
-const HQ_API_BASE = _hqBase(); // kept as module-level export for backward compat
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Phase C — the new standard proxy helper
-// ═══════════════════════════════════════════════════════════════════════════
+const HQ_API_BASE = _hqBase(); // module-level export for test pinning
 
 /**
  * Call an HQ endpoint with Bearer service-token auth and scope=user:<uuid>.
  *
- * @param {string}  hqPath  HQ path starting with '/' (e.g. '/api/sales')
- * @param {object}  session Supabase session object — must include `.id`
+ * @param {string}  hqPath   HQ path starting with '/' (e.g. '/api/sales')
+ * @param {object}  session  Supabase session — must include `.id`
  * @param {object}  [params] Query params (merged with scope=user:<uuid>)
- * @param {object}  [opts]  Test-only injection. `timeoutMs` overrides the
- *                          10 000 ms default so unit tests don't wait 10s.
+ * @param {object}  [opts]   Test-only injection. `timeoutMs` overrides the
+ *                           10 000 ms default so unit tests don't wait 10s.
  * @returns {Promise<{status:number, body:object}>}
  *          - 2xx / 4xx / 5xx from HQ pass through
  *          - 504 on timeout (no retry)
- *          - 502 on network/DNS failure (after retry-once on transient fail)
+ *          - 502 on network/DNS failure
  *          - Retries ONCE on a real HQ 5xx after a 500 ms backoff
  */
 async function callHqProxy(hqPath, session, params, opts) {
@@ -65,7 +59,7 @@ async function callHqProxy(hqPath, session, params, opts) {
       clearTimeout(timer);
 
       let body = {};
-      try { body = await res.json(); } catch (_) { /* non-JSON body — leave empty */ }
+      try { body = await res.json(); } catch (_) { /* non-JSON — leave empty */ }
       return { status: res.status, body: body, timedOut: false };
     } catch (err) {
       clearTimeout(timer);
@@ -77,7 +71,6 @@ async function callHqProxy(hqPath, session, params, opts) {
   }
 
   const first = await attempt();
-  // Retry ONCE on a real HQ 5xx (not on our own timeout/502).
   if (!first.timedOut && first.status >= 500 && first.status < 600) {
     await new Promise(function (r) { setTimeout(r, 500); });
     const second = await attempt();
@@ -86,61 +79,4 @@ async function callHqProxy(hqPath, session, params, opts) {
   return { status: first.status, body: first.body };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// DEPRECATED — kept until Phase D refactors the 6 /api/sap/* endpoints.
-// DO NOT use in new code. Forwards x-session-id header (old auth pattern).
-// ═══════════════════════════════════════════════════════════════════════════
-
-const _hqCache = new Map();
-const HQ_CACHE_TTL_MS = 60 * 1000;
-
-function _key(endpoint, sessionId, params) {
-  return endpoint + ':' + sessionId + ':' + JSON.stringify(params || {});
-}
-
-/** @deprecated — use callHqProxy. Will be removed in Phase D cleanup. */
-async function callHqApi(endpoint, sessionId, params) {
-  const qs = new URLSearchParams(params || {}).toString();
-  const url = _hqBase() + endpoint + (qs ? '?' + qs : '');
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15000);
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'x-session-id': sessionId,
-        'Content-Type': 'application/json',
-        'User-Agent': 'patrol-sap-proxy/1.0'
-      },
-      signal: ctrl.signal
-    });
-    clearTimeout(timer);
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      console.error('[hq] ' + res.status + ' ' + url + ' :: ' + body.slice(0, 200));
-      return { error: 'HQ_API_ERROR', status: res.status };
-    }
-    return await res.json();
-  } catch (err) {
-    clearTimeout(timer);
-    const msg = err && err.name === 'AbortError' ? 'timeout after 15s' : (err.message || String(err));
-    console.error('[hq] fetch failed: ' + msg + ' (' + url + ')');
-    return { error: 'HQ_FETCH_FAILED', message: msg };
-  }
-}
-
-/** @deprecated — use callHqProxy. Will be removed in Phase D cleanup. */
-async function callHqApiCached(endpoint, sessionId, params) {
-  const k = _key(endpoint, sessionId, params);
-  const hit = _hqCache.get(k);
-  if (hit && (Date.now() - hit.ts) < HQ_CACHE_TTL_MS) return hit.data;
-
-  const data = await callHqApi(endpoint, sessionId, params);
-  if (!data || !data.error) _hqCache.set(k, { data, ts: Date.now() });
-  return data;
-}
-
-module.exports = { callHqProxy, callHqApi, callHqApiCached, HQ_API_BASE };
+module.exports = { callHqProxy, HQ_API_BASE };

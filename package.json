@@ -7,7 +7,7 @@
     "test": "playwright test",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright test --reporter=html",
-    "test:unit": "node --test tests/unit/hq-client.test.js tests/unit/scope.test.js"
+    "test:unit": "node --test tests/unit/hq-client.test.js tests/unit/scope.test.js tests/unit/sap-sales.test.js tests/unit/sap-ar.test.js tests/unit/sap-customers.test.js tests/unit/sap-customer.test.js tests/unit/sap-inventory.test.js tests/unit/sap-speed.test.js"
   },
   "repository": {
     "type": "git",

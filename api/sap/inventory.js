@@ -1,8 +1,9 @@
-// GET /api/sap/inventory
-// Proxies HQ /api/inventory. Scope: district/region.
+// GET /api/sap/inventory?plant=ALL
+// Proxies HQ /api/inventory (pass-through, national). scope=user is ignored by HQ.
+// Phase D (2026-04-19): refactored onto callHqProxy.
 const { verifySession, unauthorized } = require('../_lib/auth');
-const { callHqApiCached } = require('../_lib/hq-client');
-const { applyScopeAndMargins } = require('../_lib/scope');
+const { callHqProxy } = require('../_lib/hq-client');
+const { stripMarginsIfNeeded, wrapPatrolMeta } = require('../_lib/scope');
 
 module.exports = async function (req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -11,14 +12,16 @@ module.exports = async function (req, res) {
   const session = await verifySession(req);
   if (!session) return unauthorized(res);
 
-  const params = {};
-  const role = String(session.role || '').toLowerCase();
-  if (role === 'dsm' && session.district) { params.scope = 'district'; params.district = session.district; }
-  else if (role === 'rsm' && session.region) { params.scope = 'region'; params.region = session.region; }
+  const params = { plant: (req.query && req.query.plant) || 'ALL' };
 
-  const data = await callHqApiCached('/api/inventory', session.id, params);
-  if (data && data.error) return res.status(502).json(data);
+  const { status, body } = await callHqProxy('/api/inventory', session, params);
+  if (status >= 400) {
+    return res.status(status === 504 ? 504 : 502).json({
+      error: (body && body.error) || 'HQ upstream error',
+      hq_status: status
+    });
+  }
 
-  const filtered = applyScopeAndMargins(session, data, ['by_warehouse', 'low_stock', 'items']);
-  res.status(200).json(filtered);
+  const wrapped = wrapPatrolMeta(stripMarginsIfNeeded(body, session), session, params);
+  return res.status(200).json(wrapped);
 };
