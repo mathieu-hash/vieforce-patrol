@@ -5,9 +5,11 @@
 // scope=user:<uuid>. Patrol only redacts margins + wraps envelope.
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Roles that see every field untouched. Day-2 brief narrowed this from
-// [exec, ceo, evp, admin] to [exec, ceo] only.
-const NEW_ELEVATED = ['exec', 'ceo'];
+// 2026-04-24: role-based elevation REMOVED. Patrol = field app = zero
+// margin exposure, regardless of who is logged in. Exec/CEO see margins
+// on HQ desktop (vieforce-hq), never through the Patrol proxy. This
+// removes an entire class of "wrong x-session-id happened to belong to
+// Mat → margins leak to a field phone" failure modes.
 
 // Union of every margin-related key known to HQ. Delete (not null) so we
 // have zero chance of a frontend accidentally rendering a null gm_ton.
@@ -27,18 +29,14 @@ const MARGIN_KEYS = [
 ];
 const MARGIN_KEY_SET = MARGIN_KEYS.reduce((acc, k) => (acc[k] = 1, acc), {});
 
-/** True if the session role sees every field untouched. */
-function _isElevated(session) {
-  const role = String((session && session.role) || '').toLowerCase();
-  return NEW_ELEVATED.indexOf(role) !== -1;
-}
-
 /**
- * Strip margin fields for non-exec/non-ceo users. Mutates in place and returns data.
- * Pass-through untouched for elevated roles.
+ * Strips margin fields from response data — ALWAYS, regardless of role.
+ * Patrol = field app = no margin exposure. Margin data is only visible
+ * via HQ desktop (vieforce-hq). The `session` parameter is kept for
+ * backward compatibility with callers (all six /api/sap/* handlers pass
+ * it) but is ignored.
  */
-function stripMarginsIfNeeded(data, session) {
-  if (_isElevated(session)) return data;
+function stripMarginsIfNeeded(data, _session) {
   return stripMarginsDeep(data);
 }
 

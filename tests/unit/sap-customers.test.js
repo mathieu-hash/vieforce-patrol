@@ -82,13 +82,14 @@ test('strips margins for dsm', async () => {
   assert.equal(res.body.customers[0].ytd_revenue, 100000);
 });
 
-test('preserves margins for exec', async () => {
+test('strips margins even for exec (no role bypass on Patrol)', async () => {
   H.reset();
   H.setSession(EXEC);
-  H.setProxyResult({ status: 200, body: { customers: [{ ytd_gm_ton: 5000 }] } });
+  H.setProxyResult({ status: 200, body: { customers: [{ CardCode: 'C1', ytd_gm_ton: 5000 }] } });
   const res = H.mockRes();
   await handler(H.mockReq(), res);
-  assert.equal(res.body.customers[0].ytd_gm_ton, 5000);
+  assert.equal('ytd_gm_ton' in res.body.customers[0], false, 'exec role still gets margins stripped');
+  assert.equal(res.body.customers[0].CardCode, 'C1', 'non-margin fields preserved');
 });
 
 test('returns 401 when no session', async () => {

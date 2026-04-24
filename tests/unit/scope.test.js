@@ -9,21 +9,29 @@ const {
   wrapPatrolMeta
 } = require('../../api/_lib/scope.js');
 
-test('stripMarginsIfNeeded preserves fields for exec', () => {
-  const data = {
-    kpis: { volume_mt: 100, gross_margin: 0.34, gross_profit: 1234 },
-    by_brand: [{ name: 'ViePro', gm_ton: 6500 }]
-  };
-  const out = stripMarginsIfNeeded(data, { id: 'x', role: 'exec' });
-  assert.equal(out.kpis.gross_margin, 0.34);
-  assert.equal(out.kpis.gross_profit, 1234);
-  assert.equal(out.by_brand[0].gm_ton, 6500);
-});
+// ─────────────────────────────────────────────────────────────────────────
+// 2026-04-24: margin strip is now UNCONDITIONAL regardless of role.
+// Patrol is the field app — no role sees margin data through the proxy.
+// Exec + CEO continue to see margins via HQ desktop (vieforce-hq), never
+// here. The previous exec/ceo preserve-margins tests are deleted; the
+// tests below verify the new behaviour.
+// ─────────────────────────────────────────────────────────────────────────
 
-test('stripMarginsIfNeeded preserves fields for ceo', () => {
-  const data = { kpis: { gross_profit: 999 } };
-  const out = stripMarginsIfNeeded(data, { id: 'x', role: 'CEO' });
-  assert.equal(out.kpis.gross_profit, 999);
+test('stripMarginsIfNeeded strips margins for EVERY role (no bypass)', () => {
+  for (const role of ['exec', 'ceo', 'admin', 'evp', 'rsm', 'dsm', 'tsr', 'director', undefined, null, '']) {
+    const data = {
+      kpis: { volume_mt: 100, gross_margin: 0.34, gross_profit: 1234, gm_ton: 6500 },
+      by_brand: [{ name: 'ViePro', gm_per_bag: 290, revenue: 1500000 }]
+    };
+    const out = stripMarginsIfNeeded(data, role ? { id: 'x', role } : null);
+    assert.equal('gross_margin' in out.kpis, false, `role=${role} — gross_margin should be stripped`);
+    assert.equal('gross_profit' in out.kpis, false, `role=${role} — gross_profit should be stripped`);
+    assert.equal('gm_ton'       in out.kpis, false, `role=${role} — gm_ton should be stripped`);
+    assert.equal('gm_per_bag'   in out.by_brand[0], false, `role=${role} — gm_per_bag should be stripped`);
+    // Non-margin data preserved
+    assert.equal(out.kpis.volume_mt, 100);
+    assert.equal(out.by_brand[0].revenue, 1500000);
+  }
 });
 
 test('stripMarginsIfNeeded removes fields recursively for dsm', () => {
@@ -67,12 +75,6 @@ test('stripMarginsIfNeeded removes fields for rsm (non-elevated)', () => {
   assert.equal('gross_profit' in out.kpis, false);
 });
 
-test('stripMarginsIfNeeded treats admin as NON-elevated (new policy)', () => {
-  // Day-2 brief narrowed elevation to exec+ceo only.
-  const data = { kpis: { gross_profit: 1 } };
-  const out = stripMarginsIfNeeded(data, { id: 'x', role: 'admin' });
-  assert.equal('gross_profit' in out.kpis, false);
-});
 
 test('stripMargins removes gm_per_bag from by_brand array (2026-04-24 audit)', () => {
   // Regression guard for the leak caught in Jefrey's first DSM smoke test:
