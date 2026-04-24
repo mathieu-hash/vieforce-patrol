@@ -1683,6 +1683,40 @@ body {
 }
 .send:active { transform: scale(0.85); box-shadow: 0 1px 4px rgba(0,132,255,0.2); }
 
+/* ===== CHAT FAB (Messenger-assistant send button, keyboard-aware) =====
+   Replaces the inline .send icon on chatbot-register pages. Lives at
+   bottom-right so it's out of the thumb-collision zone of the keyboard.
+   Hides (slides down + fades) when on-screen keyboard opens — JS toggles
+   .keyboard-open via visualViewport.onresize. Enter key still submits via
+   the input's onkeydown handler, so power-users can send without tapping. */
+.chat-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 84px;         /* sits above the 64px bottom nav */
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: var(--fb-blue);
+  color: #fff;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0,132,255,0.35);
+  cursor: pointer;
+  z-index: 120;         /* above pages, below overlays/sheets (z:1000+) */
+  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.chat-fab:active  { transform: scale(0.9); }
+.chat-fab:focus   { outline: 3px solid rgba(255,255,255,0.6); outline-offset: 2px; }
+.chat-fab.keyboard-open {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(120px);
+}
+
 /* ===== BIG BUTTON (primary action, 64px min) ===== */
 .big-button {
   display: flex; align-items: center; justify-content: center;

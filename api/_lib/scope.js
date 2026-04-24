@@ -20,7 +20,10 @@ const MARGIN_KEYS = [
   'ytd_gm_ton',
   // Legacy aliases carried over from the old scope.js so the Phase D swap
   // stays a pure migration — no regression in margin coverage.
-  'gm_per_ton', 'gross_margin_pct', 'gp_pct', 'margin'
+  'gm_per_ton', 'gross_margin_pct', 'gp_pct', 'margin',
+  // 2026-04-24 audit: by_brand[].gm_per_bag leaked to Jefrey's DSM view
+  // (first scoped smoke test). HQ emits it alongside gmt/revenue/volume.
+  'gm_per_bag'
 ];
 const MARGIN_KEY_SET = MARGIN_KEYS.reduce((acc, k) => (acc[k] = 1, acc), {});
 

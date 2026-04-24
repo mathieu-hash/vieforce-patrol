@@ -74,6 +74,44 @@ test('stripMarginsIfNeeded treats admin as NON-elevated (new policy)', () => {
   assert.equal('gross_profit' in out.kpis, false);
 });
 
+test('stripMargins removes gm_per_bag from by_brand array (2026-04-24 audit)', () => {
+  // Regression guard for the leak caught in Jefrey's first DSM smoke test:
+  // HQ /api/sales emits by_brand[].gm_per_bag (per-bag gross margin, real
+  // pricing intel). Before the audit, this field flowed through untouched
+  // for non-exec roles.
+  const data = {
+    by_brand: [
+      { brand: 'ViePro',    volume_mt: 50, revenue: 1500000, gm_per_bag: 292.5, gmt: 5850 },
+      { brand: 'PowerBoost', volume_mt: 30, revenue:  900000, gm_per_bag: 185.2, gmt: 4100 }
+    ]
+  };
+  const out = stripMarginsIfNeeded(data, { id: 'x', role: 'dsm' });
+
+  // Volume + revenue preserved
+  assert.equal(out.by_brand[0].brand, 'ViePro');
+  assert.equal(out.by_brand[0].volume_mt, 50);
+  assert.equal(out.by_brand[0].revenue, 1500000);
+
+  // gm_per_bag stripped on every row (deleted, not nulled)
+  assert.equal('gm_per_bag' in out.by_brand[0], false);
+  assert.equal('gm_per_bag' in out.by_brand[1], false);
+  // Existing gmt strip still works — regression check
+  assert.equal('gmt' in out.by_brand[0], false);
+});
+
+test('stripMargins removes all known margin aliases from a single object', () => {
+  // Parametric coverage of every MARGIN_KEYS entry — fails loudly if a
+  // future refactor drops one from the constant.
+  const { MARGIN_KEYS } = require('../../api/_lib/scope.js');
+  const dirty = { safe_field: 'keep me' };
+  for (const k of MARGIN_KEYS) dirty[k] = 42;
+  const out = stripMarginsIfNeeded({ row: dirty }, { id: 'x', role: 'tsr' });
+  assert.equal(out.row.safe_field, 'keep me');
+  for (const k of MARGIN_KEYS) {
+    assert.equal(k in out.row, false, `expected ${k} to be stripped`);
+  }
+});
+
 test('stripMarginsDeep handles arrays of arrays', () => {
   const data = {
     matrix: [
