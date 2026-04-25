@@ -41,9 +41,16 @@ async function queueFarm(farmData) {
 
 var MAX_SYNC_RETRIES = 3;
 
-// Strip queue bookkeeping fields before sending to server
+// Strip queue bookkeeping fields before sending to server.
+// `offline_id` MUST be in this list — it's added by queueStore/queueFarm/
+// queueVisit (lines 28, 36, 19 above) for IndexedDB dedup, but the
+// stores/farms/visits tables have no offline_id column, so leaving it on
+// the payload triggers PostgREST PGRST204 ("Could not find the
+// 'offline_id' column"), the offline queue retries 3× and silently ejects.
+// Bug active since the queue was first wired; surfaced 2026-04-25 once
+// the upstream stores_store_type_check constraint stopped masking it.
 function _queuePayload(record, extraSkip) {
-  var skip = { id: 1, created_at: 1, retry_count: 1, last_error: 1, last_attempt_at: 1 };
+  var skip = { id: 1, offline_id: 1, created_at: 1, retry_count: 1, last_error: 1, last_attempt_at: 1 };
   if (extraSkip) for (var k in extraSkip) skip[k] = 1;
   var out = {};
   for (var key in record) { if (!skip[key]) out[key] = record[key]; }
