@@ -74,7 +74,7 @@ async function getStores(filters) {
 // if a future flow emits a value not in this set, normalize to 'other'
 // so the INSERT can't be rejected by the constraint and silently ejected
 // by offline.js after 3 retries.
-var STORE_TYPE_ALLOWED = ['feeds_dealer', 'farm_supply', 'pet_shop', 'veterinary', 'supermarket', 'other'];
+var STORE_TYPE_ALLOWED = ['feeds_dealer', 'farm', 'pet_shop', 'other'];
 
 async function createStore(storeData) {
   var session = getSession();

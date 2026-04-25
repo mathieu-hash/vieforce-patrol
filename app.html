@@ -1617,95 +1617,9 @@ if ('serviceWorker' in navigator) {
   var _storeBot = null;
   var _farmBot = null;
 
-  var storeFlow = [
-    { id: 'start', msg: 'Magandang araw! \ud83d\udc4b Mag-rehistro tayo ng bagong tindahan.', next: 'ask_name' },
-    { id: 'ask_name', msg: 'Ano ang pangalan ng tindahan? \ud83c\udfea', input: 'text', placeholder: 'hal. Golden Feeds Supply', field: 'name', next: 'ask_type' },
-    { id: 'ask_type', msg: 'Ano ang uri ng tindahan? \ud83d\udce6', field: 'store_type', next: 'ask_owner',
-      quickReplies: [
-        { text: '\ud83c\udfea Feeds Dealer', value: 'feeds_dealer' },
-        { text: '\ud83c\udf3e Farm Supply', value: 'farm_supply' },
-        { text: '\ud83d\udc15 Pet Shop', value: 'pet_shop' },
-        { text: '\ud83c\udfe5 Veterinary', value: 'veterinary' },
-        { text: '\ud83d\uded2 Supermarket', value: 'supermarket' },
-        { text: '\ud83c\udfec Iba pa', value: 'other' }
-      ] },
-    { id: 'ask_owner', msg: 'Sino ang may-ari? \ud83d\udc64', input: 'text', placeholder: 'hal. Ricardo Santos', field: 'owner_name', next: 'ask_phone' },
-    { id: 'ask_phone', msg: 'Ano ang contact number? \ud83d\udcde', input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_status' },
-    { id: 'ask_status', msg: 'Ano ang status ng tindahan? \ud83c\udfea', field: 'store_status_raw', next: 'ask_city',
-      quickReplies: [
-        { text: '\u2705 Kliyente na (may order na)', value: 'active' },
-        { text: '\ud83d\udc40 Prospect (hindi pa nag-o-order)', value: 'prospect' },
-        { text: '\ud83d\udd0d Lead (kakakilala lang)', value: 'identified' }
-      ] },
-    { id: 'ask_city', msg: 'Saang lungsod/munisipyo? \ud83c\udfd9\ufe0f', input: 'text', placeholder: 'hal. Quezon City', field: 'city', next: 'ask_location' },
-    { id: 'ask_location', msg: 'I-capture ang GPS? \ud83d\udccd', next: 'ask_volume',
-      quickReplies: [
-        { text: '\ud83d\udccd Kuhanin ang GPS ko', value: 'gps', next: 'do_gps' },
-        { text: '\u270d\ufe0f Skip muna', value: 'skip', next: 'ask_volume' }
-      ] },
-    { id: 'do_gps', msg: 'Kinukuha ang GPS...', action: 'gps', next: 'ask_volume' },
-    { id: 'ask_volume', msg: 'Ilang bags per month ang binebenta? \ud83d\udcca', field: 'vol_class', next: 'ask_bags',
-      quickReplies: [
-        { text: '\ud83d\udd25 High (>50 bags)', value: 'A' },
-        { text: '\u26a1 Medium (20-50)', value: 'B' },
-        { text: '\ud83c\udf31 Low (<20)', value: 'C' }
-      ] },
-    { id: 'ask_bags', msg: 'Tantiya bags per month? (numero lang)', input: 'number', placeholder: 'hal. 100', field: 'bags_per_month', next: 'ask_photo' },
-    { id: 'ask_photo', msg: 'Kumuha ng litrato ng tindahan? \ud83d\udcf8', next: 'confirm',
-      quickReplies: [
-        { text: '\ud83d\udcf7 Kumuha ngayon', value: 'photo', next: 'do_photo' },
-        { text: '\u23ed\ufe0f Skip muna', value: 'skip', next: 'confirm' }
-      ] },
-    { id: 'do_photo', msg: 'Binubuksan ang camera...', action: 'photo', next: 'confirm' },
-    { id: 'confirm', msg: 'Salamat! Pwede na ba i-save? \u2705', summary: true,
-      fields: ['name','store_type','store_status_raw','owner_name','phone','city','vol_class','bags_per_month'],
-      quickReplies: [
-        { text: '\u2705 Oo, i-save na', value: 'save', next: 'done' },
-        { text: '\u274c Kanselahin', value: 'cancel' }
-      ],
-      onAnswer: function (val) {
-        if (val === 'cancel') { nav('page-stores'); }
-      }
-    }
-  ];
+  // legacy storeFlow array removed 2026-04-25 — buildStoreFlow() is the live source
 
-  var farmFlow = [
-    { id: 'start', msg: 'Maligayang pagdating! \ud83d\udc16 Mag-rehistro tayo ng bagong farm.', next: 'ask_name' },
-    { id: 'ask_name', msg: 'Ano ang pangalan ng farm? \ud83c\udfe1', input: 'text', placeholder: 'hal. Santos Hog Farm', field: 'name', next: 'ask_type' },
-    { id: 'ask_type', msg: 'Ano ang klase ng farm? \ud83d\udc3d', field: 'type', next: 'ask_heads',
-      quickReplies: [
-        { text: '\ud83d\udc16 Hog / Baboy', value: 'hog' },
-        { text: '\ud83d\udc14 Poultry / Manok', value: 'poultry' },
-        { text: '\ud83d\udc2e Dairy / Gatas', value: 'dairy' },
-        { text: '\ud83d\udc13 Layer', value: 'layer' },
-        { text: '\ud83d\udc1f Aqua', value: 'aqua' }
-      ] },
-    { id: 'ask_heads', msg: 'Ilang heads / animals? \ud83d\udd22', input: 'number', placeholder: 'hal. 500', field: 'heads', next: 'ask_breed' },
-    { id: 'ask_breed', msg: 'Anong breed o genetics? \ud83e\uddec', input: 'text', placeholder: 'hal. Landrace, Cobb500', field: 'breed', next: 'ask_feed_partner' },
-    { id: 'ask_feed_partner', msg: 'Sino ang kasalukuyang feed supplier? \ud83c\udfed', input: 'text', placeholder: 'hal. Vienovo, SMC, CP...', field: 'feed_partner', next: 'ask_vet' },
-    { id: 'ask_vet', msg: 'May vet support ba? \ud83c\udfe5', field: 'vet_support', next: 'ask_owner',
-      quickReplies: [
-        { text: '\u2705 Oo, regular', value: 'regular' },
-        { text: '\u23f3 Occasional', value: 'occasional' },
-        { text: '\u274c Wala', value: 'none' }
-      ] },
-    { id: 'ask_owner', msg: 'Sino ang may-ari / contact? \ud83d\udc64', input: 'text', placeholder: 'hal. Juan dela Cruz', field: 'owner_name', next: 'ask_phone' },
-    { id: 'ask_phone', msg: 'Contact number? \ud83d\udcde', input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_location' },
-    { id: 'ask_location', msg: 'I-capture ang GPS ng farm? \ud83d\udccd', next: 'confirm',
-      quickReplies: [
-        { text: '\ud83d\udccd Kuhanin ang GPS', value: 'gps', next: 'do_gps' },
-        { text: '\u270d\ufe0f Skip muna', value: 'skip', next: 'confirm' }
-      ] },
-    { id: 'do_gps', msg: 'Kinukuha ang GPS...', action: 'gps', next: 'confirm' },
-    { id: 'confirm', msg: 'Salamat! Pwede na i-save ang farm? \u2705', summary: true,
-      fields: ['name','type','heads','breed','feed_partner','vet_support','owner_name','phone'],
-      quickReplies: [
-        { text: '\u2705 Oo, i-save na', value: 'save', next: 'done' },
-        { text: '\u274c Kanselahin', value: 'cancel' }
-      ],
-      onAnswer: function (val) { if (val === 'cancel') nav('page-stores'); }
-    }
-  ];
+  // legacy farmFlow array removed 2026-04-25 — buildFarmFlow() is the live source
 
   // ===== Chatbot i18n (2026-04-25) =====
   // The two flow arrays above are kept verbatim for diff hygiene but are no
@@ -1720,10 +1634,8 @@ if ('serviceWorker' in navigator) {
       store_name_ph: 'hal. Golden Feeds Supply',
       store_ask_type: 'Ano ang uri ng tindahan? 📦',
       store_type_dealer: '🏪 Feeds Dealer',
-      store_type_farm: '🌾 Farm Supply',
+      store_type_farm: '🌾 Sakahan',
       store_type_pet: '🐕 Pet Shop',
-      store_type_vet: '🏥 Veterinary',
-      store_type_super: '🛒 Supermarket',
       store_type_other: '🏬 Iba pa',
       store_ask_owner: 'Sino ang may-ari? 👤',
       store_owner_ph: 'hal. Ricardo Santos',
@@ -1782,10 +1694,8 @@ if ('serviceWorker' in navigator) {
       store_name_ph: 'pananglitan. Golden Feeds Supply',
       store_ask_type: 'Unsay matang sa tindahan? 📦',
       store_type_dealer: '🏪 Feeds Dealer',
-      store_type_farm: '🌾 Farm Supply',
+      store_type_farm: '🌾 Uma',
       store_type_pet: '🐕 Pet Shop',
-      store_type_vet: '🏥 Veterinary',
-      store_type_super: '🛒 Supermarket',
       store_type_other: '🏬 Lahi',
       store_ask_owner: 'Kinsay tag-iya? 👤',
       store_owner_ph: 'pananglitan. Ricardo Santos',
@@ -1844,10 +1754,8 @@ if ('serviceWorker' in navigator) {
       store_name_ph: 'e.g. Golden Feeds Supply',
       store_ask_type: 'What type of store? 📦',
       store_type_dealer: '🏪 Feeds Dealer',
-      store_type_farm: '🌾 Farm Supply',
+      store_type_farm: '🌾 Farm',
       store_type_pet: '🐕 Pet Shop',
-      store_type_vet: '🏥 Veterinary',
-      store_type_super: '🛒 Supermarket',
       store_type_other: '🏬 Other',
       store_ask_owner: 'Who’s the owner? 👤',
       store_owner_ph: 'e.g. Ricardo Santos',
@@ -1913,10 +1821,8 @@ if ('serviceWorker' in navigator) {
       { id: 'ask_type', msg: _ct('store_ask_type'), field: 'store_type', next: 'ask_owner',
         quickReplies: [
           { text: _ct('store_type_dealer'), value: 'feeds_dealer' },
-          { text: _ct('store_type_farm'),   value: 'farm_supply' },
+          { text: _ct('store_type_farm'),   value: 'farm' },
           { text: _ct('store_type_pet'),    value: 'pet_shop' },
-          { text: _ct('store_type_vet'),    value: 'veterinary' },
-          { text: _ct('store_type_super'),  value: 'supermarket' },
           { text: _ct('store_type_other'),  value: 'other' }
         ] },
       { id: 'ask_owner', msg: _ct('store_ask_owner'), input: 'text', placeholder: _ct('store_owner_ph'), field: 'owner_name', next: 'ask_phone' },
