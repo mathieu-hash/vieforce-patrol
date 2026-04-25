@@ -1683,42 +1683,32 @@ body {
 }
 .send:active { transform: scale(0.85); box-shadow: 0 1px 4px rgba(0,132,255,0.2); }
 
-/* ===== ADD-POS / ADD-FARM FAB (keyboard-aware) =====
-   Floating Action Button that replaces the inline .send icon on the
-   chatbot-register pages (#page-store-new, #page-farm-new). Lives at
-   bottom-right so it's out of the thumb-collision zone of the keyboard.
-   Hides (slides down + fades) when on-screen keyboard opens — JS toggles
-   .keyboard-open via visualViewport.onresize. Enter key still submits via
-   the input's onkeydown handler, so power-users can send without tapping.
+/* ===== CHAT-PAGE FLOATING-BUTTON SUPPRESSION + ENTER HINT =====
+   2026-04-25: removed both .chat-fab and .pos-fab on the chatbot-register
+   pages. Real-world tester saw two stacked green '+' buttons (the global
+   picker .fab AND the per-page .pos-fab) and could not tell them apart —
+   adoption-blocker. Single submission path retained: Enter key on the
+   phone keyboard (input's onkeydown handler at app.html:706 + 729). The
+   global picker .fab is also suppressed on chat sub-pages via :has() so
+   users have a clean chat surface with NO floating buttons at all.
 
-   Colors per 2026-04-24 spec: Vienovo Growth Green #97D700 background,
-   Deep Navy #004A64 foreground (SVG inherits via currentColor). */
-.pos-fab {
-  position: fixed;
-  right: 24px;
-  bottom: 84px;         /* sits above the 64px bottom nav */
-  width: 56px;
-  height: 56px;
-  border: none;
-  border-radius: 50%;
-  background: #97D700;       /* Vienovo Growth Green */
-  color: #004A64;            /* Vienovo Deep Navy — SVG inherits */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  cursor: pointer;
-  z-index: 120;         /* above pages, below overlays/sheets (z:1000+) */
-  transition: transform 0.2s ease-out, opacity 0.2s ease-out;
-  -webkit-tap-highlight-color: transparent;
+   Proper single-button replacement is a Friday/Tuesday redesign. Until
+   then: zero ambiguity, zero collision. */
+body:has(#page-store-new.active) #fab-btn,
+body:has(#page-farm-new.active)  #fab-btn {
+  display: none !important;
 }
-.pos-fab:active  { transform: scale(0.95); }
-.pos-fab:focus   { outline: 3px solid rgba(0,74,100,0.35); outline-offset: 2px; }
-.pos-fab.keyboard-open {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(120px);
+
+/* Helper hint — small, gentle, sits below the input bar on chat pages */
+.chat-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 8px 16px 14px;
+  background: var(--bg-main);
+  flex-shrink: 0;
 }
+.chat-hint b { font-weight: 600; color: var(--text-primary); }
 
 /* ===== BIG BUTTON (primary action, 64px min) ===== */
 .big-button {

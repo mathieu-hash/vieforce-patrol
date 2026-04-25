@@ -706,8 +706,7 @@ if ('serviceWorker' in navigator) {
       <input type="text" id="new-store-chat-input" placeholder="Sagot mo..." onkeydown="if(event.key==='Enter')window.__chatbotSend&&window.__chatbotSend()">
     </div>
   </div>
-  <!-- Add-POS FAB (replaces inline .send — hides when on-screen keyboard opens to prevent thumb-collision submits) -->
-  <button class="pos-fab" id="new-store-pos-fab" type="button" aria-label="Add POS" onclick="window.__chatbotSend&&window.__chatbotSend()"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+  <div class="chat-hint" aria-hidden="true">Pindutin ang <b>Enter</b> &#9166; para magpadala &middot; Press Enter to send</div>
 </div>
 
 <!-- ========================================= -->
@@ -729,8 +728,7 @@ if ('serviceWorker' in navigator) {
       <input type="text" id="new-farm-chat-input" placeholder="Sagot mo..." onkeydown="if(event.key==='Enter')window.__chatbotSend&&window.__chatbotSend()">
     </div>
   </div>
-  <!-- Add-Farm FAB (replaces inline .send — see store-new comment) -->
-  <button class="pos-fab" id="new-farm-pos-fab" type="button" aria-label="Add Farm" onclick="window.__chatbotSend&&window.__chatbotSend()"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+  <div class="chat-hint" aria-hidden="true">Pindutin ang <b>Enter</b> &#9166; para magpadala &middot; Press Enter to send</div>
 </div>
 
 <!-- ========================================= -->
@@ -951,38 +949,6 @@ if ('serviceWorker' in navigator) {
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=2"></script>
 
-<!-- Add-POS / Add-Farm FAB keyboard-awareness: hides .pos-fab elements when
-     the on-screen keyboard opens so users can't thumb-collide with the send
-     button while typing into the VieForce Assistant chat. Uses
-     visualViewport (reliable on iOS + modern Android Chrome) with a
-     window.innerHeight-ratio fallback for older WebViews. -->
-<script>
-(function () {
-  var _initialH = window.innerHeight;
-  function _setKbOpen(open) {
-    var fabs = document.querySelectorAll('.pos-fab');
-    for (var i = 0; i < fabs.length; i++) {
-      fabs[i].classList.toggle('keyboard-open', !!open);
-    }
-  }
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', function () {
-      // Keyboard is considered open when viewport height drops below 75% of
-      // the outer window. 75% is a conservative threshold that catches both
-      // iOS (keeps viewport chrome, keyboard ~40% of screen) and Android
-      // (shrinks viewport below the keyboard by roughly half).
-      _setKbOpen(window.visualViewport.height < window.innerHeight * 0.75);
-    });
-  } else {
-    // Fallback: old WebViews (Android 7 and earlier). Less reliable because
-    // some Android keyboards don't resize the window — users on very old
-    // devices keep the old .send behavior (via Enter key).
-    window.addEventListener('resize', function () {
-      _setKbOpen(window.innerHeight < _initialH * 0.75);
-    });
-  }
-})();
-</script>
 <script>
   // ===== Auth gate =====
   var session = requireAuth();
