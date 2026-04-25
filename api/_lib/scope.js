@@ -72,12 +72,20 @@ function wrapPatrolMeta(data, session, params) {
   params = params || {};
   session = session || {};
   const scope = data && typeof data === 'object' ? data.scope : null;
+  // Forward useful scope fields to the top-level patrol_meta envelope so
+  // future UI code doesn't have to walk into hq_scope. Kept hq_scope as the
+  // canonical authoritative subobject for back-compat with anything that
+  // reads it today (W10 follow-up, 2026-04-25).
   return Object.assign(
     {
       patrol_meta: {
         user_id: session.id || null,
         role: session.role || null,
+        name: (scope && scope.name) || session.name || null,
         period: params.period || null,
+        slpCodes_count: scope ? scope.slpCodes_count : null,
+        districtCodes_count: scope ? scope.districtCodes_count : null,
+        district_label: (scope && scope.district_label) || null,
         hq_scope: scope || null,
         is_empty: !!(scope && scope.is_empty),
         fetched_at: new Date().toISOString()

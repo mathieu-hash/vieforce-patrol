@@ -150,6 +150,32 @@ test('wrapPatrolMeta includes all meta fields', () => {
   assert.equal(out.kpis.volume_mt, 100);
 });
 
+test('wrapPatrolMeta forwards scope name + counts to top-level patrol_meta (W10c)', () => {
+  // 2026-04-25: name, slpCodes_count, districtCodes_count, district_label
+  // promoted from hq_scope to top-level patrol_meta so UI code doesn't have
+  // to walk into the inner subobject. hq_scope itself stays for back-compat.
+  const data = {
+    scope: {
+      user_id: 'u1', role: 'dsm', name: 'Jefrey Gatchalian',
+      slpCodes_count: 1, districtCodes_count: 0, district_label: 'MM-North',
+      is_empty: false
+    }
+  };
+  const out = wrapPatrolMeta(data, { id: 'u1', role: 'dsm', name: 'session-name' }, { period: 'MTD' });
+
+  assert.equal(out.patrol_meta.name, 'Jefrey Gatchalian', 'scope.name wins over session.name when both present');
+  assert.equal(out.patrol_meta.slpCodes_count, 1);
+  assert.equal(out.patrol_meta.districtCodes_count, 0);
+  assert.equal(out.patrol_meta.district_label, 'MM-North');
+  // Inner subobject still present for back-compat
+  assert.deepEqual(out.patrol_meta.hq_scope, data.scope);
+});
+
+test('wrapPatrolMeta name falls back to session.name when scope has none', () => {
+  const out = wrapPatrolMeta({ scope: { role: 'tsr' } }, { id: 'x', role: 'tsr', name: 'Rico' }, {});
+  assert.equal(out.patrol_meta.name, 'Rico', 'session.name used when scope.name absent');
+});
+
 test('wrapPatrolMeta handles is_empty=true zero-state', () => {
   const data = { scope: { is_empty: true, slpCodes_count: 0 } };
   const out = wrapPatrolMeta(data, { id: 'u', role: 'rsm' }, { period: 'YTD' });

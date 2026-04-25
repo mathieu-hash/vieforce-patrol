@@ -1903,7 +1903,21 @@ if ('serviceWorker' in navigator) {
     ];
   }
 
+  // Layer-1 guard against double-tap on the chatbot's confirm-save quick
+  // reply. Layer 2 (syncPending serialization in js/offline.js) already
+  // dedupes at the network boundary, but this guard prevents two
+  // pendingStores rows from being added in the first place — cleaner
+  // semantics, no orphan IndexedDB entries to retry+eject.
+  var _chatbotSaveLock = false;
+
   async function _saveStoreFromChatbot(data) {
+    if (_chatbotSaveLock) { console.warn('[chatbot] save already in flight — ignoring duplicate submit'); return; }
+    _chatbotSaveLock = true;
+    try { return await _saveStoreFromChatbotImpl(data); }
+    finally { _chatbotSaveLock = false; }
+  }
+
+  async function _saveStoreFromChatbotImpl(data) {
     // Map lifecycle answer -> store_status + prospect_stage
     var rawStatus = data.store_status_raw || 'active';
     var storeStatus = (rawStatus === 'active') ? 'active' : 'prospect';
@@ -1942,6 +1956,13 @@ if ('serviceWorker' in navigator) {
   }
 
   async function _saveFarmFromChatbot(data) {
+    if (_chatbotSaveLock) { console.warn('[chatbot] save already in flight — ignoring duplicate submit'); return; }
+    _chatbotSaveLock = true;
+    try { return await _saveFarmFromChatbotImpl(data); }
+    finally { _chatbotSaveLock = false; }
+  }
+
+  async function _saveFarmFromChatbotImpl(data) {
     var payload = {
       name: data.name,
       type: data.type || null,
