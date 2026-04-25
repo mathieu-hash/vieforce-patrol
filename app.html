@@ -1707,6 +1707,296 @@ if ('serviceWorker' in navigator) {
     }
   ];
 
+  // ===== Chatbot i18n (2026-04-25) =====
+  // The two flow arrays above are kept verbatim for diff hygiene but are no
+  // longer consulted at runtime. openChatbotStore/openChatbotFarm now call
+  // buildStoreFlow()/buildFarmFlow() which read window.currentLang to pick
+  // strings from _CHAT_T. Mid-flow language toggle requires reopening the
+  // chat — already-rendered messages stay in their original language.
+  var _CHAT_T = {
+    TL: {
+      store_start: 'Magandang araw! 👋 Mag-rehistro tayo ng bagong tindahan.',
+      store_ask_name: 'Ano ang pangalan ng tindahan? 🏪',
+      store_name_ph: 'hal. Golden Feeds Supply',
+      store_ask_type: 'Ano ang uri ng tindahan? 📦',
+      store_type_dealer: '🏪 Feeds Dealer',
+      store_type_farm: '🌾 Farm Supply',
+      store_type_pet: '🐕 Pet Shop',
+      store_type_vet: '🏥 Veterinary',
+      store_type_super: '🛒 Supermarket',
+      store_type_other: '🏬 Iba pa',
+      store_ask_owner: 'Sino ang may-ari? 👤',
+      store_owner_ph: 'hal. Ricardo Santos',
+      store_ask_phone: 'Ano ang contact number? 📞',
+      store_ask_status: 'Ano ang status ng tindahan? 🏪',
+      store_status_active: '✅ Kliyente na (may order na)',
+      store_status_prospect: '👀 Prospect (hindi pa nag-o-order)',
+      store_status_lead: '🔍 Lead (kakakilala lang)',
+      store_ask_city: 'Saang lungsod/munisipyo? 🏙️',
+      store_city_ph: 'hal. Quezon City',
+      store_ask_location: 'I-capture ang GPS? 📍',
+      gps_take: '📍 Kuhanin ang GPS ko',
+      skip: '✍️ Skip muna',
+      gps_loading: 'Kinukuha ang GPS...',
+      store_ask_volume: 'Ilang bags per month ang binebenta? 📊',
+      vol_high: '🔥 High (>50 bags)',
+      vol_medium: '⚡ Medium (20-50)',
+      vol_low: '🌱 Low (<20)',
+      store_ask_bags: 'Tantiya bags per month? (numero lang)',
+      bags_ph: 'hal. 100',
+      store_ask_photo: 'Kumuha ng litrato ng tindahan? 📸',
+      photo_take: '📷 Kumuha ngayon',
+      skip_now: '⏭️ Skip muna',
+      photo_loading: 'Binubuksan ang camera...',
+      store_confirm: 'Salamat! Pwede na ba i-save? ✅',
+      confirm_save: '✅ Oo, i-save na',
+      confirm_cancel: '❌ Kanselahin',
+      farm_start: 'Maligayang pagdating! 🐖 Mag-rehistro tayo ng bagong farm.',
+      farm_ask_name: 'Ano ang pangalan ng farm? 🏡',
+      farm_name_ph: 'hal. Santos Hog Farm',
+      farm_ask_type: 'Ano ang klase ng farm? 🐽',
+      farm_type_hog: '🐖 Hog / Baboy',
+      farm_type_poultry: '🐔 Poultry / Manok',
+      farm_type_dairy: '🐮 Dairy / Gatas',
+      farm_type_layer: '🐓 Layer',
+      farm_type_aqua: '🐟 Aqua',
+      farm_ask_heads: 'Ilang heads / animals? 🔢',
+      heads_ph: 'hal. 500',
+      farm_ask_breed: 'Anong breed o genetics? 🧬',
+      breed_ph: 'hal. Landrace, Cobb500',
+      farm_ask_feed: 'Sino ang kasalukuyang feed supplier? 🏭',
+      feed_ph: 'hal. Vienovo, SMC, CP...',
+      farm_ask_vet: 'May vet support ba? 🏥',
+      vet_regular: '✅ Oo, regular',
+      vet_occasional: '⏳ Occasional',
+      vet_none: '❌ Wala',
+      farm_ask_owner: 'Sino ang may-ari / contact? 👤',
+      farm_owner_ph: 'hal. Juan dela Cruz',
+      farm_ask_phone: 'Contact number? 📞',
+      farm_ask_location: 'I-capture ang GPS ng farm? 📍',
+      farm_confirm: 'Salamat! Pwede na i-save ang farm? ✅'
+    },
+    BIS: {
+      store_start: 'Maayong adlaw! 👋 Magrehistro ta og bag-ong tindahan.',
+      store_ask_name: 'Unsay pangalan sa tindahan? 🏪',
+      store_name_ph: 'pananglitan. Golden Feeds Supply',
+      store_ask_type: 'Unsay matang sa tindahan? 📦',
+      store_type_dealer: '🏪 Feeds Dealer',
+      store_type_farm: '🌾 Farm Supply',
+      store_type_pet: '🐕 Pet Shop',
+      store_type_vet: '🏥 Veterinary',
+      store_type_super: '🛒 Supermarket',
+      store_type_other: '🏬 Lahi',
+      store_ask_owner: 'Kinsay tag-iya? 👤',
+      store_owner_ph: 'pananglitan. Ricardo Santos',
+      store_ask_phone: 'Unsay contact number? 📞',
+      store_ask_status: 'Unsay status sa tindahan? 🏪',
+      store_status_active: '✅ Kliyente na (naa nay order)',
+      store_status_prospect: '👀 Prospect (wala pa nag-order)',
+      store_status_lead: '🔍 Lead (bag-o pa nakaila)',
+      store_ask_city: 'Unsang siyudad/munisipyo? 🏙️',
+      store_city_ph: 'pananglitan. Quezon City',
+      store_ask_location: 'I-capture ang GPS? 📍',
+      gps_take: '📍 Kuhaa ang GPS nako',
+      skip: '✍️ Skip una',
+      gps_loading: 'Gikuha ang GPS...',
+      store_ask_volume: 'Pila ka bags per month ang ginabaligya? 📊',
+      vol_high: '🔥 High (>50 bags)',
+      vol_medium: '⚡ Medium (20-50)',
+      vol_low: '🌱 Low (<20)',
+      store_ask_bags: 'Banabana ka bags per month? (numero lang)',
+      bags_ph: 'pananglitan. 100',
+      store_ask_photo: 'Kuha og litrato sa tindahan? 📸',
+      photo_take: '📷 Kuha karon',
+      skip_now: '⏭️ Skip una',
+      photo_loading: 'Gibuksan ang camera...',
+      store_confirm: 'Salamat! Pwede na ba i-save? ✅',
+      confirm_save: '✅ O, i-save na',
+      confirm_cancel: '❌ I-cancel',
+      farm_start: 'Maayong pag-abot! 🐖 Magrehistro ta og bag-ong farm.',
+      farm_ask_name: 'Unsay pangalan sa farm? 🏡',
+      farm_name_ph: 'pananglitan. Santos Hog Farm',
+      farm_ask_type: 'Unsay matang sa farm? 🐽',
+      farm_type_hog: '🐖 Hog / Baboy',
+      farm_type_poultry: '🐔 Poultry / Manok',
+      farm_type_dairy: '🐮 Dairy / Gatas',
+      farm_type_layer: '🐓 Layer',
+      farm_type_aqua: '🐟 Aqua',
+      farm_ask_heads: 'Pila ka heads / animals? 🔢',
+      heads_ph: 'pananglitan. 500',
+      farm_ask_breed: 'Unsang breed o genetics? 🧬',
+      breed_ph: 'pananglitan. Landrace, Cobb500',
+      farm_ask_feed: 'Kinsay current nga feed supplier? 🏭',
+      feed_ph: 'pananglitan. Vienovo, SMC, CP...',
+      farm_ask_vet: 'Naay vet support ba? 🏥',
+      vet_regular: '✅ O, regular',
+      vet_occasional: '⏳ Occasional',
+      vet_none: '❌ Wala',
+      farm_ask_owner: 'Kinsay tag-iya / contact? 👤',
+      farm_owner_ph: 'pananglitan. Juan dela Cruz',
+      farm_ask_phone: 'Contact number? 📞',
+      farm_ask_location: 'I-capture ang GPS sa farm? 📍',
+      farm_confirm: 'Salamat! Pwede na ba i-save ang farm? ✅'
+    },
+    EN: {
+      store_start: 'Hello! 👋 Let’s register a new store.',
+      store_ask_name: 'What’s the store name? 🏪',
+      store_name_ph: 'e.g. Golden Feeds Supply',
+      store_ask_type: 'What type of store? 📦',
+      store_type_dealer: '🏪 Feeds Dealer',
+      store_type_farm: '🌾 Farm Supply',
+      store_type_pet: '🐕 Pet Shop',
+      store_type_vet: '🏥 Veterinary',
+      store_type_super: '🛒 Supermarket',
+      store_type_other: '🏬 Other',
+      store_ask_owner: 'Who’s the owner? 👤',
+      store_owner_ph: 'e.g. Ricardo Santos',
+      store_ask_phone: 'What’s the contact number? 📞',
+      store_ask_status: 'What’s the store status? 🏪',
+      store_status_active: '✅ Active client (already ordering)',
+      store_status_prospect: '👀 Prospect (not yet ordering)',
+      store_status_lead: '🔍 Lead (just identified)',
+      store_ask_city: 'Which city/municipality? 🏙️',
+      store_city_ph: 'e.g. Quezon City',
+      store_ask_location: 'Capture GPS? 📍',
+      gps_take: '📍 Get my GPS',
+      skip: '✍️ Skip for now',
+      gps_loading: 'Getting GPS...',
+      store_ask_volume: 'How many bags sold per month? 📊',
+      vol_high: '🔥 High (>50 bags)',
+      vol_medium: '⚡ Medium (20-50)',
+      vol_low: '🌱 Low (<20)',
+      store_ask_bags: 'Estimated bags per month? (numbers only)',
+      bags_ph: 'e.g. 100',
+      store_ask_photo: 'Take a store photo? 📸',
+      photo_take: '📷 Take now',
+      skip_now: '⏭️ Skip for now',
+      photo_loading: 'Opening camera...',
+      store_confirm: 'Thanks! Save now? ✅',
+      confirm_save: '✅ Yes, save it',
+      confirm_cancel: '❌ Cancel',
+      farm_start: 'Welcome! 🐖 Let’s register a new farm.',
+      farm_ask_name: 'What’s the farm name? 🏡',
+      farm_name_ph: 'e.g. Santos Hog Farm',
+      farm_ask_type: 'What type of farm? 🐽',
+      farm_type_hog: '🐖 Hog / Pig',
+      farm_type_poultry: '🐔 Poultry / Chicken',
+      farm_type_dairy: '🐮 Dairy / Milk',
+      farm_type_layer: '🐓 Layer',
+      farm_type_aqua: '🐟 Aqua',
+      farm_ask_heads: 'How many heads / animals? 🔢',
+      heads_ph: 'e.g. 500',
+      farm_ask_breed: 'What breed or genetics? 🧬',
+      breed_ph: 'e.g. Landrace, Cobb500',
+      farm_ask_feed: 'Who’s the current feed supplier? 🏭',
+      feed_ph: 'e.g. Vienovo, SMC, CP...',
+      farm_ask_vet: 'Has vet support? 🏥',
+      vet_regular: '✅ Yes, regular',
+      vet_occasional: '⏳ Occasional',
+      vet_none: '❌ None',
+      farm_ask_owner: 'Who’s the owner / contact? 👤',
+      farm_owner_ph: 'e.g. Juan dela Cruz',
+      farm_ask_phone: 'Contact number? 📞',
+      farm_ask_location: 'Capture farm GPS? 📍',
+      farm_confirm: 'Thanks! Save the farm? ✅'
+    }
+  };
+  function _ct(key) {
+    var lang = String(window.currentLang || localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
+    var L = _CHAT_T[lang] || _CHAT_T.TL;
+    return L[key] || _CHAT_T.TL[key] || key;
+  }
+  function buildStoreFlow() {
+    return [
+      { id: 'start', msg: _ct('store_start'), next: 'ask_name' },
+      { id: 'ask_name', msg: _ct('store_ask_name'), input: 'text', placeholder: _ct('store_name_ph'), field: 'name', next: 'ask_type' },
+      { id: 'ask_type', msg: _ct('store_ask_type'), field: 'store_type', next: 'ask_owner',
+        quickReplies: [
+          { text: _ct('store_type_dealer'), value: 'feeds_dealer' },
+          { text: _ct('store_type_farm'),   value: 'farm_supply' },
+          { text: _ct('store_type_pet'),    value: 'pet_shop' },
+          { text: _ct('store_type_vet'),    value: 'veterinary' },
+          { text: _ct('store_type_super'),  value: 'supermarket' },
+          { text: _ct('store_type_other'),  value: 'other' }
+        ] },
+      { id: 'ask_owner', msg: _ct('store_ask_owner'), input: 'text', placeholder: _ct('store_owner_ph'), field: 'owner_name', next: 'ask_phone' },
+      { id: 'ask_phone', msg: _ct('store_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_status' },
+      { id: 'ask_status', msg: _ct('store_ask_status'), field: 'store_status_raw', next: 'ask_city',
+        quickReplies: [
+          { text: _ct('store_status_active'),   value: 'active' },
+          { text: _ct('store_status_prospect'), value: 'prospect' },
+          { text: _ct('store_status_lead'),     value: 'identified' }
+        ] },
+      { id: 'ask_city', msg: _ct('store_ask_city'), input: 'text', placeholder: _ct('store_city_ph'), field: 'city', next: 'ask_location' },
+      { id: 'ask_location', msg: _ct('store_ask_location'), next: 'ask_volume',
+        quickReplies: [
+          { text: _ct('gps_take'), value: 'gps',  next: 'do_gps' },
+          { text: _ct('skip'),     value: 'skip', next: 'ask_volume' }
+        ] },
+      { id: 'do_gps', msg: _ct('gps_loading'), action: 'gps', next: 'ask_volume' },
+      { id: 'ask_volume', msg: _ct('store_ask_volume'), field: 'vol_class', next: 'ask_bags',
+        quickReplies: [
+          { text: _ct('vol_high'),   value: 'A' },
+          { text: _ct('vol_medium'), value: 'B' },
+          { text: _ct('vol_low'),    value: 'C' }
+        ] },
+      { id: 'ask_bags', msg: _ct('store_ask_bags'), input: 'number', placeholder: _ct('bags_ph'), field: 'bags_per_month', next: 'ask_photo' },
+      { id: 'ask_photo', msg: _ct('store_ask_photo'), next: 'confirm',
+        quickReplies: [
+          { text: _ct('photo_take'), value: 'photo', next: 'do_photo' },
+          { text: _ct('skip_now'),   value: 'skip',  next: 'confirm' }
+        ] },
+      { id: 'do_photo', msg: _ct('photo_loading'), action: 'photo', next: 'confirm' },
+      { id: 'confirm', msg: _ct('store_confirm'), summary: true,
+        fields: ['name','store_type','store_status_raw','owner_name','phone','city','vol_class','bags_per_month'],
+        quickReplies: [
+          { text: _ct('confirm_save'),   value: 'save', next: 'done' },
+          { text: _ct('confirm_cancel'), value: 'cancel' }
+        ],
+        onAnswer: function (val) { if (val === 'cancel') { nav('page-stores'); } }
+      }
+    ];
+  }
+  function buildFarmFlow() {
+    return [
+      { id: 'start', msg: _ct('farm_start'), next: 'ask_name' },
+      { id: 'ask_name', msg: _ct('farm_ask_name'), input: 'text', placeholder: _ct('farm_name_ph'), field: 'name', next: 'ask_type' },
+      { id: 'ask_type', msg: _ct('farm_ask_type'), field: 'type', next: 'ask_heads',
+        quickReplies: [
+          { text: _ct('farm_type_hog'),     value: 'hog' },
+          { text: _ct('farm_type_poultry'), value: 'poultry' },
+          { text: _ct('farm_type_dairy'),   value: 'dairy' },
+          { text: _ct('farm_type_layer'),   value: 'layer' },
+          { text: _ct('farm_type_aqua'),    value: 'aqua' }
+        ] },
+      { id: 'ask_heads', msg: _ct('farm_ask_heads'), input: 'number', placeholder: _ct('heads_ph'), field: 'heads', next: 'ask_breed' },
+      { id: 'ask_breed', msg: _ct('farm_ask_breed'), input: 'text', placeholder: _ct('breed_ph'), field: 'breed', next: 'ask_feed_partner' },
+      { id: 'ask_feed_partner', msg: _ct('farm_ask_feed'), input: 'text', placeholder: _ct('feed_ph'), field: 'feed_partner', next: 'ask_vet' },
+      { id: 'ask_vet', msg: _ct('farm_ask_vet'), field: 'vet_support', next: 'ask_owner',
+        quickReplies: [
+          { text: _ct('vet_regular'),    value: 'regular' },
+          { text: _ct('vet_occasional'), value: 'occasional' },
+          { text: _ct('vet_none'),       value: 'none' }
+        ] },
+      { id: 'ask_owner', msg: _ct('farm_ask_owner'), input: 'text', placeholder: _ct('farm_owner_ph'), field: 'owner_name', next: 'ask_phone' },
+      { id: 'ask_phone', msg: _ct('farm_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_location' },
+      { id: 'ask_location', msg: _ct('farm_ask_location'), next: 'confirm',
+        quickReplies: [
+          { text: _ct('gps_take'), value: 'gps',  next: 'do_gps' },
+          { text: _ct('skip'),     value: 'skip', next: 'confirm' }
+        ] },
+      { id: 'do_gps', msg: _ct('gps_loading'), action: 'gps', next: 'confirm' },
+      { id: 'confirm', msg: _ct('farm_confirm'), summary: true,
+        fields: ['name','type','heads','breed','feed_partner','vet_support','owner_name','phone'],
+        quickReplies: [
+          { text: _ct('confirm_save'),   value: 'save', next: 'done' },
+          { text: _ct('confirm_cancel'), value: 'cancel' }
+        ],
+        onAnswer: function (val) { if (val === 'cancel') nav('page-stores'); }
+      }
+    ];
+  }
+
   async function _saveStoreFromChatbot(data) {
     // Map lifecycle answer -> store_status + prospect_stage
     var rawStatus = data.store_status_raw || 'active';
@@ -1768,31 +2058,28 @@ if ('serviceWorker' in navigator) {
   function openChatbotStore() {
     closeFabPicker();
     nav('page-store-new');
-    if (!_storeBot) {
-      _storeBot = new ChatbotWizard({
-        flow: storeFlow,
-        messagesId: 'new-store-messages',
-        quickRepliesId: 'new-store-quick-replies',
-        inputBarId: 'new-store-input-bar',
-        inputId: 'new-store-chat-input',
-        onFinish: _saveStoreFromChatbot
-      });
-    }
+    // Always rebuild — picks up the user's current language at session start.
+    _storeBot = new ChatbotWizard({
+      flow: buildStoreFlow(),
+      messagesId: 'new-store-messages',
+      quickRepliesId: 'new-store-quick-replies',
+      inputBarId: 'new-store-input-bar',
+      inputId: 'new-store-chat-input',
+      onFinish: _saveStoreFromChatbot
+    });
     _storeBot.start();
   }
   function openChatbotFarm() {
     closeFabPicker();
     nav('page-farm-new');
-    if (!_farmBot) {
-      _farmBot = new ChatbotWizard({
-        flow: farmFlow,
-        messagesId: 'new-farm-messages',
-        quickRepliesId: 'new-farm-quick-replies',
-        inputBarId: 'new-farm-input-bar',
-        inputId: 'new-farm-chat-input',
-        onFinish: _saveFarmFromChatbot
-      });
-    }
+    _farmBot = new ChatbotWizard({
+      flow: buildFarmFlow(),
+      messagesId: 'new-farm-messages',
+      quickRepliesId: 'new-farm-quick-replies',
+      inputBarId: 'new-farm-input-bar',
+      inputId: 'new-farm-chat-input',
+      onFinish: _saveFarmFromChatbot
+    });
     _farmBot.start();
   }
   window.openChatbotStore = openChatbotStore;
