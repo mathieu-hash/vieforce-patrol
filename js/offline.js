@@ -73,7 +73,26 @@ async function _markRetryOrEject(table, record, err, label) {
   return 'retry';
 }
 
+// 2026-04-25: serialise concurrent calls. Before this, _saveStoreFromChatbot
+// at app.html:1936 fires syncPending() directly while queueStore (above)
+// fires another via enhancedSyncStatus → syncPending. Both reach
+// pendingStores.toArray() before either deletes, both call createStore on
+// the same row, INSERT lands twice. Module-level _syncRunning holds the
+// in-flight promise; concurrent callers receive the same promise and
+// share its outcome. Slot is cleared in finally, so the next call (after
+// the current one resolves) starts a fresh sync — no stale lock.
+var _syncRunning = null;
+
 async function syncPending() {
+  if (_syncRunning) return _syncRunning;
+  _syncRunning = (async function () {
+    try { return await _syncPendingImpl(); }
+    finally { _syncRunning = null; }
+  })();
+  return _syncRunning;
+}
+
+async function _syncPendingImpl() {
   var results = { visits: 0, stores: 0, farms: 0, errors: [], ejected: 0 };
 
   // Sync pending farms

@@ -65,6 +65,91 @@ test('extraSkip parameter widens the strip list', () => {
   assert.equal(out.store_type, 'farm');
 });
 
+// ─────────────────────────────────────────────────────────────────────────
+// 2026-04-25: serialisation regression — concurrent syncPending() calls
+// from a single chatbot save (one direct at app.html:1936, one via
+// enhancedSyncStatus → syncPending inside queueStore) caused duplicate
+// INSERTs because both fires read the same pendingStores list before
+// either had a chance to delete. The module-level _syncRunning gate in
+// js/offline.js dedupes concurrent callers onto the in-flight promise.
+// ─────────────────────────────────────────────────────────────────────────
+test('concurrent syncPending() calls share one execution (dedup gate)', async () => {
+  // Load just the wrapper + gate — substitute _syncPendingImpl with a
+  // counting stub so we don't have to mock all of Dexie + createStore +
+  // friends. The wrapper logic is the new code under test.
+  const wrapperSrc = src.match(/var _syncRunning[\s\S]+?async function syncPending\(\)[\s\S]+?return _syncRunning;\s*\}/);
+  if (!wrapperSrc) throw new Error('could not locate syncPending wrapper in js/offline.js');
+
+  let implCalls = 0;
+  const ctx = vm.createContext({
+    Promise,
+    setTimeout,
+    _syncPendingImpl: async () => {
+      implCalls++;
+      // Simulate a real createStore round-trip — the race window depends on
+      // this being non-zero. 30ms is shorter than the 50-200ms a Cloud Run
+      // call typically takes; if dedup works for 30ms it works for any
+      // realistic latency.
+      await new Promise(r => setTimeout(r, 30));
+      return { stores: 1, errors: [] };
+    }
+  });
+  vm.runInContext(wrapperSrc[0], ctx);
+  const syncPending = ctx.syncPending;
+
+  // Fire three concurrent calls — the chatbot save handler fires two,
+  // testing three is more pessimistic.
+  const [r1, r2, r3] = await Promise.all([syncPending(), syncPending(), syncPending()]);
+
+  assert.equal(implCalls, 1, 'underlying _syncPendingImpl runs exactly once despite 3 concurrent calls');
+  assert.deepEqual(r1, r2, 'all callers receive the same result object');
+  assert.deepEqual(r2, r3);
+  assert.equal(r1.stores, 1);
+});
+
+test('a NEW syncPending() after the first resolves runs the impl again', async () => {
+  // Critical inverse property: the dedup must clear after the in-flight
+  // promise settles. Otherwise a second user save would silently no-op.
+  const wrapperSrc = src.match(/var _syncRunning[\s\S]+?async function syncPending\(\)[\s\S]+?return _syncRunning;\s*\}/);
+  let implCalls = 0;
+  const ctx = vm.createContext({
+    Promise, setTimeout,
+    _syncPendingImpl: async () => { implCalls++; return { ok: implCalls }; }
+  });
+  vm.runInContext(wrapperSrc[0], ctx);
+  const syncPending = ctx.syncPending;
+
+  await syncPending();        // first call: impl runs (count=1)
+  await syncPending();        // second call: impl runs again (count=2)
+  await syncPending();        // third call: impl runs again (count=3)
+  assert.equal(implCalls, 3, 'sequential calls each trigger their own impl run');
+});
+
+test('impl rejection clears the gate so next call retries cleanly', async () => {
+  // If _syncPendingImpl throws, _syncRunning must become null again so a
+  // subsequent call triggers a fresh attempt instead of inheriting the
+  // failed promise indefinitely.
+  const wrapperSrc = src.match(/var _syncRunning[\s\S]+?async function syncPending\(\)[\s\S]+?return _syncRunning;\s*\}/);
+  let implCalls = 0;
+  const ctx = vm.createContext({
+    Promise, setTimeout,
+    _syncPendingImpl: async () => {
+      implCalls++;
+      if (implCalls === 1) throw new Error('first attempt failed');
+      return { ok: true };
+    }
+  });
+  vm.runInContext(wrapperSrc[0], ctx);
+  const syncPending = ctx.syncPending;
+
+  // First call: rejects
+  await assert.rejects(() => syncPending(), /first attempt failed/);
+  // Second call: should run impl again (gate was cleared by finally)
+  const r = await syncPending();
+  assert.equal(implCalls, 2);
+  assert.equal(r.ok, true);
+});
+
 test('preserves all real DB columns through the strip', () => {
   // Mirror the chatbot's typical store payload — every key must survive
   // EXCEPT offline_id and created_at (queue bookkeeping).
