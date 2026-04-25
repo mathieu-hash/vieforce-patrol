@@ -68,9 +68,23 @@ async function getStores(filters) {
   return data || [];
 }
 
+// Mirrors the chatbot's quick-reply values (app.html:1623) plus 'other'.
+// Kept in sync with the stores_store_type_check constraint on the DB
+// (see migrations/stores-store-type-widen-check.sql). Defence-in-depth:
+// if a future flow emits a value not in this set, normalize to 'other'
+// so the INSERT can't be rejected by the constraint and silently ejected
+// by offline.js after 3 retries.
+var STORE_TYPE_ALLOWED = ['feeds_dealer', 'farm_supply', 'pet_shop', 'veterinary', 'supermarket', 'other'];
+
 async function createStore(storeData) {
   var session = getSession();
   storeData.created_by = session ? session.id : null;
+
+  // Normalize store_type to a constraint-safe value. NULL passes through.
+  if (storeData.store_type != null && STORE_TYPE_ALLOWED.indexOf(storeData.store_type) === -1) {
+    console.warn('[createStore] non-allowed store_type "' + storeData.store_type + '" — normalising to "other"');
+    storeData.store_type = 'other';
+  }
 
   var { data, error } = await supabaseClient
     .from('stores')
