@@ -609,7 +609,7 @@ function _updateFilterCounts(allStores) {
   });
 }
 
-/** Sales tab at-risk strip → Stores: consume one-shot filter pref (Babala / warn). */
+/** Sales / Pulse → Stores: consume one-shot filter pref (sessionStorage). */
 function applyStoresNavPreference() {
   var raw = null;
   try {
@@ -623,28 +623,37 @@ function applyStoresNavPreference() {
   var page = document.getElementById('page-stores');
   if (!page) return false;
 
-  var label = String(raw).trim() || 'all';
+  var norm = typeof window.normalizeStoresChipLabel === 'function'
+    ? window.normalizeStoresChipLabel(raw)
+    : String(raw).trim().toLowerCase() || 'all';
+
   var chips = page.querySelectorAll('.filter-chip');
   var i;
+  var matched = false;
   for (i = 0; i < chips.length; i++) {
     chips[i].classList.remove('active');
-    if ((chips[i].getAttribute('data-filter-label') || '') === label) {
+    if ((chips[i].getAttribute('data-filter-label') || '') === norm) {
       chips[i].classList.add('active');
+      matched = true;
     }
+  }
+  if (!matched && chips.length) {
+    chips[0].classList.add('active');
   }
 
   var searchInput = document.getElementById('store-search');
   var searchVal = searchInput ? searchInput.value.trim() : '';
 
-  var filter = {};
-  if (label === 'crit' || label === 'warn' || label === 'ok') {
-    filter.health_status = label;
-  } else if (label === 'prospect') {
-    filter.store_status = 'prospect';
-  } else if (label === 'active') {
-    filter.store_status = 'active';
-  }
-  if (searchVal) filter.search = searchVal;
+  var filter = typeof window.storesNavPrefToFilter === 'function'
+    ? window.storesNavPrefToFilter(norm, searchVal)
+    : (function () {
+      var f = {};
+      if (norm === 'crit' || norm === 'warn' || norm === 'ok') f.health_status = norm;
+      else if (norm === 'prospect') f.store_status = 'prospect';
+      else if (norm === 'active') f.store_status = 'active';
+      if (searchVal) f.search = searchVal;
+      return f;
+    })();
 
   renderStoreList(filter);
   return true;

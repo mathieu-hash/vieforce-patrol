@@ -758,11 +758,11 @@ function _renderQuickWins(stores, users) {
 
   return '<div class="quickwins-card">' +
     '<div class="quickwins-row">' +
-      '<button class="quickwin-pill quickwin-warn" onclick="nav(\'page-stores\')"><span class="quickwin-icon">⚠️</span><span>' + overdue + ' Overdue Stores</span></button>' +
-      '<button class="quickwin-pill quickwin-info" onclick="nav(\'page-stores\')"><span class="quickwin-icon">✨</span><span>' + prospects + ' New Prospects</span></button>' +
-      '<button class="quickwin-pill quickwin-blue" onclick="nav(\'page-team\')"><span class="quickwin-icon">🏆</span><span>Team Leaderboard</span></button>' +
-      '<button class="quickwin-pill quickwin-warn" onclick="nav(\'page-stores\')"><span class="quickwin-icon">🧭</span><span>Overdue Visits</span></button>' +
-      '<button class="quickwin-pill quickwin-info" onclick="nav(\'page-team\')"><span class="quickwin-icon">👥</span><span>' + tsrs + ' Active TSRs</span></button>' +
+      '<button type="button" class="quickwin-pill quickwin-warn" onclick="navStoresWithFilter(\'warn\')"><span class="quickwin-icon">⚠️</span><span>' + overdue + ' Overdue Stores</span></button>' +
+      '<button type="button" class="quickwin-pill quickwin-info" onclick="navStoresWithFilter(\'prospect\')"><span class="quickwin-icon">✨</span><span>' + prospects + ' New Prospects</span></button>' +
+      '<button type="button" class="quickwin-pill quickwin-blue" onclick="nav(\'page-team\')"><span class="quickwin-icon">🏆</span><span>Team Leaderboard</span></button>' +
+      '<button type="button" class="quickwin-pill quickwin-warn" onclick="navStoresWithFilter(\'warn\')"><span class="quickwin-icon">🧭</span><span>Overdue Visits</span></button>' +
+      '<button type="button" class="quickwin-pill quickwin-info" onclick="nav(\'page-team\')"><span class="quickwin-icon">👥</span><span>' + tsrs + ' Active TSRs</span></button>' +
     '</div>' +
   '</div>';
 }
@@ -889,20 +889,6 @@ function _renderPulseHead(session) {
         _ddEsc(initials) +
       '</button>' +
     '</div>';
-}
-
-function _renderHomeWarmHeader(session) {
-  var initials = _ddInitials(session && session.name);
-  return '<div class="home-warm-header">' +
-    '<div class="home-warm-left">' +
-      '<div class="home-warm-greet">' + _ddEsc(_homeGreeting(session && session.name)) + '</div>' +
-      '<div class="home-warm-sub">Your team command center for today</div>' +
-    '</div>' +
-    '<div class="home-warm-right">' +
-      '<div class="home-warm-avatar">' + _ddEsc(initials) + '</div>' +
-      '<span class="home-warm-online"></span>' +
-    '</div>' +
-  '</div>';
 }
 
 // ── 9. Master render ─────────────────────────────────────────

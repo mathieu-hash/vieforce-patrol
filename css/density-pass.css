@@ -563,6 +563,7 @@ body.role-ceo #global-sync-bar.sync-bar:not(.sync-hidden) {
   font-size: 12px;
   font-weight: 600;
   gap: 6px;
+  transition: none;
 }
 body.role-dsm #global-sync-bar.sync-bar:not(.sync-hidden) .sync-btn,
 body.role-rsm #global-sync-bar.sync-bar:not(.sync-hidden) .sync-btn,

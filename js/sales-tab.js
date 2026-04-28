@@ -87,10 +87,14 @@
       n + ' customer' + (n === 1 ? '' : 's') + ' slowing. Open stores list filtered to Babala.'
     );
     el.onclick = function () {
-      try {
-        sessionStorage.setItem('patrol_stores_nav_pref', 'warn');
-      } catch (_e) {}
-      if (typeof window.nav === 'function') window.nav('page-stores');
+      if (typeof window.navStoresWithFilter === 'function') {
+        window.navStoresWithFilter('warn');
+      } else {
+        try {
+          sessionStorage.setItem('patrol_stores_nav_pref', 'warn');
+        } catch (_e) {}
+        if (typeof window.nav === 'function') window.nav('page-stores');
+      }
     };
   }
 
