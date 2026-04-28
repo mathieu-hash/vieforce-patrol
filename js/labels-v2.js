@@ -1105,8 +1105,12 @@ function rerenderCurrentPage() {
   if (!activePage) return;
   var id = activePage.id;
 
-  if (id === 'page-stores' && typeof renderStoreList === 'function') {
-    renderStoreList();
+  if (id === 'page-stores') {
+    if (typeof applyStoresNavPreference === 'function' && applyStoresNavPreference()) {
+      /* list already rendered */
+    } else if (typeof renderStoreList === 'function') {
+      renderStoreList();
+    }
   }
   if (id === 'page-home' && typeof renderStoreList === 'function') {
     renderStoreList();

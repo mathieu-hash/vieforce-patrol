@@ -608,3 +608,45 @@ function _updateFilterCounts(allStores) {
     // ignore — counts just won't update
   });
 }
+
+/** Sales tab at-risk strip → Stores: consume one-shot filter pref (Babala / warn). */
+function applyStoresNavPreference() {
+  var raw = null;
+  try {
+    raw = sessionStorage.getItem('patrol_stores_nav_pref');
+  } catch (_e) {}
+  if (!raw) return false;
+  try {
+    sessionStorage.removeItem('patrol_stores_nav_pref');
+  } catch (_e2) {}
+
+  var page = document.getElementById('page-stores');
+  if (!page) return false;
+
+  var label = String(raw).trim() || 'all';
+  var chips = page.querySelectorAll('.filter-chip');
+  var i;
+  for (i = 0; i < chips.length; i++) {
+    chips[i].classList.remove('active');
+    if ((chips[i].getAttribute('data-filter-label') || '') === label) {
+      chips[i].classList.add('active');
+    }
+  }
+
+  var searchInput = document.getElementById('store-search');
+  var searchVal = searchInput ? searchInput.value.trim() : '';
+
+  var filter = {};
+  if (label === 'crit' || label === 'warn' || label === 'ok') {
+    filter.health_status = label;
+  } else if (label === 'prospect') {
+    filter.store_status = 'prospect';
+  } else if (label === 'active') {
+    filter.store_status = 'active';
+  }
+  if (searchVal) filter.search = searchVal;
+
+  renderStoreList(filter);
+  return true;
+}
+window.applyStoresNavPreference = applyStoresNavPreference;

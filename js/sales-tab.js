@@ -74,12 +74,24 @@
       el.classList.remove('visible');
       el.setAttribute('aria-hidden', 'true');
       el.textContent = '';
+      el.removeAttribute('aria-label');
+      el.onclick = null;
       return;
     }
     el.classList.add('visible');
-    el.setAttribute('aria-hidden', 'false');
+    el.removeAttribute('aria-hidden');
     el.textContent =
       '\u26a0\ufe0f ' + n + ' customer' + (n === 1 ? '' : 's') + ' slowing \u2014 tap to view';
+    el.setAttribute(
+      'aria-label',
+      n + ' customer' + (n === 1 ? '' : 's') + ' slowing. Open stores list filtered to Babala.'
+    );
+    el.onclick = function () {
+      try {
+        sessionStorage.setItem('patrol_stores_nav_pref', 'warn');
+      } catch (_e) {}
+      if (typeof window.nav === 'function') window.nav('page-stores');
+    };
   }
 
   function _paintVelocity(hqData, direct, period) {
@@ -241,8 +253,7 @@
       '</div>';
 
     var atriskHtml =
-      '<button type="button" class="sales-atrisk-strip" id="sales-atrisk-strip" ' +
-      'aria-hidden="true" onclick="nav(\'page-stores\')"></button>';
+      '<button type="button" class="sales-atrisk-strip" id="sales-atrisk-strip" aria-hidden="true"></button>';
 
     var brandHtml =
       '<div class="sales-card-d sales-by-brand-card">' +

@@ -6,8 +6,8 @@
 //   before. Rule 1 for this file: no regressions to the field-worker
 //   experience.
 //
-// DSM mobile (<900px): Home / Tindahan / Sales / Team / More
-// RSM mobile (<900px): Home / Region   / Sales / Team / More
+// DSM mobile (<900px): Home / Stores / Sales / AR / More
+// RSM mobile (<900px): Home / Stores / Sales / AR / More  (Region lives in More / pg-region)
 // Exec-like roles (exec/ceo/evp) on mobile: soft prompt to open HQ.
 //   Admin is NOT redirected (they need the Patrol admin panel).
 // Desktop any role: current nav stays — this script is a no-op.

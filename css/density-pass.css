@@ -553,3 +553,22 @@ body.role-rsm #page-stores .section-hdr,
 body.role-ceo #page-stores .section-hdr {
   display: none;
 }
+
+/* Global sync strip — compact when visible (offline / syncing / error); hidden when idle */
+body.role-dsm #global-sync-bar.sync-bar:not(.sync-hidden),
+body.role-rsm #global-sync-bar.sync-bar:not(.sync-hidden),
+body.role-ceo #global-sync-bar.sync-bar:not(.sync-hidden) {
+  min-height: 28px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+}
+body.role-dsm #global-sync-bar.sync-bar:not(.sync-hidden) .sync-btn,
+body.role-rsm #global-sync-bar.sync-bar:not(.sync-hidden) .sync-btn,
+body.role-ceo #global-sync-bar.sync-bar:not(.sync-hidden) .sync-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  min-height: 36px;
+  border-radius: 12px;
+}
