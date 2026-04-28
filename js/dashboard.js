@@ -662,7 +662,8 @@ function _renderTeamCta() {
 
 // ── Home Command Center (non-duplicative with Team tab) ────────────────────
 
-function _renderTeamPulse(stores, users, visits14, visits30) {
+/** Single-row pulse KPI strip (replaces 2×2 Team Pulse grid). */
+function _renderPulseStrip(stores, users, visits14, visits30) {
   var tsrs = (users || []).filter(function (u) { return u.role === 'tsr' && u.is_active; });
   var activeStores = (stores || []).filter(function (s) { return s.store_status === 'active'; });
   var openProspects = (stores || []).filter(function (s) { return s.store_status === 'prospect'; });
@@ -677,28 +678,18 @@ function _renderTeamPulse(stores, users, visits14, visits30) {
     return s.risk_status === 'at_risk' || s.risk_status === 'lost' || s.health_status === 'crit';
   });
 
-  return '<div class="pulse-card pulse-hero">' +
-    '<div class="card-header">' +
-      '<div class="card-title">👥 Team Pulse</div>' +
-      '<div class="card-period pulse-badge">Today + 30d</div>' +
-    '</div>' +
-    '<div class="pulse-grid">' +
-      '<div class="pulse-kpi">' +
-        '<div class="pulse-kpi-label">🟢 TSR Active Today</div>' +
-        '<div class="pulse-kpi-value">' + Object.keys(activeTodayMap).length + '<span>/' + tsrs.length + '</span></div>' +
-      '</div>' +
-      '<div class="pulse-kpi">' +
-        '<div class="pulse-kpi-label">🏪 Active Stores</div>' +
-        '<div class="pulse-kpi-value">' + activeStores.length + '</div>' +
-      '</div>' +
-      '<div class="pulse-kpi">' +
-        '<div class="pulse-kpi-label">✨ Open Prospects</div>' +
-        '<div class="pulse-kpi-value">' + openProspects.length + '</div>' +
-      '</div>' +
-      '<div class="pulse-kpi danger">' +
-        '<div class="pulse-kpi-label">⚠️ At-Risk Stores</div>' +
-        '<div class="pulse-kpi-value">' + riskStores.length + '</div>' +
-      '</div>' +
+  var activeCount = Object.keys(activeTodayMap).length;
+  var tsrSl = tsrs.length || 1;
+
+  return '<div class="pulse-strip-card">' +
+    '<div class="pulse-strip-inner">' +
+      '<span><strong>' + activeCount + '/' + tsrSl + '</strong> active</span>' +
+      '<span class="pulse-strip-sep">\u00b7</span>' +
+      '<span><strong>' + activeStores.length + '</strong> stores</span>' +
+      '<span class="pulse-strip-sep">\u00b7</span>' +
+      '<span><strong>' + openProspects.length + '</strong> prospects</span>' +
+      '<span class="pulse-strip-sep">\u00b7</span>' +
+      '<span><strong>' + riskStores.length + '</strong> at-risk</span>' +
     '</div>' +
   '</div>';
 }
@@ -791,9 +782,11 @@ function _buildExceptionQueue(stores, users) {
         queue.push({
           score: 120 + ageProspect,
           tag: 'Prospect aging',
-          msg: (s.name || 'Store') + ' is open for ' + ageProspect + ' days',
-          owner: owner,
-          severity: 'warn'
+          severity: 'warn',
+          storeId: s.id,
+          title: s.name || 'Store',
+          sub: owner + ' \u00b7 prospect',
+          ageLabel: ageProspect + 'd'
         });
       }
     }
@@ -803,9 +796,11 @@ function _buildExceptionQueue(stores, users) {
       queue.push({
         score: 100 + noVisitDays,
         tag: 'Visit overdue',
-        msg: (s.name || 'Store') + ' has no visit for ' + noVisitDays + ' days',
-        owner: owner,
-        severity: 'warn'
+        severity: 'warn',
+        storeId: s.id,
+        title: s.name || 'Store',
+        sub: owner,
+        ageLabel: noVisitDays + 'd'
       });
     }
 
@@ -813,56 +808,47 @@ function _buildExceptionQueue(stores, users) {
       queue.push({
         score: 200 + (s.risk_status === 'lost' ? 40 : 0),
         tag: s.risk_status === 'lost' ? 'Lost risk' : 'At-risk account',
-        msg: (s.name || 'Store') + ' needs manager intervention',
-        owner: owner,
-        severity: 'crit'
+        severity: 'crit',
+        storeId: s.id,
+        title: s.name || 'Store',
+        sub: owner + ' \u00b7 ' + (s.health_status === 'crit' ? 'critical' : 'at-risk'),
+        ageLabel: '\u26a0'
       });
     }
   }
 
   queue.sort(function (a, b) { return b.score - a.score; });
-  return queue.slice(0, 5);
+  return queue.slice(0, 8);
 }
 
 function _renderExceptionQueue(stores, users) {
   var queue = _buildExceptionQueue(stores, users);
   if (queue.length === 0) {
-    return '<div class="queue-card">' +
-      '<div class="card-header">' +
-        '<div class="card-title">⚠️ Exception Queue</div>' +
-        '<div class="card-period">Top 5 priorities</div>' +
-      '</div>' +
-      '<div class="queue-empty">✅ No urgent exceptions right now.</div>' +
+    return '<div class="queue-card-density">' +
+      '<div class="card-title-row">Exception queue</div>' +
+      '<div style="font-size:13px;color:#65676B;padding:6px 0 2px">\u2705 No urgent exceptions.</div>' +
     '</div>';
   }
 
   var rows = '';
   for (var i = 0; i < queue.length; i++) {
-    rows += '<div class="queue-row">' +
-      '<div class="queue-severity ' + (queue[i].severity === 'crit' ? 'crit' : 'warn') + '"></div>' +
-      '<div class="queue-main">' +
-        '<div class="queue-msg">' + _ddEsc(queue[i].msg) + '</div>' +
-        '<div class="queue-owner">Owner: ' + _ddEsc(queue[i].owner) + '</div>' +
-      '</div>' +
-      '<div class="queue-tag ' + (queue[i].severity === 'crit' ? 'crit' : 'warn') + '">' + _ddEsc(queue[i].tag) + '</div>' +
-    '</div>';
+    var q = queue[i];
+    var sid = q.storeId ? String(q.storeId).replace(/'/g, "\\'") : '';
+    var oc = sid ? 'onclick="openStoreDetail(\'' + sid + '\')"' : '';
+    rows +=
+      '<button type="button" class="queue-row-density queue-sev-' + q.severity + '" ' + oc + '>' +
+      '<span class="queue-row-main">' +
+        '<span class="queue-name-d">' + _ddEsc(q.title) + '</span>' +
+        '<span class="queue-sub-d">' + _ddEsc(q.sub) + '</span>' +
+      '</span>' +
+      '<span class="queue-age-d">' + _ddEsc(q.ageLabel) + '</span>' +
+      '</button>';
   }
 
-  var top = queue[0];
-  var actionHint = top.tag === 'Prospect aging'
-    ? 'Assign same-day follow-up for stale prospects.'
-    : top.tag === 'Visit overdue'
-      ? 'Push visit completion for overdue active stores.'
-      : 'Coach TSR + recovery plan on at-risk accounts.';
-
-  return '<div class="queue-card">' +
-    '<div class="card-header">' +
-      '<div class="card-title">⚠️ Exception Queue</div>' +
-      '<div class="card-period queue-badge">Top 5 priorities</div>' +
-    '</div>' +
+  return '<div class="queue-card-density">' +
+    '<div class="card-title-row">Exception queue</div>' +
     rows +
-    '<div class="priority-callout">📌 Priority action: ' + _ddEsc(actionHint) + '</div>' +
-  '</div>';
+    '</div>';
 }
 
 // ── 8. Export section ────────────────────────────────────────
@@ -876,6 +862,33 @@ function _renderExportSection() {
     '<button class="export-btn" onclick="ExportModule.exportStores()">\ud83c\udfea I-download ang Stores (Excel)</button>' +
     '<button class="export-btn" onclick="ExportModule.exportSummary()">\ud83d\udcca I-download ang Summary (Excel)</button>' +
   '</div>';
+}
+
+function _renderPulseFooterStrip() {
+  return '<div class="pulse-footer-strip">' +
+    '<button type="button" onclick="nav(\'page-team\')">View team details \u2192</button>' +
+    '<button type="button" onclick="typeof ExportModule!==\'undefined\'&&ExportModule.exportVisits()">Export \u2192</button>' +
+  '</div>';
+}
+
+function _renderPulseHead(session) {
+  var head = document.getElementById('dsm-pulse-head');
+  if (!head) return;
+  var scopeRaw = (session && (session.district || session.region || session.territory)) || '';
+  var scopeLabel = scopeRaw ? String(scopeRaw) : 'ALL';
+  var greet = _homeGreeting(session && session.name);
+  var initials = _ddInitials(session && session.name);
+  head.innerHTML =
+    '<div class="pulse-head-row">' +
+      '<span class="pulse-head-title">Pulse</span>' +
+      '<span class="pulse-head-dot">\u00b7</span>' +
+      '<span class="pulse-head-scope">' + _ddEsc(scopeLabel) + '</span>' +
+      '<span class="pulse-head-dot">\u00b7</span>' +
+      '<span class="pulse-head-greet">' + _ddEsc(greet) + '</span>' +
+      '<button type="button" class="pulse-head-avatar" id="dsm-avatar-btn" aria-label="Profile">' +
+        _ddEsc(initials) +
+      '</button>' +
+    '</div>';
 }
 
 function _renderHomeWarmHeader(session) {
@@ -906,20 +919,12 @@ async function renderDashboardV2() {
   var root = document.getElementById('dsm-dash-v2-root');
   if (!root) return;
 
-  // Subtitle reflects scope + name
-  var subtitle = document.getElementById('dsm-subtitle');
-  if (subtitle) {
-    subtitle.textContent = (session.district || session.region || 'All Territories') + ' \u00b7 ' + session.name;
-  }
-  var greeting = document.getElementById('dsm-greeting-text');
-  if (greeting) {
-    greeting.textContent = _homeGreeting(session && session.name);
-  }
+  _renderPulseHead(session);
 
+  root.className = 'dsm-dash density-dash-root';
   root.innerHTML =
-    '<div class="pulse-card" style="opacity:0.7">' +
-      '<div class="card-header"><div class="card-title">👥 Team Pulse</div></div>' +
-      '<div class="card-sub">Loading manager home snapshot…</div>' +
+    '<div class="pulse-strip-card" style="opacity:0.72">' +
+      '<div class="pulse-strip-inner">Loading manager home snapshot\u2026</div>' +
     '</div>';
 
   try {
@@ -942,15 +947,16 @@ async function renderDashboardV2() {
     var visits14 = (visits14Res && visits14Res.data) || [];
     var visits30 = (visits30Res && visits30Res.data) || [];
 
+    root.className = 'dsm-dash density-dash-root';
     root.innerHTML =
       _renderQuickWins(stores, users) +
-      _renderTeamPulse(stores, users, visits14, visits30) +
+      _renderPulseStrip(stores, users, visits14, visits30) +
       _renderExecutionOutcomes(stores, visits30) +
       _renderExceptionQueue(stores, users) +
-      _renderTeamCta() +
-      _renderExportSection();
+      _renderPulseFooterStrip();
   } catch (err) {
     console.error('renderDashboardV2:', err);
+    root.className = 'dsm-dash density-dash-root';
     root.innerHTML =
       '<div style="margin:12px 16px;padding:20px;background:white;border-radius:16px;text-align:center;color:#FA383E;font-size:13px">' +
         'Hindi ma-load ang dashboard.' +

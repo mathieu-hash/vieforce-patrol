@@ -10,7 +10,113 @@
   var _lastDirect = null;   // Direct SAP /api/sap/sales/all response
   var _periodBound = false;
   var _unitBound = false;
+  var _expandBound = false;
   var _currentUnit = 'BAGS'; // 'BAGS' | 'MT'
+
+  function _activePeriod() {
+    var pRow = document.querySelector('.sales-period-row');
+    var pActive = pRow && pRow.querySelector('.sales-period-btn.active');
+    return ((pActive && pActive.getAttribute('data-period')) || 'MTD').toUpperCase();
+  }
+
+  function _bindExpandOnce() {
+    if (_expandBound) return;
+    document.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      var btn = t.closest('.sales-expand-btn');
+      if (!btn) return;
+      var card = btn.closest('.sales-card-d');
+      if (card) card.classList.toggle('expanded');
+    });
+    _expandBound = true;
+  }
+
+  /** Sub-line under hero: uses HQ KPI keys when present (same upstream numbers). */
+  function _buildHeroSubline(hqData, period, unit) {
+    var k = (hqData && hqData.kpis) || {};
+    var parts = [];
+    var unitLabel = unit === 'MT' ? 'MT' : 'bags';
+    parts.push(period + ' ' + unitLabel);
+    var pct =
+      k.progress_pct != null ? Number(k.progress_pct)
+        : k.pct_to_target != null ? Number(k.pct_to_target)
+          : k.target_pct != null ? Number(k.target_pct)
+            : NaN;
+    if (!isNaN(pct)) parts.push(Math.round(pct) + '% of target');
+    var mom =
+      k.volume_mom_pct != null ? Number(k.volume_mom_pct)
+        : k.vs_last_month_pct != null ? Number(k.vs_last_month_pct)
+          : k.bags_mom_pct != null ? Number(k.bags_mom_pct)
+            : NaN;
+    if (!isNaN(mom)) {
+      parts.push((mom >= 0 ? '\u25b2 +' : '\u25bc ') + Math.abs(Math.round(mom)) + '% vs LM');
+    }
+    return parts.join(' \u00b7 ');
+  }
+
+  function _mtdDaysApprox() {
+    var now = new Date();
+    return Math.max(1, now.getDate());
+  }
+
+  function _ytdDaysApprox() {
+    var now = new Date();
+    var start = new Date(now.getFullYear(), 0, 1);
+    return Math.max(1, Math.round((now - start) / 86400000) + 1);
+  }
+
+  function _updateAtRiskStrip(direct) {
+    var el = document.getElementById('sales-atrisk-strip');
+    if (!el) return;
+    var n = (direct && direct.at_risk && direct.at_risk.length) || 0;
+    if (n <= 0) {
+      el.classList.remove('visible');
+      el.setAttribute('aria-hidden', 'true');
+      el.textContent = '';
+      return;
+    }
+    el.classList.add('visible');
+    el.setAttribute('aria-hidden', 'false');
+    el.textContent =
+      '\u26a0\ufe0f ' + n + ' customer' + (n === 1 ? '' : 's') + ' slowing \u2014 tap to view';
+  }
+
+  function _paintVelocity(hqData, direct, period) {
+    var spark = document.getElementById('sales-vel-spark');
+    var foot = document.getElementById('sales-vel-foot-text');
+    if (!foot) return;
+    var bags = direct && direct.kpis && direct.kpis.bags != null ? Number(direct.kpis.bags) : null;
+    var days = period === 'YTD' ? _ytdDaysApprox() : _mtdDaysApprox();
+    if (bags == null || isNaN(bags)) {
+      if (spark) spark.innerHTML = '';
+      foot.textContent = '';
+      return;
+    }
+    var bpd = bags / days;
+    foot.textContent =
+      _fmtIntish(Math.round(bpd)) + ' bags/day' +
+      _velocityMomSuffix(hqData);
+
+    if (!spark) return;
+    var bars = '';
+    var i;
+    for (i = 0; i < 18; i++) {
+      bars += '<span class="sales-vel-bar" role="presentation"></span>';
+    }
+    spark.innerHTML = bars;
+  }
+
+  function _velocityMomSuffix(hqData) {
+    var k = (hqData && hqData.kpis) || {};
+    var mom =
+      k.volume_mom_pct != null ? Number(k.volume_mom_pct)
+        : k.vs_last_month_pct != null ? Number(k.vs_last_month_pct)
+          : k.bags_mom_pct != null ? Number(k.bags_mom_pct)
+            : NaN;
+    if (isNaN(mom)) return '';
+    return ' \u00b7 ' + (mom >= 0 ? '\u25b2 +' : '\u25bc ') + Math.abs(Math.round(mom)) + '% vs LM';
+  }
 
   function _esc(s) {
     if (s == null) return '';
@@ -78,9 +184,10 @@
 
   function _showLoading(container) {
     container.innerHTML =
-      '<div class="sales-sap-loading" role="status">' +
-      '<span class="sales-sap-spinner" aria-hidden="true"></span> ' +
-      '<span>Loading sales…</span></div>';
+      '<div class="sales-density-hero" style="opacity:.72">' +
+      '<div class="sales-hero-num-d"><span class="sales-hero-skeleton" aria-label="Loading">\u2026</span></div>' +
+      '<div class="sales-hero-sub-d">Loading sales\u2026</div>' +
+      '</div>';
   }
 
   function _showError(container, period, errObj) {
@@ -116,95 +223,60 @@
       container.innerHTML =
         '<div class="sales-sap-empty">' +
         '<p><strong>No SAP scope for this account.</strong></p>' +
-        '<p class="sales-sap-empty-hint">Check user mapping in VieForce HQ or Supabase. ' +
-        'If you need the full desktop dashboard, use Open HQ below.</p></div>';
+        '<p class="sales-sap-empty-hint">Check user mapping in VieForce HQ or Supabase.</p></div>';
       return;
     }
 
     var hero = _heroForUnit(_currentUnit, data, _lastDirect);
     var heroValueHtml = hero.loading
-      ? '<span class="sales-hero-skeleton" aria-label="Loading">…</span>'
+      ? '<span class="sales-hero-skeleton" aria-label="Loading">\u2026</span>'
       : hero.formatted;
-    var heroLabel = (_currentUnit === 'MT' ? 'TOTAL MT' : 'TOTAL BAGS') + ' \u00b7 ' + period;
-
-    var scopeLabel =
-      (scope.district_label && String(scope.district_label)) ||
-      (pm.district_label && String(pm.district_label)) ||
-      (pm.name && String(pm.name)) ||
-      '';
+    var heroSub = _buildHeroSubline(data, period, _currentUnit);
 
     var heroHtml =
-      '<div class="sales-hero-card">' +
-      '<div class="sales-hero-row">' +
-      '<div class="sales-hero-icon" aria-hidden="true">' + _icon('box') + '</div>' +
-      '<div class="sales-hero-text">' +
-      '<div class="sales-hero-label">' + _esc(heroLabel) + '</div>' +
-      '<div class="sales-hero-value" id="sales-hero-value">' + heroValueHtml + '</div>' +
-      '</div>' +
-      '</div>' +
-      '<div class="sales-hero-divider"></div>' +
-      '<div class="sales-hero-foot">' +
-      '<div class="sales-hero-foot-left">' + (scopeLabel ? _esc(scopeLabel) : '') + '</div>' +
-      '<div id="sales-sap-fresh-host"></div>' +
-      '</div>' +
+      '<div class="sales-density-hero">' +
+      '<div class="sales-sync-corner" id="sales-sap-fresh-host"></div>' +
+      '<div class="sales-hero-num-d" id="sales-hero-num-main">' + heroValueHtml + '</div>' +
+      '<div class="sales-hero-sub-d" id="sales-hero-subline">' + _esc(heroSub) + '</div>' +
       '</div>';
 
-    var insightsHtml =
-      '<div class="sales-section">' +
-      '<div class="sales-section-title">QUICK INSIGHTS</div>' +
-      '<div class="sales-insights-row">' +
-      '<div class="sales-insight-card sales-insight-amber">' +
-      '<div class="sales-insight-head">' + _icon('chart-line', 'amber') + '<span>Whitespace</span></div>' +
-      '<div class="sales-insight-value" id="sales-insight-whitespace">…</div>' +
-      '<div class="sales-insight-sub">stores with 0 bags</div>' +
-      '</div>' +
-      '<div class="sales-insight-card sales-insight-rose">' +
-      '<div class="sales-insight-head">' + _icon('alert', 'rose') + '<span>At risk</span></div>' +
-      '<div class="sales-insight-value" id="sales-insight-atrisk">…</div>' +
-      '<div class="sales-insight-sub">stores slowing or stopped</div>' +
-      '</div>' +
-      '</div>' +
-      '</div>';
+    var atriskHtml =
+      '<button type="button" class="sales-atrisk-strip" id="sales-atrisk-strip" ' +
+      'aria-hidden="true" onclick="nav(\'page-stores\')"></button>';
 
     var brandHtml =
-      '<div class="sales-section">' +
-      '<div class="sales-section-title">BREAKDOWN</div>' +
-      '<div class="sales-card sales-by-brand-card">' +
-      '<div class="sales-card-title-row"><span class="sales-card-title-with-icon">' +
-      _icon('tags', 'primary') + '<span>By brand</span></span><span class="sales-card-meta">Top 5</span></div>' +
-      '<div class="sales-card-body" id="sales-by-brand-body">' +
-      '<div class="sales-card-loading">Loading…</div>' +
-      '</div></div>' +
-      '<div class="sales-card sales-by-customer">' +
-      '<div class="sales-card-title-row"><span class="sales-card-title-with-icon">' +
-      _icon('users', 'primary') + '<span>By customer</span></span><span class="sales-card-meta">Top 5</span></div>' +
-      '<div class="sales-card-body" id="sales-by-customer-body">' +
-      '<div class="sales-card-loading">Loading…</div>' +
-      '</div></div>' +
+      '<div class="sales-card-d sales-by-brand-card">' +
+      '<div class="sales-card-d-h">' +
+      '<span class="sales-card-d-title">By brand</span>' +
+      '</div>' +
+      '<div id="sales-by-brand-body"><div class="sales-card-loading">Loading\u2026</div></div>' +
+      '<button type="button" class="sales-expand-btn" id="sales-brand-expand" style="display:none">' +
+      '+ more</button>' +
       '</div>';
 
-    var detailHtml =
-      '<div class="sales-section">' +
-      '<div class="sales-section-title">FIELD ACTIONS</div>' +
-      '<div class="sales-card sales-whitespace">' +
-      '<div class="sales-card-title-row"><span class="sales-card-title-with-icon">' +
-      _icon('flag', 'amber') + '<span>Whitespace</span></span><span class="sales-card-meta">0 bags this month</span></div>' +
-      '<div class="sales-card-body" id="sales-whitespace-body">' +
-      '<div class="sales-card-loading">Loading…</div>' +
-      '</div></div>' +
-      '<div class="sales-card sales-at-risk">' +
-      '<div class="sales-card-title-row"><span class="sales-card-title-with-icon">' +
-      _icon('alert', 'rose') + '<span>At risk</span></span><span class="sales-card-meta">Last 14d+</span></div>' +
-      '<div class="sales-card-body" id="sales-at-risk-body">' +
-      '<div class="sales-card-loading">Loading…</div>' +
-      '</div></div>' +
+    var custHtml =
+      '<div class="sales-card-d sales-by-customer">' +
+      '<div class="sales-card-d-h">' +
+      '<span class="sales-card-d-title">By customer</span>' +
+      '</div>' +
+      '<div id="sales-by-customer-body"><div class="sales-card-loading">Loading\u2026</div></div>' +
+      '<button type="button" class="sales-expand-btn" id="sales-customer-expand" style="display:none">' +
+      '+ more</button>' +
       '</div>';
 
-    container.innerHTML = heroHtml + insightsHtml + brandHtml + detailHtml;
+    var velHtml =
+      '<div class="sales-card-d" id="sales-velocity-card">' +
+      '<div class="sales-card-d-h"><span class="sales-card-d-title">Velocity</span></div>' +
+      '<div class="sales-vel-spark" id="sales-vel-spark" aria-hidden="true"></div>' +
+      '<div class="sales-vel-foot"><span id="sales-vel-foot-text"></span></div>' +
+      '</div>';
+
+    container.innerHTML = heroHtml + atriskHtml + brandHtml + custHtml + velHtml;
 
     if (_lastDirect) {
       _renderDirectCards(_lastDirect);
-      _updateInsightCounts(_lastDirect);
+      _updateAtRiskStrip(_lastDirect);
+      _paintVelocity(data, _lastDirect, period);
       _updateFreshness('ok');
     } else {
       _updateFreshness('loading');
@@ -232,28 +304,18 @@
     return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" ' + stroke + '>' + inner + '</svg>';
   }
 
-  function _updateInsightCounts(direct) {
-    if (!direct) return;
-    var ws = (direct.whitespace || []).length;
-    var ar = (direct.at_risk || []).length;
-    var wEl = document.getElementById('sales-insight-whitespace');
-    var aEl = document.getElementById('sales-insight-atrisk');
-    if (wEl) wEl.textContent = _fmtIntish(ws);
-    if (aEl) aEl.textContent = _fmtIntish(ar);
-  }
-
   function _updateHero() {
     if (!_lastData) return;
-    var el = document.getElementById('sales-hero-value');
-    var lbl = document.querySelector('.sales-kpi-hero .sales-kpi-label');
+    var el = document.getElementById('sales-hero-num-main');
+    var sub = document.getElementById('sales-hero-subline');
     if (!el) return;
     var hero = _heroForUnit(_currentUnit, _lastData, _lastDirect);
     if (hero.loading) {
-      el.innerHTML = '<span class="sales-hero-skeleton">…</span>';
+      el.innerHTML = '<span class="sales-hero-skeleton" aria-label="Loading">\u2026</span>';
     } else {
       el.textContent = hero.formatted;
     }
-    if (lbl) lbl.textContent = hero.label;
+    if (sub) sub.textContent = _buildHeroSubline(_lastData, _activePeriod(), _currentUnit);
   }
 
   function _updateFreshness(state) {
@@ -261,22 +323,16 @@
     if (!host) return;
     if (state === 'loading') {
       host.innerHTML =
-        '<div class="sales-sap-fresh sales-sap-fresh-loading" role="status" aria-live="polite">' +
-        '<span class="sales-sap-fresh-dot sales-sap-fresh-dot-loading" aria-hidden="true"></span>' +
-        '<span>Loading SAP…</span></div>';
+        '<span class="sales-sap-fresh-dot sales-sap-fresh-dot-loading" role="status" aria-live="polite" title="Loading SAP"></span>';
     } else if (state === 'error') {
       host.innerHTML =
-        '<div class="sales-sap-fresh sales-sap-fresh-err" role="status">' +
-        '<span class="sales-sap-fresh-dot sales-sap-fresh-dot-err" aria-hidden="true"></span>' +
-        '<span>SAP unreachable</span></div>';
+        '<span class="sales-sap-fresh-dot sales-sap-fresh-dot-err" role="status" title="SAP unreachable"></span>';
     } else if (state === 'ok' && _lastDirect) {
       var iso = (_lastDirect.patrol_meta && _lastDirect.patrol_meta.fetched_at) ||
         (_lastData && _lastData.patrol_meta && _lastData.patrol_meta.fetched_at);
       var label = _formatFreshness(iso);
       host.innerHTML = label
-        ? '<div class="sales-sap-fresh" role="status" aria-live="polite">' +
-          '<span class="sales-sap-fresh-dot" aria-hidden="true"></span>' +
-          '<span>SAP synced ' + _esc(label) + '</span></div>'
+        ? '<span class="sales-sap-fresh-dot" role="img" aria-label="SAP synced ' + _esc(label) + '" title="SAP synced ' + _esc(label) + '"></span>'
         : '';
     } else {
       host.innerHTML = '';
@@ -289,13 +345,11 @@
   async function _loadAllDirectSap(period) {
     var brEl = document.getElementById('sales-by-brand-body');
     var byEl = document.getElementById('sales-by-customer-body');
-    var wsEl = document.getElementById('sales-whitespace-body');
-    var arEl = document.getElementById('sales-at-risk-body');
 
     var url = '/api/sap/sales/all?period=' + encodeURIComponent(period);
     var session = (typeof getSession === 'function') ? getSession() : null;
     if (!session || !session.id) {
-      _spreadError([brEl, byEl, wsEl, arEl], { message: 'Session missing. Sign in again.' });
+      _spreadError([brEl, byEl], { message: 'Session missing. Sign in again.' });
       return;
     }
 
@@ -334,7 +388,7 @@
 
     if (!data || data.error) {
       _spreadError(
-        [brEl, byEl, wsEl, arEl],
+        [brEl, byEl],
         data || { error: 'SAP server unreachable. Try again.' }
       );
       _injectDirectRetry(period, data && data.message);
@@ -378,11 +432,23 @@
   function _renderDirectCards(data) {
     _renderByBrand(document.getElementById('sales-by-brand-body'), data.by_brand || []);
     _renderByCustomer(document.getElementById('sales-by-customer-body'), data.by_customer || []);
-    _renderWhitespace(document.getElementById('sales-whitespace-body'), data.whitespace || []);
-    _renderAtRisk(document.getElementById('sales-at-risk-body'), data.at_risk || []);
+    _syncExpandButtons();
   }
 
-  var _BRAND_DOTS = ['#00A6CE', '#10B981', '#F59E0B', '#8B5CF6', '#3B82F6'];
+  /** Navy / grey only — avoids rainbow accent clutter on dense rows. */
+  var _BRAND_DOTS = ['#004D71', '#6b7280', '#9ca3af', '#4b5563', '#374151'];
+
+  function _syncExpandButtons() {
+    ['sales-brand-expand', 'sales-customer-expand'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      var card = btn && btn.closest('.sales-card-d');
+      if (!btn || !card) return;
+      var wrap = card.querySelector('.sales-extra-rows');
+      var extra = wrap ? wrap.querySelectorAll('.sales-row-d').length : 0;
+      btn.style.display = extra > 0 ? 'block' : 'none';
+      btn.textContent = '+' + extra + ' more';
+    });
+  }
 
   function _renderByBrand(el, brands) {
     if (!el) return;
@@ -395,22 +461,36 @@
     for (var t = 0; t < list.length; t++) total += parseFloat(list[t].bags) || 0;
     if (total <= 0) total = 0;
 
-    var html = '';
-    for (var i = 0; i < list.length; i++) {
-      var r = list[i];
+    var top = list.slice(0, 3);
+    var rest = list.slice(3);
+
+    function rowHtml(r, idxGlobal) {
       var name = (r && r.name) || '(no brand)';
       var bags = parseFloat(r && r.bags) || 0;
       var pct = total > 0 ? Math.round((bags / total) * 100) : 0;
-      var dot = _BRAND_DOTS[i % _BRAND_DOTS.length];
-      html +=
-        '<div class="sales-row sales-brand-row-luxe">' +
-        '<span class="sales-brand-name"><span class="sales-brand-dot" style="background:' + dot + '"></span>' +
+      var dot = _BRAND_DOTS[idxGlobal % _BRAND_DOTS.length];
+      return (
+        '<div class="sales-row-d">' +
+        '<span class="nm"><span class="sales-brand-dot" style="background:' + dot + '"></span>' +
         _esc(name) + '</span>' +
-        '<span class="sales-brand-meta">' +
-        '<strong>' + _fmtIntish(bags) + '</strong>' +
-        '<span class="sales-brand-pct">' + pct + '%</span>' +
-        '</span></div>';
+        '<span class="sales-brand-bar-track" aria-hidden="true">' +
+        '<span class="sales-brand-bar-fill" style="width:' + pct + '%"></span></span>' +
+        '<span class="meta">' + pct + '% \u00b7 ' + _fmtIntish(bags) + '</span>' +
+        '</div>'
+      );
     }
+
+    var html = '';
+    var i;
+    for (i = 0; i < top.length; i++) html += rowHtml(top[i], i);
+
+    if (rest.length) {
+      html += '<div class="sales-extra-rows">';
+      var base = top.length;
+      for (var j = 0; j < rest.length; j++) html += rowHtml(rest[j], base + j);
+      html += '</div>';
+    }
+
     el.innerHTML = html;
   }
 
@@ -434,57 +514,25 @@
       el.innerHTML = '<div class="sales-card-empty">No invoiced customers in this period.</div>';
       return;
     }
-    var html = '';
-    for (var i = 0; i < list.length; i++) {
-      var r = list[i];
-      html +=
-        '<div class="sales-row">' +
-        '<span class="sales-row-name">' + _esc(r.name || r.cardcode || '—') + '</span>' +
-        '<strong class="sales-row-value">' + _fmtIntish(r.bags) + ' bags</strong>' +
-        '</div>';
-    }
-    el.innerHTML = html;
-  }
+    var top = list.slice(0, 3);
+    var rest = list.slice(3);
 
-  function _renderWhitespace(el, whitespace) {
-    if (!el) return;
-    var list = (whitespace || []).slice(0, 5);
-    if (!list.length) {
-      el.innerHTML = '<div class="sales-card-empty">All BPs invoiced this month.</div>';
-      return;
+    function rowHtml(r) {
+      return (
+        '<div class="sales-row-d">' +
+        '<span class="nm">' + _esc(r.name || r.cardcode || '\u2014') + '</span>' +
+        '<span class="meta">' + _fmtIntish(r.bags) + ' bags</span>' +
+        '</div>'
+      );
     }
-    var html = '';
-    for (var i = 0; i < list.length; i++) {
-      var r = list[i];
-      var phone = r.phone ? '<a href="tel:' + _esc(r.phone) + '" class="sales-row-call">Call</a>' : '';
-      html +=
-        '<div class="sales-row">' +
-        '<span class="sales-row-name">' + _esc(r.name || r.cardcode || '—') + '</span>' +
-        phone +
-        '</div>';
-    }
-    el.innerHTML = html;
-  }
 
-  function _renderAtRisk(el, atRisk) {
-    if (!el) return;
-    var list = (atRisk || []).slice(0, 5);
-    if (!list.length) {
-      el.innerHTML = '<div class="sales-card-empty">All BPs ordered in last 14 days.</div>';
-      return;
-    }
     var html = '';
-    for (var i = 0; i < list.length; i++) {
-      var r = list[i];
-      var tier = r.tier || 'slowing';
-      var label = r.days_since_last_order == null
-        ? 'no orders yet'
-        : r.days_since_last_order + 'd';
-      html +=
-        '<div class="sales-row">' +
-        '<span class="sales-row-name">' + _esc(r.name || r.cardcode || '—') + '</span>' +
-        '<span class="sales-tier sales-tier-' + _esc(tier) + '">' + _esc(label) + '</span>' +
-        '</div>';
+    var i;
+    for (i = 0; i < top.length; i++) html += rowHtml(top[i]);
+    if (rest.length) {
+      html += '<div class="sales-extra-rows">';
+      for (var j = 0; j < rest.length; j++) html += rowHtml(rest[j]);
+      html += '</div>';
     }
     el.innerHTML = html;
   }
@@ -603,6 +651,7 @@
   };
 
   window.initSalesTab = function () {
+    _bindExpandOnce();
     _bindPeriodRowOnce();
     _bindUnitRowOnce();
     var pRow = document.querySelector('.sales-period-row');

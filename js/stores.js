@@ -328,6 +328,13 @@ function _renderStoryCircles(stores, gradients, gradientArr) {
   var el = document.getElementById('story-circles-row');
   if (!el) return;
 
+  // Density pass: managers hide this row (CSS); skip DOM work for DSM/RSM/CEO.
+  var b = document.body;
+  if (b && (b.classList.contains('role-dsm') || b.classList.contains('role-rsm') || b.classList.contains('role-ceo'))) {
+    el.style.display = 'none';
+    return;
+  }
+
   // Story circles keep gradients (urgent priority visuals). Soft palette.
   var storyGrads = {
     crit: 'linear-gradient(135deg,#E8746E,#F0958F)',

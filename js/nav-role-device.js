@@ -38,20 +38,20 @@
     dsm: {
       mobile: [
         { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',     page: 'page-dashboard' },
-        { id: 'tindahan', icon: '\ud83c\udfea', label: 'Tindahan', page: 'page-stores'    },
+        { id: 'tindahan', icon: '\ud83c\udfea', label: 'Stores',   page: 'page-stores'    },
         { id: 'sales',    icon: '\ud83d\udcca', label: 'Sales',    page: 'pg-sales'       },
-        { id: 'team',     icon: '\ud83d\udc65', label: 'Team',     page: 'page-team'      },
+        { id: 'ar',       icon: '\ud83d\udcb0', label: 'AR',       page: 'pg-ar'          },
         { id: 'more',     icon: '\u2630',       label: 'More',     action: 'openMoreSheet' }
       ]
     },
 
     rsm: {
       mobile: [
-        { id: 'home',   icon: '\ud83c\udfe0',   label: 'Home',   page: 'page-rsm-home' },
-        { id: 'region', icon: '\ud83d\uddfa\ufe0f', label: 'Region', page: 'pg-region' },
-        { id: 'sales',  icon: '\ud83d\udcca',   label: 'Sales',  page: 'pg-sales'  },
-        { id: 'team',   icon: '\ud83d\udc65',   label: 'Team',   page: 'page-team' },
-        { id: 'more',   icon: '\u2630',         label: 'More',   action: 'openMoreSheet' }
+        { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',     page: 'page-rsm-home' },
+        { id: 'tindahan', icon: '\ud83c\udfea', label: 'Stores',   page: 'page-stores' },
+        { id: 'sales',    icon: '\ud83d\udcca', label: 'Sales',    page: 'pg-sales' },
+        { id: 'ar',       icon: '\ud83d\udcb0', label: 'AR',       page: 'pg-ar' },
+        { id: 'more',     icon: '\u2630',       label: 'More',     action: 'openMoreSheet' }
       ]
     }
   };
@@ -123,8 +123,9 @@
         onclickAttr = "navTo('" + escAttr(it.page) + "')";
       }
       var dataPage = it.page ? ' data-page="' + escAttr(it.page) + '"' : '';
-      html += '<button class="nav-item" data-nav="' + escAttr(it.id) + '"' + dataPage +
-        ' style="min-height:56px" onclick="' + onclickAttr + '">' +
+      html += '<button type="button" class="nav-item" data-nav="' + escAttr(it.id) + '"' + dataPage +
+        ' onclick="' + onclickAttr + '">' +
+        '<span class="nav-pip" aria-hidden="true"></span>' +
         '<span class="nav-ico">' + it.icon + '</span>' +
         '<span class="nav-lbl">' + it.label + '</span>' +
         '</button>';
@@ -249,9 +250,14 @@
   // ── More bottom sheet (DSM / RSM) ────────────────────────────────
   function openMoreSheet() {
     var items = [
-      { icon: '\ud83d\udc64', label: 'Profile',            page: 'page-profile' },
-      { icon: '\ud83d\udd17', label: 'Open HQ Desktop',    action: 'openHq' },
-      { icon: '\ud83d\udeaa', label: 'Logout',             action: 'logout' }
+      { icon: '\ud83d\udc64', label: 'Profile', page: 'page-profile' },
+      { icon: '\ud83d\udc65', label: 'Team', page: 'page-team' },
+      { icon: '\ud83d\uddfa\ufe0f', label: 'Map', page: 'page-map' },
+      { icon: '\ud83c\udf0d', label: 'Region', page: 'pg-region' },
+      { icon: '\ud83e\udde0', label: 'Customer Insights', page: 'pg-insights' },
+      { icon: '\ud83d\udce6', label: 'Inventory', page: 'pg-inventory' },
+      { icon: '\ud83d\udd17', label: 'Open HQ Desktop', action: 'openHq' },
+      { icon: '\ud83d\udeaa', label: 'Logout', action: 'logout' }
     ];
 
     var sheet = document.getElementById('more-sheet');
