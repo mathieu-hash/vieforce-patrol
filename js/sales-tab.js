@@ -414,7 +414,8 @@
     _lastDirect = data;
     _updateHero();
     _renderDirectCards(data);
-    _updateInsightCounts(data);
+    _updateAtRiskStrip(data);
+    _paintVelocity(_lastData, data, period);
     _updateFreshness('ok');
   }
 
