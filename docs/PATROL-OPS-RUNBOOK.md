@@ -123,6 +123,53 @@ Update in **all** of these (otherwise something will silently break):
 4. Apps Script (SBO sheet): Project Settings → Script Properties → `SCOS_SAP_PASS`
 5. Cursor MCP: `~/.claude/settings.json` → `mssql-sap-b1.env.MSSQL_CONNECTION_STRING`
 
+## Azure NSG allowlist for SAP — required sources
+
+The Azure VM `analytics` (host `analytics.vienovo.ph`, port `4444`) restricts inbound traffic via NSG. Any client that needs SAP MSSQL access must have its source IP explicitly allowlisted.
+
+### Required entries
+
+- Google Apps Script ranges (for the SBO sheet — already in place)
+- `vieforce-hq` Vercel egress IPs (find via `/api/whoami`)
+- `vieforce-patrol` Vercel egress IPs (find via `/api/whoami`)
+- Each developer's current home public IP (`https://ifconfig.me`)
+- Vienovo office static IP (if applicable)
+- The `C:\VieForce\` daemon machine's public IP (often = a developer IP)
+
+### Why connections fail with TIMEOUT (not REFUSED)
+
+The NSG drops blocked packets silently → TCP **timeout**. If you see `connection refused` the SQL Server is down; if you see `timeout`, it's almost always the NSG.
+
+### When SAP "goes down" — order of investigation
+
+1. **Test from an allowlisted source** (the SBO Google Sheet, or `vieforce-hq` Vercel) — if it works there, SAP is up and the issue is **your source IP isn't allowlisted** (90% of cases).
+2. **Confirm Vercel egress IP** via `GET /api/whoami` — Vercel rotates IPs per invocation on Hobby plans. Hit it 5+ times to collect the rotation set:
+
+   ```bash
+   for i in 1 2 3 4 5; do curl -s https://vieforce-patrol.vercel.app/api/whoami | jq .egress_ip; done
+   for i in 1 2 3 4 5; do curl -s https://vieforce-hq.vercel.app/api/whoami    | jq .egress_ip; done
+   ```
+
+3. **RDP to the analytics VM** only if (1) and (2) both fail.
+
+### Adding new IPs to NSG (Azure Portal)
+
+1. **Azure Portal** → VM `analytics` → **Networking** → **Network security group** → **Inbound security rules**.
+2. Find the rule that opens port `4444` (or create one).
+3. Append the new IPs to **Source IP addresses/ranges**, comma-separated.
+4. Save. Effective in <30 sec.
+
+### Durable options (Vercel rotates IPs — Phase-1 fix breaks within days)
+
+| Option | Cost | Effort | Stability |
+|---|---|---|---|
+| **A. Vercel Secure Compute (Pro plan)** | $20/seat/mo + add-on | 1 hour | Static IP, supported |
+| **B. Bastion proxy on small Azure VM in same VNet** (Patrol/HQ call it instead of SAP directly) | ~$5/mo | 2–4 hours | Most robust |
+| **C. Cloudflare Tunnel from `C:\VieForce` machine + allowlist Cloudflare ranges** | Free | 30 min | Depends on home internet |
+| **D. Keep allowlisting Vercel ranges as they change** | Free | Recurring pain | Will break repeatedly |
+
+**Recommended:** **Option B** — bastion VM in the analytics VNet, allowlist only its private IP on the SAP NSG, both apps call the bastion. SAP is never exposed beyond the VNet.
+
 ## Escalation contacts
 
 - **Supabase project:** see repo env / `SUPABASE_PROJECT_REF` in scripts.
