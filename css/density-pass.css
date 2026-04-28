@@ -497,6 +497,20 @@ body.role-ceo #page-stores .filter-row .filter-chip.active {
   background: var(--navy, #004d71);
   color: #fff;
 }
+/* No purple/blue accent on Prospect — same slim pill system as other filters */
+body.role-dsm #page-stores .filter-row .filter-chip.prospect,
+body.role-rsm #page-stores .filter-row .filter-chip.prospect,
+body.role-ceo #page-stores .filter-row .filter-chip.prospect {
+  border: none !important;
+  color: var(--text-secondary, #65676b) !important;
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+body.role-dsm #page-stores .filter-row .filter-chip.prospect.active,
+body.role-rsm #page-stores .filter-row .filter-chip.prospect.active,
+body.role-ceo #page-stores .filter-row .filter-chip.prospect.active {
+  background: var(--navy, #004d71) !important;
+  color: #fff !important;
+}
 body.role-dsm #page-stores #story-circles-row,
 body.role-rsm #page-stores #story-circles-row,
 body.role-ceo #page-stores #story-circles-row {
