@@ -967,8 +967,29 @@ function getT() {
 var T = getT();
 window.T = T;
 
+function _rerenderDynamicLocalizedViews() {
+  if (typeof renderStoreList === 'function' && document.getElementById('store-list')) {
+    renderStoreList();
+  }
+  if (typeof updateHomeKPIs === 'function') {
+    updateHomeKPIs();
+  }
+  if (typeof renderVisitList === 'function' && document.getElementById('visit-list')) {
+    renderVisitList();
+  }
+  if (typeof initDashboard === 'function' && document.getElementById('page-dashboard')) {
+    initDashboard();
+  }
+  if (typeof openStoreDetail === 'function' && window._currentStoreId) {
+    openStoreDetail(window._currentStoreId);
+  }
+}
+
 // Switch language and re-render
-function setLanguage(lang) {
+function setLanguage(lang, opts) {
+  opts = opts || {};
+  var silent = !!opts.silent;
+  var source = opts.source || 'local';
   console.log('setLanguage input:', lang);
   lang = String(lang).toUpperCase();
   console.log('after toUpperCase:', lang);
@@ -1017,6 +1038,7 @@ function setLanguage(lang) {
       openStoreDetail(window._currentStoreId);
     }
   }
+  _rerenderDynamicLocalizedViews();
   // Reset ALL pills to inactive first
   var pills = document.querySelectorAll('.lang-pill, .login-lang-btn');
   for (var p = 0; p < pills.length; p++) {
@@ -1035,7 +1057,10 @@ function setLanguage(lang) {
       pills[p2].classList.add('active');
     }
   }
-  showLangToast();
+  try {
+    window.dispatchEvent(new CustomEvent('patrol:language-changed', { detail: { lang: lang, source: source } }));
+  } catch (e) {}
+  if (!silent) showLangToast();
   console.log('setLanguage COMPLETE:', window.currentLang);
 }
 
@@ -1219,3 +1244,11 @@ window.LABELS = LABELS;
 window.setLanguage = setLanguage;
 window.rerenderCurrentPage = rerenderCurrentPage;
 window.testLang = testLang;
+
+window.addEventListener('storage', function(ev) {
+  if (!ev || ev.key !== 'patrol_lang') return;
+  var nextLang = String(ev.newValue || '').toUpperCase();
+  if (!nextLang) return;
+  if (nextLang === (window.currentLang || '').toUpperCase()) return;
+  setLanguage(nextLang, { silent: true, source: 'storage' });
+});

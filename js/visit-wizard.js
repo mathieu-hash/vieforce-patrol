@@ -354,7 +354,6 @@ async function submitVisit() {
       order_amount: _visitData.order_amount,
       merch_score: _visitData.merch_score,
       gps_failed: _visitData.gps_failed || false,
-      offline_id: (session ? session.id : 'anon') + '_' + Date.now(),
       visited_at: new Date().toISOString()
     };
 
@@ -377,26 +376,27 @@ async function submitVisit() {
       }
     } catch (e) { /* non-critical — don't block the visit save */ }
 
-    // Immediately show success — data is safe in IndexedDB
-    submitBtn.textContent = '\u2713 ' + T.submitOk;
-    submitBtn.className = 'big-button success';
+    submitBtn.textContent = T.syncing || 'Syncing...';
 
     // Update sync bar immediately
     if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 
-    // 5. Attempt server sync in background (non-blocking)
-    if (navigator.onLine) {
-      // Fire-and-forget sync — don't block the UI
-      syncPending().then(function () {
-        if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
-        // Update store's last_visit_at after sync succeeds
-        try {
-          updateStore(_visitData.storeId, { last_visit_at: visitPayload.visited_at });
-        } catch (e) { /* non-critical */ }
-      }).catch(function () {
-        // Sync failed — no problem, data is safe in IndexedDB, will retry later
-        if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
-      });
+    // 5. Attempt server sync now so the button reflects the real outcome.
+    var visitSyncResult = (typeof _attemptImmediateSync === 'function')
+      ? await _attemptImmediateSync('Visit')
+      : { state: 'queued', message: '\u2713 ' + T.submitOk };
+    if (typeof _applySaveResultToButton === 'function') {
+      _applySaveResultToButton(submitBtn, visitSyncResult, '\u2713 ' + T.submitOk);
+    } else {
+      submitBtn.textContent = visitSyncResult.message || ('\u2713 ' + T.submitOk);
+      submitBtn.className = 'big-button success';
+    }
+
+    // Update store's last_visit_at after the visit has actually synced.
+    if (visitSyncResult.state === 'synced') {
+      try {
+        await updateStore(_visitData.storeId, { last_visit_at: visitPayload.visited_at });
+      } catch (e) { /* non-critical */ }
     }
 
     // 6. Close sheet + append bubble to chat after brief delay
@@ -423,7 +423,7 @@ async function submitVisit() {
       // Refresh store list in background
       if (typeof renderStoreList === 'function') renderStoreList();
       if (typeof updateHomeKPIs === 'function') updateHomeKPIs();
-    }, 1200);
+    }, visitSyncResult.state === 'synced' ? 900 : 1600);
 
   } catch (err) {
     errorEl.textContent = T.submitFail + ' ' + err.message;

@@ -5,12 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=18">
+<link rel="stylesheet" href="css/patrol.css?v=21">
 <link rel="stylesheet" href="css/rsm.css?v=1">
-<link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=2">
+<link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=7">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
+<script>
+// OAuth PKCE may return to any whitelisted URL. If we land on app.html with ?code=,
+// exchange never runs (auth gate runs first) → blank/broken shell. Bounce to login page.
+(function () {
+  var path = window.location.pathname || '';
+  if (path.indexOf('app.html') === -1) return;
+  var q = window.location.search || '';
+  var h = window.location.hash || '';
+  var need =
+    q.indexOf('code=') !== -1 || q.indexOf('error=') !== -1 || q.indexOf('error_code=') !== -1 ||
+    h.indexOf('access_token=') !== -1 || h.indexOf('error=') !== -1;
+  if (!need) return;
+  var dest = window.location.origin.replace(/\/$/, '') + '/index.html' + q + h;
+  window.location.replace(dest);
+})();
+</script>
 <script>
 // Kill any existing service worker permanently
 if ('serviceWorker' in navigator) {
@@ -31,6 +47,59 @@ if ('serviceWorker' in navigator) {
 <!-- xlsx loaded on-demand for manager roles only (see js role-check block) — saves ~240 KB gz on every TSR load -->
 </head>
 <body>
+
+<!-- Boot debug: add ?bootlog=1 once → stores patrol_bootlog=1. Any uncaught error opens this panel. -->
+<div id="patrol-boot-debug" aria-live="polite" lang="en"
+  style="display:none;position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;z-index:2147483647;background:#0b0b0b;color:#e8e8e8;font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:10px 12px 48px;padding-bottom:max(48px, env(safe-area-inset-bottom));border-top:2px solid #00A6CE;white-space:pre-wrap;word-break:break-word;box-shadow:0 -4px 24px rgba(0,0,0,.45)"></div>
+<button type="button" id="patrol-boot-debug-close" lang="en"
+  style="display:none;position:fixed;right:10px;bottom:max(10px, env(safe-area-inset-bottom));z-index:2147483648;padding:8px 14px;font-size:12px;font-weight:700;border-radius:10px;border:none;background:#00A6CE;color:#fff;cursor:pointer">Hide log</button>
+<script>
+(function () {
+  var dbg = document.getElementById('patrol-boot-debug');
+  var btn = document.getElementById('patrol-boot-debug-close');
+  var qs = (window.location.search || '').indexOf('bootlog=1') !== -1;
+  if (qs) { try { localStorage.setItem('patrol_bootlog', '1'); } catch (e) {} }
+  var verbose = qs;
+  try { verbose = verbose || localStorage.getItem('patrol_bootlog') === '1'; } catch (e) {}
+  var lines = [];
+  function flush() { if (dbg) dbg.textContent = lines.slice(-100).join('\n'); }
+  window._patrolBootLog = function (msg, force) {
+    var t = '[' + new Date().toISOString().slice(11, 23) + '] ' + msg;
+    lines.push(t);
+    flush();
+    if (verbose || force) {
+      if (dbg) dbg.style.display = 'block';
+      if (btn) btn.style.display = 'block';
+    }
+  };
+  if (btn && dbg) {
+    btn.addEventListener('click', function () {
+      dbg.style.display = 'none';
+      btn.style.display = 'none';
+    });
+  }
+  window.addEventListener('error', function (ev) {
+    var msg = (ev && ev.message) ? ev.message : 'error';
+    var file = (ev && ev.filename) ? ev.filename : '';
+    var line = (ev && ev.lineno) ? String(ev.lineno) : '';
+    if (window._patrolBootLog) window._patrolBootLog('WINDOW ERROR: ' + msg + ' @' + file + ':' + line, true);
+  });
+  window.addEventListener('unhandledrejection', function (ev) {
+    var r = ev.reason;
+    var msg = (r && r.message) ? r.message : String(r);
+    if (window._patrolBootLog) window._patrolBootLog('UNHANDLED REJECTION: ' + msg, true);
+  });
+  window._patrolBootLog('Patrol shell: first script OK (verbose=' + verbose + ')', verbose);
+  setTimeout(function () {
+    var active = document.querySelector('.page.active');
+    if (!active) {
+      window._patrolBootLog('WATCHDOG 2.5s: still no .page.active — check errors above or open with ?bootlog=1', true);
+    } else if (verbose) {
+      window._patrolBootLog('WATCHDOG 2.5s: active=' + active.id, false);
+    }
+  }, 2500);
+})();
+</script>
 
 <!-- ========================================= -->
 <!-- SYNC BAR (always visible when needed)     -->
@@ -117,10 +186,20 @@ if ('serviceWorker' in navigator) {
 <!-- DSM DASHBOARD (managers only)             -->
 <!-- ========================================= -->
 <div id="page-dashboard" class="page">
-  <div class="top-bar">
+  <div class="top-bar dsm-home-header">
     <div style="flex:1">
       <h1>Pulse Dashboard</h1>
       <div class="subtitle" id="dsm-subtitle">Loading...</div>
+    </div>
+    <div class="dsm-home-right">
+      <div class="dsm-home-greeting-wrap">
+        <div class="dsm-home-greeting" id="dsm-greeting-text">Magandang araw!</div>
+        <div class="dsm-home-greeting-sub">Your team command center for today</div>
+      </div>
+      <div class="dsm-home-avatar-wrap">
+        <div class="dsm-home-avatar" id="dsm-avatar-btn">--</div>
+        <span class="dsm-home-online-dot"></span>
+      </div>
     </div>
   </div>
 
@@ -334,7 +413,7 @@ if ('serviceWorker' in navigator) {
   <!-- Messenger-style white header -->
   <div class="header" style="flex-shrink:0;padding:0 16px;background:var(--bg);position:relative;z-index:10;border-bottom:1px solid var(--divider)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 10px">
-      <div style="font-size:24px;font-weight:800;color:var(--text);letter-spacing:-0.3px" id="stores-title">Mga Tindahan</div>
+      <div style="font-size:24px;font-weight:800;color:var(--text);letter-spacing:-0.3px" id="stores-title" data-t="stores">Mga Tindahan</div>
       <div style="display:flex;gap:8px">
         <div class="hdr-btn" id="btn-new-store" style="width:36px;height:36px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">✏️</div>
         <div class="hdr-btn" id="stores-avatar-btn" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer">--</div>
@@ -584,9 +663,53 @@ if ('serviceWorker' in navigator) {
   <div class="page-placeholder">
     <div class="page-placeholder-icon">&#128202;</div>
     <h2>Sales</h2>
-    <p>Coming in Day 2 &mdash; real SAP data scoped to your assigned customers (DSM) or region (RSM).</p>
-    <p class="placeholder-hint">For now, open HQ desktop for the full sales view.</p>
-    <a class="placeholder-cta" href="https://vieforce-hq.vercel.app" target="_blank" rel="noopener">Open HQ &rarr;</a>
+    <p class="sales-intro-copy">SAP-scoped summary for your territory.</p>
+    <div class="sales-sap-wrap">
+      <div class="sales-period-row" role="tablist" aria-label="Sales period">
+        <button type="button" class="sales-period-btn active" role="tab" aria-selected="true" data-period="MTD">MTD</button>
+        <button type="button" class="sales-period-btn" role="tab" aria-selected="false" data-period="YTD">YTD</button>
+      </div>
+      <div class="sales-unit-row" role="tablist" aria-label="Sales unit">
+        <button type="button" class="sales-unit-btn active" role="tab" aria-selected="true" data-unit="BAGS">Bags</button>
+        <button type="button" class="sales-unit-btn" role="tab" aria-selected="false" data-unit="MT">MT</button>
+      </div>
+      <div id="sales-sap-summary" class="sales-sap-summary-host" data-period="MTD" data-unit="BAGS"></div>
+    </div>
+    <div class="sales-section sales-modules-section">
+      <div class="sales-section-title">MORE MODULES</div>
+      <div class="sales-module-list-luxe" role="list" aria-label="Sales modules">
+        <button type="button" class="sales-module-card sales-mod-rose" onclick="patrolOpenStubSalesModule(event, 'pg-ar')">
+          <span class="sales-mod-ico-wrap">&#128176;</span>
+          <span class="sales-mod-text"><span class="sales-mod-title">AR Overview</span><span class="sales-mod-sub">Outstanding receivables</span></span>
+          <span class="sales-mod-chev" aria-hidden="true">&#8250;</span>
+        </button>
+        <button type="button" class="sales-module-card sales-mod-violet" onclick="patrolOpenStubSalesModule(event, 'pg-budget')">
+          <span class="sales-mod-ico-wrap">&#127919;</span>
+          <span class="sales-mod-text"><span class="sales-mod-title">Budget &amp; Targets</span><span class="sales-mod-sub">Achievement vs target</span></span>
+          <span class="sales-mod-chev" aria-hidden="true">&#8250;</span>
+        </button>
+        <button type="button" class="sales-module-card sales-mod-sky" onclick="patrolOpenStubSalesModule(event, 'pg-insights')">
+          <span class="sales-mod-ico-wrap">&#129504;</span>
+          <span class="sales-mod-text"><span class="sales-mod-title">Customer Insights</span><span class="sales-mod-sub">Opportunities &amp; trends</span></span>
+          <span class="sales-mod-chev" aria-hidden="true">&#8250;</span>
+        </button>
+        <button type="button" class="sales-module-card sales-mod-amber" onclick="patrolOpenStubSalesModule(event, 'pg-inventory')">
+          <span class="sales-mod-ico-wrap">&#128230;</span>
+          <span class="sales-mod-text"><span class="sales-mod-title">Inventory</span><span class="sales-mod-sub">Stock &amp; reorder</span></span>
+          <span class="sales-mod-chev" aria-hidden="true">&#8250;</span>
+        </button>
+        <button type="button" class="sales-module-card sales-mod-emerald" onclick="patrolOpenStubSalesModule(event, 'pg-speed')">
+          <span class="sales-mod-ico-wrap">&#9889;</span>
+          <span class="sales-mod-text"><span class="sales-mod-title">Speed Monitor</span><span class="sales-mod-sub">Order velocity</span></span>
+          <span class="sales-mod-chev" aria-hidden="true">&#8250;</span>
+        </button>
+      </div>
+    </div>
+    <a class="sales-hq-cta" href="https://vieforce-hq.vercel.app" target="_blank" rel="noopener">
+      <span>Open full dashboard in VieForce HQ</span>
+      <span class="sales-hq-cta-arrow" aria-hidden="true">&#8599;</span>
+    </a>
+    <p class="sales-hq-cta-hint">Desktop experience &middot; Full analytics</p>
   </div>
 </div>
 
@@ -898,19 +1021,19 @@ if ('serviceWorker' in navigator) {
 <!-- BOTTOM NAVIGATION                         -->
 <!-- ========================================= -->
 <div class="bottom-nav" id="bottom-nav">
-  <button class="nav-item active" data-page="page-home" style="min-height:56px">
+  <button class="nav-item active" data-page="page-home" data-t="home" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
     Bahay
   </button>
-  <button class="nav-item" data-page="page-stores" style="min-height:56px">
+  <button class="nav-item" data-page="page-stores" data-t="stores" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
     Tindahan
   </button>
-  <button class="nav-item" data-page="page-map" style="min-height:56px">
+  <button class="nav-item" data-page="page-map" data-t="map" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
     Mapa
   </button>
-  <button class="nav-item" data-page="page-profile" style="min-height:56px">
+  <button class="nav-item" data-page="page-profile" data-t="profile" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Profile
   </button>
@@ -923,18 +1046,19 @@ if ('serviceWorker' in navigator) {
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
-<script src="js/supabase.js"></script>
+<script src="js/supabase.js?v=2"></script>
 <script src="js/validate.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/db.js"></script>
+<script src="js/auth.js?v=20"></script>
+<script src="js/db.js?v=3"></script>
+<script src="js/sales-tab.js?v=8"></script>
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
-<script src="js/offline.js?v=2"></script>
+<script src="js/offline.js?v=4"></script>
 <script src="js/stores.js"></script>
 <script src="js/visits.js"></script>
-<script src="js/visit-wizard.js"></script>
+<script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>
-<script src="js/dashboard.js?v=2"></script>
+<script src="js/dashboard.js?v=3"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
 <script src="js/scorecard.js?v=3"></script>
@@ -944,14 +1068,21 @@ if ('serviceWorker' in navigator) {
 <script src="js/team.js?v=4"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
-<script src="js/nav-role-device.js?v=2"></script>
+<script src="js/nav-role-device.js?v=3"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
-<script src="js/chatbot-register.js?v=2"></script>
+<script src="js/chatbot-register.js?v=3"></script>
 
 <script>
+  if (typeof warnPatrolOAuthEnvironment === 'function') warnPatrolOAuthEnvironment();
+
   // ===== Auth gate =====
   var session = requireAuth();
+  try {
+    if (window._patrolBootLog) {
+      window._patrolBootLog('requireAuth → ' + (session ? 'session ok role=' + (session.role || '?') + ' name=' + (session.name || '') : 'null (will redirect/retry)'), !!localStorage.getItem('patrol_bootlog'));
+    }
+  } catch (e) {}
   if (!session) {
     // requireAuth() will retry after 150ms and redirect if truly no session.
     // Stop initializing — page will either get a session on retry or redirect.
@@ -984,28 +1115,92 @@ if ('serviceWorker' in navigator) {
     });
   })();
   if (session) {
-    const initials = session.name ? session.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : '--';
-    document.getElementById('profile-avatar').textContent = initials;
-    var storesAvBtn = document.getElementById('stores-avatar-btn');
-    if (storesAvBtn) storesAvBtn.textContent = initials;
-    document.getElementById('profile-name').textContent = session.name || 'Unknown';
-    document.getElementById('profile-role').textContent =
-      (session.role || '').toUpperCase() + (session.territory ? ' \u00B7 ' + session.territory : '');
-    document.getElementById('profile-phone').textContent = session.phone || '--';
-    document.getElementById('profile-territory').textContent = session.territory || session.district || '--';
-    document.getElementById('profile-role-badge').textContent = (session.role || '--').toUpperCase();
-    if (session.role === 'admin') {
-      document.getElementById('admin-link').style.display = 'block';
+    try {
+      const initials = session.name ? session.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : '--';
+      document.getElementById('profile-avatar').textContent = initials;
+      var storesAvBtn = document.getElementById('stores-avatar-btn');
+      if (storesAvBtn) storesAvBtn.textContent = initials;
+      var dsmAvBtn = document.getElementById('dsm-avatar-btn');
+      if (dsmAvBtn) dsmAvBtn.textContent = initials;
+      document.getElementById('profile-name').textContent = session.name || 'Unknown';
+      document.getElementById('profile-role').textContent =
+        (session.role || '').toUpperCase() + (session.territory ? ' \u00B7 ' + session.territory : '');
+      document.getElementById('profile-phone').textContent = session.phone || '--';
+      document.getElementById('profile-territory').textContent = session.territory || session.district || '--';
+      document.getElementById('profile-role-badge').textContent = (session.role || '--').toUpperCase();
+      if (session.role === 'admin') {
+        document.getElementById('admin-link').style.display = 'block';
+      }
+      var firstName = (session.name || '').split(' ')[0] || '';
+      document.getElementById('home-greeting').textContent = getGreeting() + ', ' + firstName + '!';
+      document.getElementById('home-subtitle').textContent = session.territory || session.district || T.myTerritory;
+    } catch (bootErr) {
+      if (window._patrolBootLog) {
+        window._patrolBootLog('BOOT: session UI block crashed: ' + ((bootErr && bootErr.message) || bootErr), true);
+      } else {
+        console.error(bootErr);
+      }
     }
-    // Taglish greeting with name
-    var firstName = (session.name || '').split(' ')[0] || '';
-    document.getElementById('home-greeting').textContent = getGreeting() + ', ' + firstName + '!';
-    document.getElementById('home-subtitle').textContent = session.territory || session.district || T.myTerritory;
   }
 
   // Manual sync function (tappable sync indicator)
   function manualSync() {
     if (typeof autoSync === 'function') autoSync();
+  }
+
+  /** Stub sales modules: avoid dead-end Patrol pages during demos — HQ has live SAP. Set PATROL_SALES_MODULES_LIVE=true to enable in-app stubs. */
+  function patrolOpenStubSalesModule(ev, pageId) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    if (window.PATROL_SALES_MODULES_LIVE === true) {
+      nav_safe(pageId);
+      return;
+    }
+    var hq = 'https://vieforce-hq.vercel.app';
+    var ok = typeof confirm === 'function'
+      ? confirm('This module is not wired in Patrol mobile yet. Open VieForce HQ in a new tab?')
+      : true;
+    if (ok) window.open(hq, '_blank', 'noopener');
+  }
+
+  async function _attemptImmediateSync(label) {
+    if (!navigator.onLine || typeof syncPending !== 'function') {
+      return { state: 'queued', message: (label || 'Record') + ' saved on this phone. It will sync when signal is back.' };
+    }
+    try {
+      var result = await syncPending();
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+      var status = (typeof getSyncStatus === 'function') ? await getSyncStatus() : { pending: 0 };
+      var pending = status && typeof status.pending === 'number' ? status.pending : 0;
+
+      // Truthful UX: pending count is the source of truth after a sync pass.
+      if (result && result.ejected && pending > 0) {
+        return { state: 'error', message: (label || 'Record') + ' saved locally, but one queued item failed after retries. Tap Sync or check connection.' };
+      }
+      if (pending > 0) {
+        var hint = (result && result.errors && result.errors.length)
+          ? ' Sync hit errors; will retry.'
+          : '';
+        return { state: 'queued', message: (label || 'Record') + ' saved locally. ' + pending + ' item(s) still pending sync.' + hint };
+      }
+      if (result && result.ejected) {
+        return { state: 'error', message: (label || 'Record') + ' queue had a permanent failure. Tap Sync or contact support.' };
+      }
+      return { state: 'synced', message: '\u2713 ' + (label || 'Record') + ' saved and synced.' };
+    } catch (err) {
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+      var st = (typeof getSyncStatus === 'function') ? await getSyncStatus() : { pending: 0 };
+      if (st && st.pending > 0) {
+        return { state: 'queued', message: (label || 'Record') + ' saved locally. Sync will retry. ' + ((err && err.message) || '') };
+      }
+      return { state: 'queued', message: (label || 'Record') + ' saved locally. Sync will retry. ' + ((err && err.message) || '') };
+    }
+  }
+
+  function _applySaveResultToButton(btn, result, fallback) {
+    if (!btn) return;
+    var state = (result && result.state) || 'queued';
+    btn.className = 'big-button ' + (state === 'synced' ? 'success' : (state === 'error' ? 'error' : 'queued'));
+    btn.textContent = (result && result.message) || fallback || T.submitOk;
   }
 
   // ===== Visit Bottom Sheet helpers =====
@@ -1041,7 +1236,7 @@ if ('serviceWorker' in navigator) {
   }
 
   // ===== Role-based home page: RSM → page-rsm-home, DSM/Exec/Admin → dashboard, TSR → home =====
-  var MANAGER_ROLES = ['dsm','rsm','exec','admin'];
+  var MANAGER_ROLES = ['dsm','rsm','exec','admin','ceo'];
   var _roleLc = session && session.role ? session.role.toLowerCase() : '';
   if (session && MANAGER_ROLES.indexOf(_roleLc) !== -1) {
     // Lazy-load xlsx (~240 KB gz) only for managers — TSRs never need export
@@ -1076,10 +1271,21 @@ if ('serviceWorker' in navigator) {
       landingInit = function () { if (typeof initDashboard === 'function') initDashboard(); };
     }
 
-    // Activate the landing page
-    document.getElementById('page-home').classList.remove('active');
+    // Activate the landing page — never leave zero .page.active (was causing blank shell).
+    var homeEl = document.getElementById('page-home');
     var landingEl = document.getElementById(landingPageId);
-    if (landingEl) landingEl.classList.add('active');
+    if (landingEl && homeEl) {
+      landingEl.classList.add('active');
+      homeEl.classList.remove('active');
+      try {
+        if (window._patrolBootLog) window._patrolBootLog('manager landing → ' + landingPageId, !!localStorage.getItem('patrol_bootlog'));
+      } catch (e) {}
+    } else {
+      console.error('Patrol: missing landing page element:', landingPageId, 'keeping Home visible.');
+      try {
+        if (window._patrolBootLog) window._patrolBootLog('ERROR: missing DOM for landing id=' + landingPageId, true);
+      } catch (e) {}
+    }
 
     // Rewire first nav button to point to the landing page
     if (homeNav) {
@@ -1087,7 +1293,28 @@ if ('serviceWorker' in navigator) {
       homeNav.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>' + landingLabel;
     }
 
-    landingInit();
+    try {
+      landingInit();
+    } catch (e) {
+      console.error('Patrol: landing init failed:', e);
+      try {
+        if (window._patrolBootLog) window._patrolBootLog('FALLBACK: manager landing init failed — showing Home', true);
+      } catch (eLog) {}
+      try {
+        if (landingEl) landingEl.classList.remove('active');
+        if (homeEl) homeEl.classList.add('active');
+      } catch (eDom) {}
+    }
+
+    // Exactly one .page.active after manager rewiring (defensive against double-active bugs).
+    (function enforceSingleActivePatrolPage() {
+      var actives = document.querySelectorAll('.page.active');
+      if (actives.length <= 1) return;
+      var keep = actives[actives.length - 1];
+      for (var ai = 0; ai < actives.length; ai++) {
+        if (actives[ai] !== keep) actives[ai].classList.remove('active');
+      }
+    })();
     // Inject Team tab into bottom nav (before Profile)
     (function () {
       var nav = document.getElementById('bottom-nav');
@@ -1143,6 +1370,9 @@ if ('serviceWorker' in navigator) {
 
     // Scroll to top
     window.scrollTo(0, 0);
+    if (typeof window.rerenderCurrentPage === 'function') {
+      window.rerenderCurrentPage();
+    }
   }
 
   function navBack(fallback) {
@@ -1259,17 +1489,30 @@ if ('serviceWorker' in navigator) {
           var outcomeEmoji = v.order_taken ? '\ud83d\uded2' : '\ud83d\udcac';
           var outcomeText = v.order_taken ? T.ordered : (T.noOrderNote || 'Nakausap');
           var amountText = v.order_taken ? ' \u00b7 \u20b1' + (parseFloat(v.order_amount) || 0).toLocaleString() : '';
+          var outcomeLabel = outcomeEmoji + ' ' + outcomeText + amountText;
 
           var vId = v.id || '';
-          html += '<div class="msg-row out">' +
-            '<div>' +
-              '<div class="bubble out gradient visit-bubble" onclick="showVisitDetail(\'' + vId + '\')">' +
-                outcomeEmoji + ' ' + _esc(outcomeText) + amountText +
-                (v.notes ? '<br><span style="opacity:0.85;font-size:13px">' + _esc(v.notes.substring(0, 100)) + '</span>' : '') +
+          if (typeof renderVisitBubbleComponent === 'function') {
+            html += renderVisitBubbleComponent({
+              visitId: vId,
+              avatarBg: grad,
+              initials: initials,
+              outcomeLabel: outcomeLabel,
+              notes: v.notes ? v.notes.substring(0, 100) : '',
+              timeText: vTime
+            });
+          } else {
+            html += '<div class="msg-row">' +
+              '<div class="msg-av-small" style="background:' + grad + '">' + initials + '</div>' +
+              '<div>' +
+                '<div class="bubble in visit-bubble-msg" onclick="showVisitDetail(\'' + vId + '\')">' +
+                  _esc(outcomeLabel) +
+                  (v.notes ? '<br><span class="visit-bubble-notes">' + _esc(v.notes.substring(0, 100)) + '</span>' : '') +
+                '</div>' +
+                '<div class="msg-time">' + vTime + ' <span class="ticks gray">\u2713\u2713</span></div>' +
               '</div>' +
-              '<div class="msg-time out">' + vTime + ' <span style="color:rgba(255,255,255,0.7)">\u2713\u2713</span></div>' +
-            '</div>' +
-          '</div>';
+            '</div>';
+          }
         }
       }
 
@@ -1548,36 +1791,31 @@ if ('serviceWorker' in navigator) {
       // RULE 1: ALWAYS write to IndexedDB FIRST, then sync
       await queueStore(payload);
 
-      // Immediately show success — data is safe in IndexedDB
-      submitBtn.textContent = '\u2713 ' + T.submitOk;
+      submitBtn.textContent = T.syncing || 'Syncing...';
 
       // Update sync bar
       if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 
-      // Attempt server sync in background (non-blocking)
-      if (navigator.onLine) {
-        syncPending().then(function () {
-          if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
-          renderStoreList();
-          updateHomeKPIs();
-        }).catch(function () {
-          if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
-        });
-      }
+      var storeSyncResult = await _attemptImmediateSync('Store');
+      _applySaveResultToButton(submitBtn, storeSyncResult, '\u2713 ' + T.submitOk);
+      renderStoreList();
+      updateHomeKPIs();
 
       // Navigate back
       setTimeout(function () {
         nav('page-stores');
         renderStoreList();
         updateHomeKPIs();
-      }, 1000);
+      }, storeSyncResult.state === 'synced' ? 900 : 1600);
 
     } catch (err) {
       errorEl.textContent = T.submitFail + ' ' + err.message;
       errorEl.style.display = 'block';
     } finally {
+      if (!submitBtn.textContent || submitBtn.textContent === (T.syncing || 'Syncing...')) {
+        submitBtn.textContent = 'I-register ang Tindahan';
+      }
       submitBtn.disabled = false;
-      submitBtn.textContent = 'I-register ang Tindahan';
     }
   }
 
@@ -1947,12 +2185,13 @@ if ('serviceWorker' in navigator) {
       } catch (e) { /* sync later */ }
     }
     await queueStore(payload);
-    if (navigator.onLine && typeof syncPending === 'function') syncPending();
+    var result = await _attemptImmediateSync('Store');
     setTimeout(function () {
       nav('page-stores');
       if (typeof renderStoreList === 'function') renderStoreList();
       if (typeof updateHomeKPIs === 'function') updateHomeKPIs();
-    }, 1500);
+    }, result.state === 'synced' ? 900 : 1600);
+    return result;
   }
 
   async function _saveFarmFromChatbot(data) {
@@ -1976,10 +2215,13 @@ if ('serviceWorker' in navigator) {
       lng: data.lng || null
     };
     await queueFarm(payload);
-    if (navigator.onLine && typeof syncPending === 'function') syncPending();
+    var result = await _attemptImmediateSync('Farm');
     setTimeout(function () {
       nav('page-stores');
-    }, 1500);
+      if (typeof renderStoreList === 'function') renderStoreList();
+      if (typeof updateHomeKPIs === 'function') updateHomeKPIs();
+    }, result.state === 'synced' ? 900 : 1600);
+    return result;
   }
 
   function openChatbotStore() {
@@ -2011,6 +2253,16 @@ if ('serviceWorker' in navigator) {
   }
   window.openChatbotStore = openChatbotStore;
   window.openChatbotFarm = openChatbotFarm;
+  window.addEventListener('patrol:language-changed', function () {
+    var storePage = document.getElementById('page-store-new');
+    var farmPage = document.getElementById('page-farm-new');
+    if (_storeBot && !_storeBot.done && storePage && storePage.classList.contains('active') && typeof _storeBot.refreshFlow === 'function') {
+      _storeBot.refreshFlow(buildStoreFlow());
+    }
+    if (_farmBot && !_farmBot.done && farmPage && farmPage.classList.contains('active') && typeof _farmBot.refreshFlow === 'function') {
+      _farmBot.refreshFlow(buildFarmFlow());
+    }
+  });
   // Back-compat aliases
   window.openNewStoreWizard = openChatbotStore;
 
@@ -2090,11 +2342,26 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('offline', function () { enhancedSyncStatus(); });
   enhancedSyncStatus();
 
-  // ===== Initialize stores + KPIs on load =====
-  renderStoreList();
+  // ===== Initialize home fast; defer heavy page data =====
   updateHomeKPIs();
-  initStoreSearch();
-  initStoreFilters();
+
+  var _storesBootstrapped = false;
+  var _visitsBootstrapped = false;
+
+  function _bootstrapStoresPage() {
+    if (_storesBootstrapped) return;
+    _storesBootstrapped = true;
+    initStoreSearch();
+    initStoreFilters(); // includes first renderStoreList()
+  }
+
+  function _bootstrapVisitsPage() {
+    if (_visitsBootstrapped) return;
+    _visitsBootstrapped = true;
+    renderVisitList();
+    initVisitSearch();
+    initVisitFilters();
+  }
 
   // ===== Phase 3: TSR scorecard hero on home =====
   if (session && (session.role === 'tsr' || session.role === 'champion')) {
@@ -2109,16 +2376,17 @@ if ('serviceWorker' in navigator) {
     initChampionWidgets();
   }
 
-  // ===== Initialize visits =====
-  renderVisitList();
-  initVisitSearch();
-  initVisitFilters();
-
   // ===== Initialize map when map page is first shown =====
   var _mapInitialized = false;
   var _origNav = nav;
   nav = function(pageId) {
     _origNav(pageId);
+    if (pageId === 'page-stores') {
+      _bootstrapStoresPage();
+    }
+    if (pageId === 'page-visits') {
+      _bootstrapVisitsPage();
+    }
     if (pageId === 'page-map' && !_mapInitialized) {
       _mapInitialized = true;
       setTimeout(function() {
@@ -2136,10 +2404,19 @@ if ('serviceWorker' in navigator) {
     if (pageId === 'page-rsm-home' && typeof initRsmHome === 'function') {
       initRsmHome();
     }
+    if (pageId === 'pg-sales' && typeof initSalesTab === 'function') {
+      initSalesTab();
+    }
     if (pageId === 'page-tsr-scorecard' && typeof renderTsrScorecardDetail === 'function' && window._selectedTsrId) {
       renderTsrScorecardDetail(window._selectedTsrId);
     }
   };
+
+  // If we land directly on these pages for any role flow, bootstrap immediately.
+  var _activeOnLoad = document.querySelector('.page.active');
+  if (_activeOnLoad && _activeOnLoad.id === 'page-stores') _bootstrapStoresPage();
+  if (_activeOnLoad && _activeOnLoad.id === 'page-visits') _bootstrapVisitsPage();
+  if (_activeOnLoad && _activeOnLoad.id === 'pg-sales' && typeof initSalesTab === 'function') initSalesTab();
 
   // ===== My Location button =====
   document.getElementById('btn-my-location').addEventListener('click', function() {
@@ -2188,6 +2465,36 @@ if ('serviceWorker' in navigator) {
       var sheet = document.getElementById('a2hs-sheet');
       if (sheet) sheet.classList.remove('visible');
     };
+  })();
+
+  // Last resort: never leave the shell with zero visible .page (blank / "black" screen).
+  (function ensurePatrolShellVisible() {
+    try {
+      var allA = document.querySelectorAll('.page.active');
+      if (allA.length > 1) {
+        var keep = allA[allA.length - 1];
+        for (var zi = 0; zi < allA.length; zi++) {
+          if (allA[zi] !== keep) allA[zi].classList.remove('active');
+        }
+        if (window._patrolBootLog) window._patrolBootLog('ensurePatrolShell: collapsed ' + allA.length + ' active pages → ' + keep.id, true);
+      }
+      var any = document.querySelector('.page.active');
+      if (any) {
+        try {
+          if (window._patrolBootLog) window._patrolBootLog('ensurePatrolShell: active=' + any.id, !!localStorage.getItem('patrol_bootlog'));
+        } catch (e) {}
+        return;
+      }
+      var home = document.getElementById('page-home');
+      if (home) {
+        home.classList.add('active');
+        console.error('Patrol: no active page after boot — recovered to Home.');
+        if (window._patrolBootLog) window._patrolBootLog('RECOVERED: forced page-home active (was blank shell)', true);
+      }
+    } catch (e) {
+      console.error('Patrol: ensurePatrolShellVisible', e);
+      if (window._patrolBootLog) window._patrolBootLog('ensurePatrolShell exception: ' + (e && e.message), true);
+    }
   })();
 </script>
 

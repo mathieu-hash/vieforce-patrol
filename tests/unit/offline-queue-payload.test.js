@@ -49,6 +49,7 @@ test('strips every known queue bookkeeping field', () => {
     retry_count: 2,
     last_error: 'PGRST204: ...',
     last_attempt_at: '2026-04-25T01:00:30Z',
+    gps_failed: true,
     name: 'real field — keep'
   });
   assert.deepEqual(Object.keys(out), ['name'], 'only the non-bookkeeping field survives');

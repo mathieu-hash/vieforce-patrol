@@ -22,7 +22,8 @@
 
   var HQ_URL = 'https://vieforce-hq.vercel.app';
   var MOBILE_BREAKPOINT = 900;
-  var EXEC_ROLES = ['exec', 'ceo', 'evp'];
+  // CEO uses Patrol manager dashboard (same as DSM shell on mobile). Only exec/evp go to HQ splash.
+  var EXEC_ROLES = ['exec', 'evp'];
   var OBSERVER_FLAG = 'patrol_observer_mode';
   var SPLASH_SECONDS = 3;
 
@@ -103,7 +104,9 @@
     // Desktop: leave everything alone.
     if (!isMobile()) return;
 
-    var config = NAV_CONFIGS[role];
+    // CEO: same 5-tab manager nav as DSM (HQ splash no longer applies to CEO).
+    var navRole = role === 'ceo' ? 'dsm' : role;
+    var config = NAV_CONFIGS[navRole];
     if (!config || !config.mobile) return; // TSR / champion / unknown → no override
 
     var navEl = document.getElementById('bottom-nav');
@@ -246,13 +249,8 @@
   // ── More bottom sheet (DSM / RSM) ────────────────────────────────
   function openMoreSheet() {
     var items = [
-      { icon: '\ud83d\udcb0', label: 'AR Overview',        page: 'pg-ar' },
-      { icon: '\ud83c\udfaf', label: 'Budget & Targets',   page: 'pg-budget' },
-      { icon: '\ud83e\udde0', label: 'Customer Insights',  page: 'pg-insights' },
-      { icon: '\ud83d\udce6', label: 'Inventory',          page: 'pg-inventory' },
-      { icon: '\u26a1',       label: 'Speed Monitor',      page: 'pg-speed' },
-      { icon: '\ud83d\udd17', label: 'Open HQ Desktop',    action: 'openHq' },
       { icon: '\ud83d\udc64', label: 'Profile',            page: 'page-profile' },
+      { icon: '\ud83d\udd17', label: 'Open HQ Desktop',    action: 'openHq' },
       { icon: '\ud83d\udeaa', label: 'Logout',             action: 'logout' }
     ];
 

@@ -73,6 +73,57 @@ function getStoreIcon(type) {
 }
 window.getStoreIcon = getStoreIcon;
 
+function getStoreTypeColor(type) {
+  var colors = {
+    'feeds_dealer': '#1877F2',
+    'farm_supply': '#2E9B5F',
+    'pet_shop': '#A855F7',
+    'veterinary': '#0EA5A5',
+    'supermarket': '#F59E0B',
+    'other': '#5F6B76'
+  };
+  return colors[type] || '#1877F2';
+}
+
+// ── Messenger-style reusable components (TSR vanilla implementation) ──
+function renderStoreRowComponent(opts) {
+  var o = opts || {};
+  return '<div class="store-row conv" data-store-id="' + _esc(o.id || '') + '" onclick="openStoreDetail(\'' + _esc(o.id || '') + '\')">' +
+    '<div class="av-wrap">' +
+      '<div class="av" style="background:' + _esc(o.avatarBg || '#1877F2') + '">' +
+        '<span class="av-icon">' + _esc(o.icon || '\ud83c\udfea') + '</span>' +
+        '<span class="av-initials">' + _esc(o.initials || '') + '</span>' +
+      '</div>' +
+      '<div class="' + _esc(o.dotClass || 'status-dot dot-ok') + '"></div>' +
+    '</div>' +
+    '<div class="conv-info">' +
+      '<div class="' + _esc(o.nameClass || 'conv-name') + '">' + _esc(o.name || '--') + '</div>' +
+      '<div class="' + _esc(o.previewClass || 'conv-last') + '">' + (o.previewHtml || '') + '</div>' +
+    '</div>' +
+    '<div class="conv-meta">' +
+      '<span class="' + _esc(o.timeClass || 'conv-time') + '">' + _esc(o.timeText || '') + '</span>' +
+      (o.statusHtml || '') +
+      '<span class="store-row-chevron">\u203a</span>' +
+    '</div>' +
+  '</div>';
+}
+window.renderStoreRowComponent = renderStoreRowComponent;
+
+function renderVisitBubbleComponent(opts) {
+  var o = opts || {};
+  return '<div class="msg-row">' +
+    '<div class="msg-av-small" style="background:' + _esc(o.avatarBg || '#5F6B76') + '">' + _esc(o.initials || '') + '</div>' +
+    '<div>' +
+      '<div class="bubble in visit-bubble-msg" onclick="showVisitDetail(\'' + _esc(o.visitId || '') + '\')">' +
+        _esc(o.outcomeLabel || '') +
+        (o.notes ? '<br><span class="visit-bubble-notes">' + _esc(o.notes) + '</span>' : '') +
+      '</div>' +
+      '<div class="msg-time">' + _esc(o.timeText || '') + ' <span class="ticks gray">\u2713\u2713</span></div>' +
+    '</div>' +
+  '</div>';
+}
+window.renderVisitBubbleComponent = renderVisitBubbleComponent;
+
 // ── Store List Rendering ──
 
 var _storeCache = [];
@@ -135,7 +186,7 @@ async function renderStoreList(filter) {
       }
     }
     if (visited.length > 0) {
-      html += '<div class="section-hdr">\u2705 Na-bisita na ngayon</div>';
+      html += '<div class="section-hdr">\u2705 ' + (T.visited || 'Visited') + ' \u00b7 ' + (T.today || 'Today') + '</div>';
       for (var v = 0; v < visited.length; v++) {
         html += _buildConvRow(visited[v], todayStr, _gradients, _gradientArr);
       }
@@ -191,7 +242,8 @@ function _buildConvRow(s, todayStr, gradients, gradientArr) {
   var daysSinceVisit = s.last_visit_at ? Math.floor((Date.now() - new Date(s.last_visit_at).getTime()) / 86400000) : 999;
 
   // Avatar gradient — use health-based or hash-based
-  var grad = gradients[health] || gradientArr[Math.abs(_hashCode(s.id || s.name || '')) % gradientArr.length];
+  var typeColor = getStoreTypeColor(s.store_type);
+  var grad = 'linear-gradient(135deg,' + typeColor + ',#004A64)';
 
   // Name styling: bold if unvisited, muted if visited today
   var nameClass = visitedToday ? 'conv-name muted' : 'conv-name';
@@ -221,15 +273,15 @@ function _buildConvRow(s, todayStr, gradients, gradientArr) {
   }
 
   // Right side: ticks or urgent badge
-  var metaHtml = '<span class="' + timeClass + '">' + timeText + '</span>';
+  var statusHtml = '';
   if (daysSinceVisit >= 7 && health === 'crit') {
-    metaHtml += '<div class="urgent-badge">!</div>';
+    statusHtml += '<div class="urgent-badge">!</div>';
   } else if (daysSinceVisit >= 5 && !visitedToday) {
-    metaHtml += '<div class="urgent-badge" style="background:var(--status-warn)">' + daysSinceVisit + 'd</div>';
+    statusHtml += '<div class="urgent-badge" style="background:var(--status-warn)">' + daysSinceVisit + 'd</div>';
   } else if (visitedToday) {
-    metaHtml += '<span class="ticks">\u2713\u2713</span>';
+    statusHtml += '<span class="ticks">\u2713\u2713</span>';
   } else if (s.last_visit_at) {
-    metaHtml += '<span class="ticks gray">\u2713\u2713</span>';
+    statusHtml += '<span class="ticks gray">\u2713\u2713</span>';
   }
 
   // Health dot
@@ -237,20 +289,20 @@ function _buildConvRow(s, todayStr, gradients, gradientArr) {
 
   var icon = getStoreIcon(s.store_type);
 
-  return '<div class="store-row conv" data-store-id="' + s.id + '" onclick="openStoreDetail(\'' + s.id + '\')">' +
-    '<div class="av-wrap">' +
-      '<div class="av" style="background:' + grad + '">' +
-        '<span class="av-icon">' + icon + '</span>' +
-        '<span class="av-initials">' + initials + '</span>' +
-      '</div>' +
-      '<div class="' + dotClass + '"></div>' +
-    '</div>' +
-    '<div class="conv-info">' +
-      '<div class="' + nameClass + '">' + _esc(s.name) + (city && !visitedToday ? '' : '') + '</div>' +
-      '<div class="' + previewClass + '">' + previewText + '</div>' +
-    '</div>' +
-    '<div class="conv-meta">' + metaHtml + '</div>' +
-  '</div>';
+  return renderStoreRowComponent({
+    id: s.id,
+    avatarBg: grad,
+    icon: icon,
+    initials: initials,
+    dotClass: dotClass,
+    name: s.name,
+    nameClass: nameClass,
+    previewClass: previewClass,
+    previewHtml: previewText,
+    timeClass: timeClass,
+    timeText: timeText,
+    statusHtml: statusHtml
+  });
 }
 
 function _shortTime(days) {
@@ -340,7 +392,8 @@ function _renderStoryCircles(stores, gradients, gradientArr) {
       badgeText = p.days + 'd';
     }
 
-    var grad = storyGrads[health] || storyGradArr[Math.abs(_hashCode(s.id || s.name || '')) % storyGradArr.length];
+    var typeColor = getStoreTypeColor(s.store_type);
+    var grad = 'linear-gradient(135deg,' + typeColor + ',#004A64)';
     var icon = getStoreIcon(s.store_type);
 
     html += '<div class="story" onclick="openStoreDetail(\'' + s.id + '\')">' +
@@ -518,22 +571,18 @@ function _getActiveHealthFilter() {
 }
 
 function _updateFilterCounts(allStores) {
-  // Use cached full list if filtered subset passed
-  // We need the full unfiltered list for counts
   var page = document.getElementById('page-stores');
   if (!page) return;
 
   var chips = page.querySelectorAll('.filter-chip');
   if (chips.length < 4) return;
 
-  // If we have a health filter active, allStores is a subset — fetch counts from cache
-  // We always count from the last unfiltered fetch
-  // Use a separate async count if filter is active
-  getStores().then(function (full) {
-    var total = full.length;
+  // Prefer already-fetched list to avoid an extra round-trip per render.
+  if (Array.isArray(allStores)) {
+    var total = allStores.length;
     var crit = 0, warn = 0, ok = 0;
-    for (var i = 0; i < full.length; i++) {
-      var h = full[i].health_status;
+    for (var i = 0; i < allStores.length; i++) {
+      var h = allStores[i].health_status;
       if (h === 'crit') crit++;
       else if (h === 'warn') warn++;
       else ok++;
@@ -542,6 +591,12 @@ function _updateFilterCounts(allStores) {
     chips[1].textContent = (T.critical || 'Critical') + ' (' + crit + ')';
     chips[2].textContent = (T.warning || 'Babala') + ' (' + warn + ')';
     chips[3].textContent = 'OK (' + ok + ')';
+    return;
+  }
+
+  // Fallback if caller has no list yet.
+  getStores().then(function (full) {
+    _updateFilterCounts(full || []);
   }).catch(function () {
     // ignore — counts just won't update
   });

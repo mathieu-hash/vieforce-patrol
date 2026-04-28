@@ -22,6 +22,11 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 const BRUTE_FORCE_DELAY_MS = 2000
 const BRUTE_FORCE_THRESHOLD = 3
 
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL')!,
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+)
+
 function cleanupOldEntries() {
   const now = Date.now()
   for (const [phone, entry] of loginAttempts) {
@@ -156,14 +161,9 @@ serve(async (req) => {
       )
     }
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
-
     const { data: user, error } = await supabase
       .from('users')
-      .select('*')
+      .select('id,name,role,region,district,territory,pin_hash,is_active')
       .eq('phone', phone)
       .eq('is_active', true)
       .single()

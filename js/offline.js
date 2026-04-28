@@ -50,7 +50,7 @@ var MAX_SYNC_RETRIES = 3;
 // Bug active since the queue was first wired; surfaced 2026-04-25 once
 // the upstream stores_store_type_check constraint stopped masking it.
 function _queuePayload(record, extraSkip) {
-  var skip = { id: 1, offline_id: 1, created_at: 1, retry_count: 1, last_error: 1, last_attempt_at: 1 };
+  var skip = { id: 1, offline_id: 1, created_at: 1, retry_count: 1, last_error: 1, last_attempt_at: 1, gps_failed: 1 };
   if (extraSkip) for (var k in extraSkip) skip[k] = 1;
   var out = {};
   for (var key in record) { if (!skip[key]) out[key] = record[key]; }
@@ -105,6 +105,13 @@ async function _syncPendingImpl() {
       results.farms++;
       if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
     } catch (e) {
+      if (typeof patrolIsLikelyDuplicateInsertError === 'function' && patrolIsLikelyDuplicateInsertError(e)) {
+        console.warn('[sync] Farm duplicate treated as success (idempotent)', f.offline_id, e.message);
+        await offlineDb.pendingFarms.delete(f.id);
+        results.farms++;
+        if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+        continue;
+      }
       results.errors.push('Farm: ' + e.message);
       var fOutcome = await _markRetryOrEject(offlineDb.pendingFarms, f, e, 'Farm');
       if (fOutcome === 'ejected') results.ejected++;
@@ -121,6 +128,13 @@ async function _syncPendingImpl() {
       results.stores++;
       if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
     } catch (e) {
+      if (typeof patrolIsLikelyDuplicateInsertError === 'function' && patrolIsLikelyDuplicateInsertError(e)) {
+        console.warn('[sync] Store duplicate treated as success (idempotent)', s.offline_id, e.message);
+        await offlineDb.pendingStores.delete(s.id);
+        results.stores++;
+        if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+        continue;
+      }
       results.errors.push('Store: ' + e.message);
       var outcome = await _markRetryOrEject(offlineDb.pendingStores, s, e, 'Store');
       if (outcome === 'ejected') results.ejected++;
@@ -151,6 +165,13 @@ async function _syncPendingImpl() {
       results.visits++;
       if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
     } catch (e) {
+      if (typeof patrolIsLikelyDuplicateInsertError === 'function' && patrolIsLikelyDuplicateInsertError(e)) {
+        console.warn('[sync] Visit duplicate treated as success (idempotent)', v.offline_id, e.message);
+        await offlineDb.pendingVisits.delete(v.id);
+        results.visits++;
+        if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+        continue;
+      }
       results.errors.push('Visit: ' + e.message);
       var vOutcome = await _markRetryOrEject(offlineDb.pendingVisits, v, e, 'Visit');
       if (vOutcome === 'ejected') results.ejected++;

@@ -10,6 +10,96 @@ var EDGE_FN_URL = 'https://yolxcmeoovztuindrglk.supabase.co/functions/v1/verify-
 var SESSION_KEY = 'patrol_session';
 var ATTEMPTS_KEY = 'patrol_login_attempts';
 var SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+var GOOGLE_ALLOWED_DOMAIN = 'vienovo.ph';
+var GOOGLE_MANAGER_ROLES = ['dsm', 'rsm', 'exec', 'admin', 'ceo'];
+
+/** Where Supabase redirects after Google (must match Dashboard redirect allow-list + Site URL). */
+function getOAuthRedirectUrl() {
+  var host = '';
+  try {
+    host = String(window.location.hostname || '').toLowerCase();
+  } catch (e) {}
+  var rawOriginBeforeLocal = '';
+  try {
+    rawOriginBeforeLocal = String(window.location.origin || '').replace(/\/$/, '');
+  } catch (e0) {}
+  var origin = '';
+  if (window.CONFIG && CONFIG.OAUTH_PUBLIC_ORIGIN) {
+    origin = String(CONFIG.OAUTH_PUBLIC_ORIGIN).replace(/\/$/, '');
+  } else {
+    origin = rawOriginBeforeLocal;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      origin = 'https://vieforce-patrol.vercel.app';
+    }
+    if (!origin) origin = 'https://vieforce-patrol.vercel.app';
+  }
+  return origin + '/index.html';
+}
+
+/**
+ * Surfaces OAuth / host misconfiguration early (console). Safe to call on index + app shells.
+ * Does not block UI. Optional: ?oauthdebug=1 on index shows a one-line alert for field debugging.
+ */
+function warnPatrolOAuthEnvironment() {
+  try {
+    var proto = '';
+    try {
+      proto = String(window.location.protocol || '').toLowerCase();
+    } catch (e0) {}
+    if (proto === 'file:') {
+      console.warn(
+        'Patrol: opened as file:// — OAuth and sessions will not work. Serve from http(s) or open the deployed URL.'
+      );
+    }
+
+    var host = '';
+    try {
+      host = String(window.location.hostname || '').toLowerCase();
+    } catch (e1) {}
+    var rawOrigin = '';
+    try {
+      rawOrigin = String(window.location.origin || '').replace(/\/$/, '');
+    } catch (e2) {}
+
+    var configured = '';
+    if (window.CONFIG && CONFIG.OAUTH_PUBLIC_ORIGIN) {
+      configured = String(CONFIG.OAUTH_PUBLIC_ORIGIN).replace(/\/$/, '');
+    }
+
+    // Production/staging hosts should match CONFIG unless explicitly using localhost dev.
+    if (configured && host && host !== 'localhost' && host !== '127.0.0.1') {
+      if (rawOrigin && rawOrigin !== configured) {
+        console.warn(
+          'Patrol: page origin',
+          rawOrigin,
+          'differs from CONFIG.OAUTH_PUBLIC_ORIGIN',
+          configured,
+          '— Google redirect_uri uses the configured origin; add this page origin to Supabase Redirect URLs if you intend to sign in here.'
+        );
+      }
+    }
+
+    if (window.CONFIG && (!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY)) {
+      console.warn('Patrol: CONFIG.SUPABASE_URL / SUPABASE_ANON_KEY missing — auth will fail.');
+    }
+  } catch (e) {
+    /* non-fatal */
+  }
+
+  try {
+    var qs = (window.location.search || '').indexOf('oauthdebug=1') !== -1;
+    if (qs && typeof alert === 'function') {
+      alert(
+        'OAuth debug: origin=' +
+          String(window.location.origin) +
+          ' redirect=' +
+          getOAuthRedirectUrl()
+      );
+    }
+  } catch (e3) {}
+}
+
+window.warnPatrolOAuthEnvironment = warnPatrolOAuthEnvironment;
 
 // --- Input Sanitization ---
 function sanitizePhone(raw) {
@@ -24,6 +114,62 @@ function validatePin(raw) {
   var pin = String(raw).trim();
   if (!/^\d{4,6}$/.test(pin)) return null;
   return pin;
+}
+
+function normalizeEmail(raw) {
+  if (!raw) return '';
+  return String(raw).trim().toLowerCase();
+}
+
+function isManagerRole(role) {
+  return GOOGLE_MANAGER_ROLES.indexOf(String(role || '').toLowerCase()) !== -1;
+}
+
+async function isGoogleProviderEnabled() {
+  if (!window.CONFIG || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) return null;
+  try {
+    var settingsUrl = CONFIG.SUPABASE_URL + '/auth/v1/settings?apikey=' + encodeURIComponent(CONFIG.SUPABASE_ANON_KEY);
+    var res = await fetch(settingsUrl);
+    if (!res.ok) return null;
+    var data = await res.json();
+    return !!(data && data.external && data.external.google);
+  } catch (e) {
+    return null;
+  }
+}
+
+function createSessionFromUser(user, authSource) {
+  return {
+    id: user.id,
+    name: user.name,
+    role: user.role,
+    region: user.region || null,
+    district: user.district || null,
+    territory: user.territory || null,
+    is_champion: user.is_champion || false,
+    email: user.email || null,
+    auth_source: authSource || 'pin',
+    loggedInAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
+  };
+}
+
+async function getManagerUserByEmail(email) {
+  if (!window.supabaseClient) return null;
+  var cleanEmail = normalizeEmail(email);
+  if (!cleanEmail) return null;
+
+  var result = await supabaseClient
+    .from('users')
+    .select('id,name,role,region,district,territory,is_champion,is_active,email,auth_type')
+    .eq('email', cleanEmail)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (result.error) {
+    throw new Error(result.error.message || 'Unable to validate manager account.');
+  }
+  return result.data || null;
 }
 
 // --- Client-side Throttle ---
@@ -93,17 +239,7 @@ async function login(phone, pin) {
 
     if (res.ok && data && data.id) {
       resetLoginAttempts();
-      var session = {
-        id: data.id,
-        name: data.name,
-        role: data.role,
-        region: data.region || null,
-        district: data.district || null,
-        territory: data.territory || null,
-        is_champion: data.is_champion || false,
-        loggedInAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
-      };
+      var session = createSessionFromUser(data, 'pin');
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       // Verify write landed before returning success
       var verify = localStorage.getItem(SESSION_KEY);
@@ -124,6 +260,156 @@ async function login(phone, pin) {
     // Edge function unreachable (no internet)
     return { success: false, error: T.errorNetworkLogin };
   }
+}
+
+async function loginWithGoogle() {
+  if (!window.supabaseClient || !supabaseClient.auth) {
+    return {
+      success: false,
+      error: 'Google login is not configured for this app yet. Please ask support to enable Supabase Google Auth.'
+    };
+  }
+
+  var providerEnabled = await isGoogleProviderEnabled();
+  if (providerEnabled === false) {
+    return {
+      success: false,
+      error: 'Google login is temporarily unavailable. Please use phone + PIN and ask support to enable Google Auth in Supabase.'
+    };
+  }
+
+  var redirectTo = getOAuthRedirectUrl();
+  var result = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: redirectTo,
+      queryParams: {
+        hd: GOOGLE_ALLOWED_DOMAIN,
+        prompt: 'select_account'
+      }
+    }
+  });
+
+  if (result.error) {
+    return {
+      success: false,
+      error: 'Google login is unavailable right now. Please use TSR phone + PIN or contact support.'
+    };
+  }
+
+  return { success: true, pendingRedirect: true };
+}
+
+async function maybeHandleGoogleLoginOnLoad() {
+  if (!window.supabaseClient || !supabaseClient.auth) return { handled: false };
+
+  var query = new URLSearchParams(window.location.search || '');
+  var oauthError = query.get('error');
+  var oauthErrorCode = query.get('error_code');
+  var oauthErrorDescription = query.get('error_description');
+  if (oauthError || oauthErrorCode || oauthErrorDescription) {
+    if (window.history && typeof window.history.replaceState === 'function') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    return {
+      handled: true,
+      success: false,
+      error: decodeURIComponent(oauthErrorDescription || oauthError || oauthErrorCode || 'Google login failed. Please try again.')
+    };
+  }
+
+  var pkceCode = query.get('code');
+  var authSession = null;
+  if (pkceCode) {
+    var exchanged = await supabaseClient.auth.exchangeCodeForSession(pkceCode);
+    if (window.history && typeof window.history.replaceState === 'function') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    if (exchanged.error) {
+      return {
+        handled: true,
+        success: false,
+        error: exchanged.error.message || 'Google login could not complete (session exchange). Please try again.'
+      };
+    }
+    authSession = exchanged.data && exchanged.data.session;
+  }
+
+  // Implicit / hash redirect (some providers or older configs) — PKCE normally uses ?code=
+  if (!authSession || !authSession.user) {
+    var rawHash = (window.location.hash || '').replace(/^#/, '');
+    if (rawHash.indexOf('access_token=') !== -1) {
+      var hp = new URLSearchParams(rawHash);
+      var at = hp.get('access_token');
+      var rt = hp.get('refresh_token');
+      if (at && rt) {
+        var setRes = await supabaseClient.auth.setSession({ access_token: at, refresh_token: rt });
+        if (window.history && typeof window.history.replaceState === 'function') {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        if (setRes.error) {
+          return {
+            handled: true,
+            success: false,
+            error: setRes.error.message || 'Google session could not be restored. Please try again.'
+          };
+        }
+        authSession = setRes.data && setRes.data.session;
+      }
+    }
+  }
+
+  if (!authSession || !authSession.user) {
+    var authSessionResult = await supabaseClient.auth.getSession();
+    if (authSessionResult.error) {
+      return { handled: false, error: 'Google session check failed. Please try again.' };
+    }
+    authSession = authSessionResult.data && authSessionResult.data.session;
+  }
+  if (!authSession || !authSession.user) return { handled: false };
+
+  var email = normalizeEmail(authSession.user.email);
+  if (!email || !email.endsWith('@' + GOOGLE_ALLOWED_DOMAIN)) {
+    try { await supabaseClient.auth.signOut(); } catch (e) {}
+    return {
+      handled: true,
+      success: false,
+      error: 'Only @vienovo.ph Google accounts are allowed for manager login.'
+    };
+  }
+
+  var manager;
+  try {
+    manager = await getManagerUserByEmail(email);
+  } catch (e) {
+    return {
+      handled: true,
+      success: false,
+      error: e.message || 'Unable to validate Google manager account.'
+    };
+  }
+
+  if (!manager) {
+    try { await supabaseClient.auth.signOut(); } catch (e) {}
+    return {
+      handled: true,
+      success: false,
+      error: 'Google account not found in Patrol managers. Contact admin to map your email.'
+    };
+  }
+
+  if (!isManagerRole(manager.role)) {
+    try { await supabaseClient.auth.signOut(); } catch (e) {}
+    return {
+      handled: true,
+      success: false,
+      error: 'This Google login is for managers only. TSR must sign in with phone + PIN.'
+    };
+  }
+
+  var session = createSessionFromUser(manager, 'google');
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  return { handled: true, success: true, session: session };
 }
 
 // --- Post-login routing (Sprint A: all roles land on app.html; role-specific render happens inside) ---
@@ -166,6 +452,9 @@ function requireAuth() {
 }
 
 function logout() {
+  if (window.supabaseClient && supabaseClient.auth) {
+    supabaseClient.auth.signOut().catch(function () {});
+  }
   localStorage.removeItem(SESSION_KEY);
   resetLoginAttempts();
   window.location.href = 'index.html';

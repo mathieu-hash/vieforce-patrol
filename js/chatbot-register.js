@@ -20,12 +20,14 @@
     this.data = {};
     this.stepIndex = 0;
     this.done = false;
+    this.currentStepId = null;
   }
 
   ChatbotWizard.prototype.start = function () {
     this.data = {};
     this.stepIndex = 0;
     this.done = false;
+    this.currentStepId = null;
     document.getElementById(this.messagesId).innerHTML = '';
     this._showStep(this.flow[0]);
   };
@@ -40,6 +42,7 @@
   ChatbotWizard.prototype._showStep = function (step) {
     var self = this;
     if (!step) return;
+    this.currentStepId = step.id || null;
 
     // Add typing dots then the message
     this._addTyping();
@@ -69,6 +72,36 @@
 
       self._scrollToBottom();
     }, 500);
+  };
+
+  ChatbotWizard.prototype.refreshFlow = function (nextFlow) {
+    if (!Array.isArray(nextFlow) || nextFlow.length === 0 || this.done) return;
+    var stepId = this.currentStepId || (this.flow[this.stepIndex] && this.flow[this.stepIndex].id);
+    this.flow = nextFlow;
+    if (!stepId) return;
+    var found = this._findStep(stepId);
+    if (!found) return;
+    this.stepIndex = found.index;
+    this.currentStepId = found.step.id || stepId;
+    this._refreshCurrentStepUi(found.step);
+  };
+
+  ChatbotWizard.prototype._refreshCurrentStepUi = function (step) {
+    if (!step || this.done) return;
+    var qr = document.getElementById(this.quickRepliesId);
+    var ib = document.getElementById(this.inputBarId);
+    var inp = document.getElementById(this.inputId);
+    if (step.quickReplies) {
+      if (ib) ib.style.display = 'none';
+      this._renderQuickReplies(step);
+      return;
+    }
+    if (step.input && ib && inp) {
+      if (qr) qr.innerHTML = '';
+      ib.style.display = 'flex';
+      inp.type = step.input === 'tel' ? 'tel' : (step.input === 'number' ? 'number' : 'text');
+      inp.placeholder = step.placeholder || '...';
+    }
   };
 
   ChatbotWizard.prototype._addBotMessage = function (msg) {
@@ -240,8 +273,11 @@
       self._removeTyping();
       self._addBotMessage('Sine-save... \ud83d\udcbe');
       if (self.onFinish) {
-        Promise.resolve(self.onFinish(self.data)).then(function () {
-          self._addBotMessage('\u2705 Na-save na ang tindahan!');
+        Promise.resolve(self.onFinish(self.data)).then(function (result) {
+          var msg = result && result.message
+            ? result.message
+            : '\u2705 Na-save na!';
+          self._addBotMessage(msg);
         }).catch(function (err) {
           self._addBotMessage('\u274c May problema: ' + (err && err.message || err));
         });

@@ -40,6 +40,21 @@ async function sapFetch(endpoint) {
 
 window.sapFetch = sapFetch;
 
+/**
+ * True when PostgREST/Postgres rejected an INSERT as a duplicate (retry after partial success).
+ * Used by offline sync to dequeue without ejecting user data.
+ */
+function patrolIsLikelyDuplicateInsertError(err) {
+  var msg = String((err && err.message) ? err.message : err).toLowerCase();
+  return (
+    msg.indexOf('duplicate') !== -1 ||
+    msg.indexOf('unique') !== -1 ||
+    msg.indexOf('23505') !== -1
+  );
+}
+
+window.patrolIsLikelyDuplicateInsertError = patrolIsLikelyDuplicateInsertError;
+
 // ── Stores ──
 
 async function getStores(filters) {
@@ -112,18 +127,25 @@ async function updateStore(id, data) {
 
 async function createFarm(farmData) {
   var session = getSession();
-  farmData.created_by = session ? session.id : null;
+  if (!session || !session.id) throw new Error('createFarm: no active session');
 
   // Ensure heads is integer (chatbot text input arrives as string)
   if (farmData.heads) farmData.heads = parseInt(farmData.heads, 10) || 0;
 
-  var { data, error } = await supabaseClient
-    .from('farms')
-    .insert(farmData)
-    .select()
-    .single();
+  var res = await fetch('/api/farms', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-session-id': session.id
+    },
+    body: JSON.stringify(farmData)
+  });
 
-  if (error) throw new Error('createFarm: ' + error.message);
+  var data = await res.json().catch(function () { return null; });
+  if (!res.ok) {
+    var detail = data && (data.message || data.error || (data.detail && data.detail.message));
+    throw new Error('createFarm: ' + (detail || ('HTTP ' + res.status)));
+  }
   return data;
 }
 

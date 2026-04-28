@@ -293,9 +293,21 @@ async function enhancedSyncStatus() {
 
     // Safety timeout — force-exit syncing state if something hangs
     _clearSyncSafety();
-    _syncSafetyId = setTimeout(function () {
+    _syncSafetyId = setTimeout(async function () {
       _syncInProgress = false;
-      _flashSyncedThenHide();
+      try {
+        var st = await getSyncStatus();
+        if ((st.pending || 0) === 0) {
+          _flashSyncedThenHide();
+        } else if (r.bar) {
+          r.bar.className = 'sync-bar sync-error';
+          if (r.icon) r.icon.textContent = '\u2717';
+          if (r.text) r.text.textContent = (T.syncError || 'Sync still pending') + ' (' + st.pending + ')';
+          if (r.btn) { r.btn.style.display = 'inline-block'; r.btn.textContent = T.retry || 'Retry'; }
+        }
+      } catch (e) {
+        _flashSyncedThenHide();
+      }
     }, 10000);
 
     try {

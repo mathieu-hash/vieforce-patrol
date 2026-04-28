@@ -31,6 +31,23 @@ function _fmtInt(n) {
   return (parseFloat(n) || 0).toLocaleString('en-PH');
 }
 
+function _daysSince(iso) {
+  if (!iso) return null;
+  var ms = Date.now() - new Date(iso).getTime();
+  if (isNaN(ms) || ms < 0) return null;
+  return Math.floor(ms / 86400000);
+}
+
+function _homeGreeting(name) {
+  var hour = new Date().getHours();
+  var greet = 'Magandang araw';
+  if (hour < 12) greet = 'Magandang umaga';
+  else if (hour < 18) greet = 'Magandang hapon';
+  else greet = 'Magandang gabi';
+  var firstName = (name || '').split(/\s+/)[0] || '';
+  return greet + (firstName ? ', ' + firstName + '!' : '!');
+}
+
 // Stable gradient picker for alert avatars
 function _alertGradient(seed) {
   var palette = [
@@ -636,10 +653,215 @@ function _renderCriticalAlerts(stores) {
 function _renderTeamCta() {
   return '<div class="team-cta" onclick="nav(\'page-team\')">' +
     '<div>' +
-      '<div class="team-cta-title">\ud83d\udc65 Go to Team tab</div>' +
-      '<div class="team-cta-sub">Attention items, coaching moments, forecast &amp; audit flags</div>' +
+      '<div class="team-cta-title">\ud83d\udcac See Team details</div>' +
+      '<div class="team-cta-sub">Leaderboard, coaching, forecasts, and full people performance</div>' +
     '</div>' +
     '<div class="team-cta-arrow">\u2192</div>' +
+  '</div>';
+}
+
+// ── Home Command Center (non-duplicative with Team tab) ────────────────────
+
+function _renderTeamPulse(stores, users, visits14, visits30) {
+  var tsrs = (users || []).filter(function (u) { return u.role === 'tsr' && u.is_active; });
+  var activeStores = (stores || []).filter(function (s) { return s.store_status === 'active'; });
+  var openProspects = (stores || []).filter(function (s) { return s.store_status === 'prospect'; });
+
+  var activeTodayMap = {};
+  for (var i = 0; i < (visits14 || []).length; i++) {
+    var v = visits14[i];
+    if (_daysSince(v.visited_at) === 0 && v.tsr_id) activeTodayMap[v.tsr_id] = 1;
+  }
+
+  var riskStores = (stores || []).filter(function (s) {
+    return s.risk_status === 'at_risk' || s.risk_status === 'lost' || s.health_status === 'crit';
+  });
+
+  return '<div class="pulse-card pulse-hero">' +
+    '<div class="card-header">' +
+      '<div class="card-title">👥 Team Pulse</div>' +
+      '<div class="card-period pulse-badge">Today + 30d</div>' +
+    '</div>' +
+    '<div class="pulse-grid">' +
+      '<div class="pulse-kpi">' +
+        '<div class="pulse-kpi-label">🟢 TSR Active Today</div>' +
+        '<div class="pulse-kpi-value">' + Object.keys(activeTodayMap).length + '<span>/' + tsrs.length + '</span></div>' +
+      '</div>' +
+      '<div class="pulse-kpi">' +
+        '<div class="pulse-kpi-label">🏪 Active Stores</div>' +
+        '<div class="pulse-kpi-value">' + activeStores.length + '</div>' +
+      '</div>' +
+      '<div class="pulse-kpi">' +
+        '<div class="pulse-kpi-label">✨ Open Prospects</div>' +
+        '<div class="pulse-kpi-value">' + openProspects.length + '</div>' +
+      '</div>' +
+      '<div class="pulse-kpi danger">' +
+        '<div class="pulse-kpi-label">⚠️ At-Risk Stores</div>' +
+        '<div class="pulse-kpi-value">' + riskStores.length + '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function _renderExecutionOutcomes(stores, visits30) {
+  var activeStores = (stores || []).filter(function (s) { return s.store_status === 'active'; });
+  var openProspects = (stores || []).filter(function (s) { return s.store_status === 'prospect'; });
+
+  var converted30 = (stores || []).filter(function (s) {
+    return !!s.converted_at && _daysSince(s.converted_at) != null && _daysSince(s.converted_at) <= 30;
+  }).length;
+
+  var prospectBase = openProspects.length + converted30;
+  var conversionRate = prospectBase > 0 ? Math.round((converted30 / prospectBase) * 100) : 0;
+
+  var retained = 0;
+  for (var i = 0; i < activeStores.length; i++) {
+    var d = _daysSince(activeStores[i].last_order_at);
+    if (d != null && d <= 60) retained++;
+  }
+  var retentionRate = activeStores.length > 0 ? Math.round((retained / activeStores.length) * 100) : 0;
+
+  var coveredStoreMap = {};
+  for (var v = 0; v < (visits30 || []).length; v++) {
+    if (visits30[v].store_id) coveredStoreMap[visits30[v].store_id] = 1;
+  }
+  var coverageRate = activeStores.length > 0
+    ? Math.round((Object.keys(coveredStoreMap).length / activeStores.length) * 100)
+    : 0;
+
+  return '<div class="outcomes-card">' +
+    '<div class="card-header">' +
+      '<div class="card-title">🎯 Execution Outcomes</div>' +
+      '<div class="card-period">Last 30 days</div>' +
+    '</div>' +
+    '<div class="outcomes-strip">' +
+      '<div class="outcome-pill">' +
+        '<div class="outcome-pill-label">Conversion</div>' +
+        '<div class="outcome-pill-value">' + conversionRate + '%</div>' +
+      '</div>' +
+      '<div class="outcome-pill">' +
+        '<div class="outcome-pill-label">Retention</div>' +
+        '<div class="outcome-pill-value">' + retentionRate + '%</div>' +
+      '</div>' +
+      '<div class="outcome-pill">' +
+        '<div class="outcome-pill-label">Store Coverage</div>' +
+        '<div class="outcome-pill-value">' + coverageRate + '%</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function _renderQuickWins(stores, users) {
+  var overdue = 0;
+  var prospects = 0;
+  var tsrs = 0;
+  for (var i = 0; i < (stores || []).length; i++) {
+    var s = stores[i];
+    if (s.store_status === 'prospect') prospects++;
+    var d = _daysSince(s.last_visit_at);
+    if (s.store_status === 'active' && d != null && d > 14) overdue++;
+  }
+  for (var j = 0; j < (users || []).length; j++) {
+    if (users[j].role === 'tsr' && users[j].is_active) tsrs++;
+  }
+
+  return '<div class="quickwins-card">' +
+    '<div class="quickwins-row">' +
+      '<button class="quickwin-pill quickwin-warn" onclick="nav(\'page-stores\')"><span class="quickwin-icon">⚠️</span><span>' + overdue + ' Overdue Stores</span></button>' +
+      '<button class="quickwin-pill quickwin-info" onclick="nav(\'page-stores\')"><span class="quickwin-icon">✨</span><span>' + prospects + ' New Prospects</span></button>' +
+      '<button class="quickwin-pill quickwin-blue" onclick="nav(\'page-team\')"><span class="quickwin-icon">🏆</span><span>Team Leaderboard</span></button>' +
+      '<button class="quickwin-pill quickwin-warn" onclick="nav(\'page-stores\')"><span class="quickwin-icon">🧭</span><span>Overdue Visits</span></button>' +
+      '<button class="quickwin-pill quickwin-info" onclick="nav(\'page-team\')"><span class="quickwin-icon">👥</span><span>' + tsrs + ' Active TSRs</span></button>' +
+    '</div>' +
+  '</div>';
+}
+
+function _buildExceptionQueue(stores, users) {
+  var userMap = {};
+  (users || []).forEach(function (u) { userMap[u.id] = u.name; });
+  var queue = [];
+
+  for (var i = 0; i < (stores || []).length; i++) {
+    var s = stores[i];
+    var owner = userMap[s.assigned_tsr] || 'Unassigned';
+
+    if (s.store_status === 'prospect') {
+      var ageProspect = _daysSince(s.created_at);
+      if (ageProspect != null && ageProspect > 14) {
+        queue.push({
+          score: 120 + ageProspect,
+          tag: 'Prospect aging',
+          msg: (s.name || 'Store') + ' is open for ' + ageProspect + ' days',
+          owner: owner,
+          severity: 'warn'
+        });
+      }
+    }
+
+    var noVisitDays = _daysSince(s.last_visit_at);
+    if (s.store_status === 'active' && noVisitDays != null && noVisitDays > 14) {
+      queue.push({
+        score: 100 + noVisitDays,
+        tag: 'Visit overdue',
+        msg: (s.name || 'Store') + ' has no visit for ' + noVisitDays + ' days',
+        owner: owner,
+        severity: 'warn'
+      });
+    }
+
+    if (s.risk_status === 'at_risk' || s.risk_status === 'lost' || s.health_status === 'crit') {
+      queue.push({
+        score: 200 + (s.risk_status === 'lost' ? 40 : 0),
+        tag: s.risk_status === 'lost' ? 'Lost risk' : 'At-risk account',
+        msg: (s.name || 'Store') + ' needs manager intervention',
+        owner: owner,
+        severity: 'crit'
+      });
+    }
+  }
+
+  queue.sort(function (a, b) { return b.score - a.score; });
+  return queue.slice(0, 5);
+}
+
+function _renderExceptionQueue(stores, users) {
+  var queue = _buildExceptionQueue(stores, users);
+  if (queue.length === 0) {
+    return '<div class="queue-card">' +
+      '<div class="card-header">' +
+        '<div class="card-title">⚠️ Exception Queue</div>' +
+        '<div class="card-period">Top 5 priorities</div>' +
+      '</div>' +
+      '<div class="queue-empty">✅ No urgent exceptions right now.</div>' +
+    '</div>';
+  }
+
+  var rows = '';
+  for (var i = 0; i < queue.length; i++) {
+    rows += '<div class="queue-row">' +
+      '<div class="queue-severity ' + (queue[i].severity === 'crit' ? 'crit' : 'warn') + '"></div>' +
+      '<div class="queue-main">' +
+        '<div class="queue-msg">' + _ddEsc(queue[i].msg) + '</div>' +
+        '<div class="queue-owner">Owner: ' + _ddEsc(queue[i].owner) + '</div>' +
+      '</div>' +
+      '<div class="queue-tag ' + (queue[i].severity === 'crit' ? 'crit' : 'warn') + '">' + _ddEsc(queue[i].tag) + '</div>' +
+    '</div>';
+  }
+
+  var top = queue[0];
+  var actionHint = top.tag === 'Prospect aging'
+    ? 'Assign same-day follow-up for stale prospects.'
+    : top.tag === 'Visit overdue'
+      ? 'Push visit completion for overdue active stores.'
+      : 'Coach TSR + recovery plan on at-risk accounts.';
+
+  return '<div class="queue-card">' +
+    '<div class="card-header">' +
+      '<div class="card-title">⚠️ Exception Queue</div>' +
+      '<div class="card-period queue-badge">Top 5 priorities</div>' +
+    '</div>' +
+    rows +
+    '<div class="priority-callout">📌 Priority action: ' + _ddEsc(actionHint) + '</div>' +
   '</div>';
 }
 
@@ -656,12 +878,27 @@ function _renderExportSection() {
   '</div>';
 }
 
+function _renderHomeWarmHeader(session) {
+  var initials = _ddInitials(session && session.name);
+  return '<div class="home-warm-header">' +
+    '<div class="home-warm-left">' +
+      '<div class="home-warm-greet">' + _ddEsc(_homeGreeting(session && session.name)) + '</div>' +
+      '<div class="home-warm-sub">Your team command center for today</div>' +
+    '</div>' +
+    '<div class="home-warm-right">' +
+      '<div class="home-warm-avatar">' + _ddEsc(initials) + '</div>' +
+      '<span class="home-warm-online"></span>' +
+    '</div>' +
+  '</div>';
+}
+
 // ── 9. Master render ─────────────────────────────────────────
 
 async function renderDashboardV2() {
   var session = getSession();
   if (!session) return;
-  if (['dsm', 'rsm', 'exec', 'admin'].indexOf(session.role) === -1) {
+  var rl = String(session.role || '').toLowerCase();
+  if (['dsm', 'rsm', 'exec', 'admin', 'ceo', 'evp'].indexOf(rl) === -1) {
     console.warn('renderDashboardV2: role not authorized:', session.role);
     return;
   }
@@ -674,31 +911,42 @@ async function renderDashboardV2() {
   if (subtitle) {
     subtitle.textContent = (session.district || session.region || 'All Territories') + ' \u00b7 ' + session.name;
   }
+  var greeting = document.getElementById('dsm-greeting-text');
+  if (greeting) {
+    greeting.textContent = _homeGreeting(session && session.name);
+  }
 
   root.innerHTML =
-    '<div class="hero-metric" style="opacity:0.7">' +
-      '<div class="hero-label">\ud83d\udcc8 Volume Month-to-Date</div>' +
-      '<div class="hero-value">\u2014 <span class="hero-unit">MT</span></div>' +
-      '<div class="hero-trend flat">Loading\u2026</div>' +
+    '<div class="pulse-card" style="opacity:0.7">' +
+      '<div class="card-header"><div class="card-title">👥 Team Pulse</div></div>' +
+      '<div class="card-sub">Loading manager home snapshot…</div>' +
     '</div>';
 
   try {
     var stores = await getStores();
+    var users = await getUsers();
+    var from14 = new Date();
+    from14.setDate(from14.getDate() - 14);
+    var from30 = new Date();
+    from30.setDate(from30.getDate() - 30);
 
-    // Fire independent renders in parallel where possible
-    var penetrationP = _renderProductPenetration(stores);
-    var trendP       = _renderVisitTrend();
-    var leaderP      = _renderLeaderboardCard();
+    var visits14Res = await supabaseClient
+      .from('visits')
+      .select('tsr_id,store_id,visited_at')
+      .gte('visited_at', from14.toISOString());
+    var visits30Res = await supabaseClient
+      .from('visits')
+      .select('tsr_id,store_id,visited_at')
+      .gte('visited_at', from30.toISOString());
 
-    var results = await Promise.all([penetrationP, trendP, leaderP]);
+    var visits14 = (visits14Res && visits14Res.data) || [];
+    var visits30 = (visits30Res && visits30Res.data) || [];
 
     root.innerHTML =
-      _renderHeroMetric(stores) +
-      _renderSegmentMatrix(stores) +
-      results[0] + // penetration
-      results[1] + // trend (chart binds via setTimeout after insert)
-      results[2] + // leaderboard
-      _renderCriticalAlerts(stores) +
+      _renderQuickWins(stores, users) +
+      _renderTeamPulse(stores, users, visits14, visits30) +
+      _renderExecutionOutcomes(stores, visits30) +
+      _renderExceptionQueue(stores, users) +
       _renderTeamCta() +
       _renderExportSection();
   } catch (err) {

@@ -64,6 +64,11 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.1) !important;
   border-radius: 16px !important;
+  padding: 24px !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  margin-top: 8px !important;
+  box-sizing: border-box !important;
 }
 .login-box label {
   color: rgba(255,255,255,0.6) !important;
@@ -82,6 +87,24 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   min-height: 64px !important; font-size: 16px !important;
   font-weight: 700 !important; border: none !important;
   border-radius: 8px !important; width: 100% !important;
+}
+.login-btn.secondary {
+  background: rgba(255,255,255,0.12) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+  min-height: 52px !important;
+  margin-top: 8px !important;
+}
+.login-option-title {
+  color: rgba(255,255,255,0.7);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 8px 0;
+}
+.login-divider {
+  margin: 14px 0;
+  border-top: 1px solid rgba(255,255,255,0.12);
 }
 .login-lang-bar { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; z-index: 2; }
 .login-lang-btn {
@@ -104,7 +127,6 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
 <body>
 
 <div class="login-page">
-  <!-- Language switcher — top-right corner -->
   <div class="login-lang-bar">
     <button onclick="switchLoginLang('TL')" id="pill-TL" class="lang-pill login-lang-btn" data-lang="TL">TL</button>
     <button onclick="switchLoginLang('BIS')" id="pill-BIS" class="lang-pill login-lang-btn" data-lang="BIS">BIS</button>
@@ -116,6 +138,7 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   <p>Vienovo Philippines Inc.</p>
 
   <div class="login-box">
+    <p class="login-option-title">TSR Login (Phone + PIN)</p>
     <label id="lbl-phone">Phone Number</label>
     <input type="tel" id="login-phone" placeholder="09XX XXX XXXX">
 
@@ -123,6 +146,14 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
     <input type="password" id="login-pin" maxlength="6" placeholder="Enter PIN">
 
     <button class="login-btn" id="login-btn">Mag-sign in</button>
+
+    <div class="login-divider"></div>
+    <p class="login-option-title">Manager Login (Google)</p>
+    <button class="login-btn secondary" id="google-login-btn">Open with your Vienovo Google email</button>
+    <p class="login-localhost-hint" id="login-localhost-hint" style="display:none;color:rgba(255,200,120,0.95);font-size:11px;line-height:1.45;margin:10px 0 0;text-align:center">
+      You are on <strong>localhost</strong> — Google returns here, so this port must be running. For production login use
+      <a href="https://vieforce-patrol.vercel.app/index.html#patrol_google=1" style="color:#7dd3fc;font-weight:700">vieforce-patrol.vercel.app</a>.
+    </p>
 
     <div class="error-msg" id="login-error"></div>
   </div>
@@ -133,9 +164,9 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
 <script src="js/labels-v2.js?v=10"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
+<script src="js/supabase.js?v=2"></script>
 <script src="js/validate.js"></script>
-<script src="js/auth.js"></script>
+<script src="js/auth.js?v=20"></script>
 <script>
   // Apply saved language to login screen
   function applyLoginLang() {
@@ -144,7 +175,6 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
     document.getElementById('lbl-phone').textContent = L.phoneLabel;
     document.getElementById('lbl-pin').textContent = L.pinLabel;
     document.getElementById('login-btn').textContent = L.signIn;
-    // Mark active pill
     document.querySelectorAll('.lang-pill').forEach(function(btn) {
       if (btn.dataset.lang === lang) btn.classList.add('active');
       else btn.classList.remove('active');
@@ -160,6 +190,19 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   }
 
   applyLoginLang();
+
+  if (typeof warnPatrolOAuthEnvironment === 'function') warnPatrolOAuthEnvironment();
+
+  (function showLocalhostGoogleHint() {
+    var h = '';
+    try {
+      h = String(location.hostname || '').toLowerCase();
+    } catch (e) {}
+    if (h === 'localhost' || h === '127.0.0.1') {
+      var el = document.getElementById('login-localhost-hint');
+      if (el) el.style.display = 'block';
+    }
+  })();
 
   document.getElementById('login-btn').addEventListener('click', async function() {
     var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
@@ -184,14 +227,20 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
     try {
       const result = await login(phone, pin);
       if (result && result.success) {
-        // Small delay ensures localStorage flushes on mobile WebViews before navigation
-        setTimeout(function() {
+        // Redirect on the next paint for faster perceived login.
+        // Keeping async scheduling preserves mobile WebView storage reliability.
+        var go = function() {
           if (typeof redirectAfterLogin === 'function') {
             redirectAfterLogin(result.session);
           } else {
             window.location.href = 'app.html';
           }
-        }, 100);
+        };
+        if (typeof window.requestAnimationFrame === 'function') {
+          window.requestAnimationFrame(go);
+        } else {
+          setTimeout(go, 0);
+        }
         return;
       } else {
         errorEl.textContent = (result && result.error) || L.invalidLogin;
@@ -206,10 +255,98 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
     }
   });
 
-  // If already logged in, redirect
-  if (getSession()) {
-    window.location.href = 'app.html';
-  }
+  document.getElementById('google-login-btn').addEventListener('click', async function() {
+    var hostLc = '';
+    try {
+      hostLc = String(location.hostname || '').toLowerCase();
+    } catch (e) {}
+    if (hostLc === 'localhost' || hostLc === '127.0.0.1') {
+      var prodBase = (window.CONFIG && CONFIG.OAUTH_PUBLIC_ORIGIN)
+        ? String(CONFIG.OAUTH_PUBLIC_ORIGIN).replace(/\/$/, '')
+        : 'https://vieforce-patrol.vercel.app';
+      window.location.href = prodBase + '/index.html#patrol_google=1';
+      return;
+    }
+
+    const errorEl = document.getElementById('login-error');
+    const btn = this;
+    errorEl.classList.remove('visible');
+    errorEl.textContent = '';
+
+    btn.disabled = true;
+    const prevText = btn.textContent;
+    btn.textContent = 'Opening Google...';
+    try {
+      const result = await loginWithGoogle();
+      if (!result || !result.success) {
+        errorEl.textContent = (result && result.error) || 'Google login failed.';
+        errorEl.classList.add('visible');
+      }
+    } catch (err) {
+      errorEl.textContent = err.message || 'Google login failed.';
+      errorEl.classList.add('visible');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = prevText;
+    }
+  });
+
+  (async function initLoginPageAuth() {
+    var autoGoogleAfterBounce = false;
+    if (location.hash === '#patrol_google' || location.hash === '#patrol_google=1') {
+      autoGoogleAfterBounce = true;
+      try {
+        history.replaceState({}, document.title, location.pathname + location.search);
+      } catch (h) {}
+    }
+    try {
+      if (getSession()) {
+        window.location.href = 'app.html';
+        return;
+      }
+
+      if (typeof maybeHandleGoogleLoginOnLoad === 'function') {
+        var oauthResult = await maybeHandleGoogleLoginOnLoad();
+        if (oauthResult && oauthResult.success) {
+          if (typeof redirectAfterLogin === 'function') {
+            redirectAfterLogin(oauthResult.session);
+          } else {
+            window.location.href = 'app.html';
+          }
+          return;
+        }
+
+        if (oauthResult && oauthResult.handled && oauthResult.error) {
+          var errorEl = document.getElementById('login-error');
+          errorEl.textContent = oauthResult.error;
+          errorEl.classList.add('visible');
+        }
+      }
+
+      if (autoGoogleAfterBounce) {
+        var h2 = '';
+        try {
+          h2 = String(location.hostname || '').toLowerCase();
+        } catch (e2) {}
+        if (h2 !== 'localhost' && h2 !== '127.0.0.1' && typeof loginWithGoogle === 'function') {
+          var gr = await loginWithGoogle();
+          if (!gr || !gr.success) {
+            var errG = document.getElementById('login-error');
+            if (errG) {
+              errG.textContent = (gr && gr.error) ? gr.error : 'Google login failed.';
+              errG.classList.add('visible');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      var errBox = document.getElementById('login-error');
+      if (errBox) {
+        errBox.textContent = (e && e.message) ? e.message : 'Login check failed. Please refresh and try again.';
+        errBox.classList.add('visible');
+      }
+    }
+  })();
 
   // SW permanently removed — kill script in <head> handles cleanup
 </script>

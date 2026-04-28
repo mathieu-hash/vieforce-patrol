@@ -1,6 +1,6 @@
 # SAP Proxy — Patrol → HQ → MSSQL
 
-Patrol-side serverless functions that proxy SAP B1 data through the HQ Cloud Run API. Built so the browser never sees the HQ service token, never sees other-territory data, and (for non-execs) never sees gross-margin fields.
+Patrol-side serverless functions that proxy SAP B1 data through the HQ Cloud Run API. Built so the browser never sees the HQ service token, never sees other-territory data, and never sees gross-margin fields. Patrol is the field app; margin stays in HQ desktop only.
 
 **Architecture (Phase D, 2026-04-19)**
 
@@ -12,7 +12,7 @@ Patrol Vercel Serverless    ← THIS DIRECTORY
    │
    │  1. verifySession()       → looks up user via Supabase REST + service-role key
    │  2. callHqProxy()         → Bearer HQ_SERVICE_TOKEN + scope=user:<uuid>, 10s timeout, retry-once on 5xx
-   │  3. stripMarginsIfNeeded() → recursively DELETES margin keys for non-exec/ceo
+   │  3. stripMarginsIfNeeded() → recursively DELETES margin keys for every role
    │  4. wrapPatrolMeta()      → adds { patrol_meta: { user_id, role, period, hq_scope, is_empty, fetched_at } } envelope
    │
    ▼
@@ -78,14 +78,43 @@ Failure modes:
 | `SUPABASE_SERVICE_ROLE_KEY` | **YES** | — | Lets serverless functions look up users by id. NEVER expose to browser. |
 | `SUPABASE_URL` | no | `https://yolxcmeoovztuindrglk.supabase.co` | Override only if pointing at a different project. |
 
+### Direct-SAP endpoints (`/api/sap/sales/*`) — additional env vars
+
+These three endpoints query SAP B1 MSSQL **directly** (skipping HQ) for speed.
+
+| Name | Required | Default | Purpose |
+|------|----------|---------|---------|
+| `SAP_DB_HOST` | **YES** | — | e.g. `analytics.vienovo.ph` |
+| `SAP_DB_PORT` | no | `1433` | SAP B1 SQL port (use `4444` per current setup) |
+| `SAP_DB_NAME` | **YES** | — | e.g. `Vienovo_Live` |
+| `SAP_DB_USER` | **YES** | — | Read-only SQL login (must NOT have write/DDL) |
+| `SAP_DB_PASS` | **YES** | — | Password for the read-only user |
+| `SAP_DB_ENCRYPT` | no | `1` | `'0'` to disable TLS (dev only) |
+| `SAP_DB_TRUST` | no | `1` | `'0'` to require valid server cert |
+
+**Endpoints added:**
+
+| Path | Returns | Notes |
+|------|---------|-------|
+| `GET /api/sap/sales/by-customer?period=MTD\|YTD` | `by_customer[]` (top 5 BPs by bags) | Filters: `OINV.SlpCode = user.sap_slpcode`, `CANCELED='N'`, period start |
+| `GET /api/sap/sales/whitespace` | `whitespace[]` (BPs with 0 MTD invoices) | Active BPs only (`OCRD.validFor='Y'`) |
+| `GET /api/sap/sales/at-risk` | `at_risk[]` (>14d since last invoice) | Tiered: `slowing` 15–30d, `at_risk` >30d, `no_history` null |
+
+All three endpoints:
+- Require `x-session-id` (same as HQ-proxied routes).
+- Read **only** `OINV` / `INV1` / `OCRD` (volume + BP master).
+- Return `{ patrol_meta: { user_id, role, period?, is_empty, fetched_at } }` envelope.
+- Return empty list (with `is_empty: true`) when user has no `sap_slpcode`.
+- Return `502` with no SQL details on connection / query failures.
+
 ## Margin-stripping policy
 
-Roles `exec` and `ceo` see every field untouched. Everyone else (incl. `admin`, `evp`, `dsm`, `rsm`, `tsr`, `champion`) gets these keys **deleted** (not nulled) recursively across the entire response:
+Every role, including `exec`, `ceo`, `admin`, `evp`, `director`, `rsm`, `dsm`, `tsr`, and `champion`, gets these keys **deleted** (not nulled) recursively across the entire response:
 
 ```
 gross_profit, gross_margin, margin_pct, cost_of_goods, unit_cost,
 gp, gm, gm_ton, gmt, cogs, ytd_gm_ton,
-gm_per_ton, gross_margin_pct, gp_pct, margin
+gm_per_ton, gross_margin_pct, gp_pct, margin, gm_per_bag
 ```
 
 The walker handles nested objects and arrays so a margin field inside a regional rollup is also stripped. Full list in `api/_lib/scope.js` → `MARGIN_KEYS`.
@@ -142,7 +171,7 @@ The helper auto-attaches `x-session-id` from `getSession()`.
 
 2. Login as Rina (RSM, Luzon) → same call. Regional aggregate, margin keys stripped.
 
-3. Login as Mat (exec) → same call. Full national data, margin keys **present**.
+3. Login as Mat (exec) → same call. Full national scope, but margin keys still stripped because Patrol never exposes margin data.
 
 4. Customer detail RBAC — DSM calling an out-of-scope cardcode:
    ```js
