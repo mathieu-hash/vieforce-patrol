@@ -1,20 +1,11 @@
-// Unit tests for the combined /api/sap/sales/all endpoint.
-// Mocks verifySession + sap-mssql so handler can be exercised without real SAP.
-// `querySelect` returns from a queue (one entry per Promise.all branch) so we
-// can verify each section maps correctly.
-
+// Unit tests for /api/sap/sales/all — HQ proxy + reshape (no direct MSSQL).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const AUTH_PATH = require.resolve('../../api/_lib/auth.js');
-const SAP_PATH = require.resolve('../../api/_lib/sap-mssql.js');
+const HQ_CLIENT_PATH = require.resolve('../../api/_lib/hq-client.js');
 
-const _state = {
-  session: null,
-  queue: [],          // FIFO of result rows (one per querySelect call)
-  throwErr: null,
-  calls: []           // captured { sql, params } per call
-};
+const _captures = { hqCalls: [] };
 
 function installMocks() {
   require.cache[AUTH_PATH] = {
@@ -29,29 +20,25 @@ function installMocks() {
       }
     }
   };
-  require.cache[SAP_PATH] = {
-    id: SAP_PATH,
-    filename: SAP_PATH,
+  require.cache[HQ_CLIENT_PATH] = {
+    id: HQ_CLIENT_PATH,
+    filename: HQ_CLIENT_PATH,
     loaded: true,
     exports: {
-      querySelect: async (sqlText, params) => {
-        _state.calls.push({ sql: sqlText, params });
-        if (_state.throwErr) throw _state.throwErr;
-        return _state.queue.shift() || [];
-      },
-      sql: { Int: 'Int' }
+      callHqProxy: async (hqPath, session, params) => {
+        _captures.hqCalls.push({ hqPath, session, params });
+        return _captures.hqResult || { status: 500, body: { error: 'unset mock' } };
+      }
     }
   };
 }
 
-function setSession(s) { _state.session = s; }
-function setQueue(arr) { _state.queue = arr.slice(); }
-function setError(e) { _state.throwErr = e; }
+const _state = { session: null };
+
 function reset() {
   _state.session = null;
-  _state.queue = [];
-  _state.throwErr = null;
-  _state.calls = [];
+  _captures.hqCalls = [];
+  _captures.hqResult = undefined;
 }
 
 function mockRes() {
@@ -74,96 +61,89 @@ function load(rel) {
 
 installMocks();
 
-const DSM = { id: '5d710fc6-8351-439f-b0e1-c91a76719ccb', role: 'dsm', sap_slpcode: 41 };
-const DSM_NO_SLP = { id: 'd1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1', role: 'dsm', sap_slpcode: null };
+const DSM = {
+  id: '5d710fc6-8351-439f-b0e1-c91a76719ccb',
+  role: 'dsm',
+  sap_slpcode: 41,
+  name: 'Test DSM'
+};
 
 test('/all: 401 when no session', async () => {
   reset();
-  setSession(null);
+  _state.session = null;
   const handler = load('../../api/sap/sales/all.js');
   const res = mockRes();
   await handler(mockReq(), res);
   assert.equal(res.statusCode, 401);
 });
 
-test('/all: empty zero-state when user has no slpcode (no SAP calls)', async () => {
+test('/all: 502 when HQ returns upstream error', async () => {
   reset();
-  setSession(DSM_NO_SLP);
+  _state.session = DSM;
+  _captures.hqResult = { status: 503, body: { error: 'upstream' } };
   const handler = load('../../api/sap/sales/all.js');
   const res = mockRes();
   await handler(mockReq({ period: 'MTD' }), res);
-  assert.equal(res.statusCode, 200);
-  assert.equal(res.body.patrol_meta.is_empty, true);
-  assert.deepEqual(res.body.kpis, { bags: 0 });
-  assert.deepEqual(res.body.by_brand, []);
-  assert.deepEqual(res.body.by_customer, []);
-  assert.deepEqual(res.body.whitespace, []);
-  assert.deepEqual(res.body.at_risk, []);
-  assert.equal(_state.calls.length, 0, 'no SAP calls should be made when out-of-scope');
+  assert.equal(res.statusCode, 502);
+  assert.equal(res.body.hq_status, 503);
 });
 
-test('/all: maps all 5 query result sets in declared order', async () => {
+test('/all: 504 when HQ times out', async () => {
   reset();
-  setSession(DSM);
-  // Order matches Promise.all in api/sap/sales/all.js:
-  // 1) totalBagsSql, 2) byBrandSql, 3) byCustomerSql, 4) whitespaceSql, 5) atRiskSql
-  setQueue([
-    [{ total_bags: '2480' }],
-    [{ brand: 'ViePro', bags: '900' }, { brand: '(no brand)', bags: '120' }],
-    [{ CardCode: 'CA000001', CardName: 'PACIFICA', bags: 1012 }],
-    [{ CardCode: 'CA000182', CardName: 'ENGGI & CHOWI', Phone1: null }],
-    [{ CardCode: 'CA000346', CardName: 'MJ', last_date: '2026-01-01', days_since: 116 }]
-  ]);
+  _state.session = DSM;
+  _captures.hqResult = { status: 504, body: { error: 'HQ timeout' } };
   const handler = load('../../api/sap/sales/all.js');
   const res = mockRes();
   await handler(mockReq({ period: 'MTD' }), res);
+  assert.equal(res.statusCode, 504);
+  assert.match(res.body.message, /timeout/i);
+});
+
+test('/all: reshapes HQ body + calls callHqProxy with include', async () => {
+  reset();
+  _state.session = DSM;
+  _captures.hqResult = {
+    status: 200,
+    body: {
+      scope: { is_empty: false, district_label: 'Cebu South', name: 'Test DSM' },
+      kpis: { volume_bags: 2480 },
+      by_brand: [
+        { brand: 'ViePro', volume_bags: 900 },
+        { brand: 'Other', volume_bags: 100 },
+        { brand: 'x', volume_bags: 1 },
+        { brand: 'y', volume_bags: 1 },
+        { brand: 'z', volume_bags: 1 },
+        { brand: 'drop', volume_bags: 999 }
+      ],
+      top_customers: [
+        { customer_code: 'CA000001', customer_name: 'PACIFICA', volume_bags: 1012 }
+      ],
+      whitespace: [{ cardcode: 'CA1', name: 'WS', phone: '09' }],
+      at_risk: [{
+        cardcode: 'CA2',
+        name: 'AR',
+        last_date: '2026-01-01',
+        days_since_last_order: 116,
+        tier: 'at_risk'
+      }]
+    }
+  };
+  const handler = load('../../api/sap/sales/all.js');
+  const res = mockRes();
+  await handler(mockReq({ period: 'YTD' }), res);
   assert.equal(res.statusCode, 200);
+  assert.equal(_captures.hqCalls.length, 1);
+  assert.equal(_captures.hqCalls[0].hqPath, '/api/sales');
+  assert.equal(_captures.hqCalls[0].params.period, 'YTD');
+  assert.equal(_captures.hqCalls[0].params.include, 'whitespace,at_risk');
 
   assert.equal(res.body.kpis.bags, 2480);
-
-  assert.equal(res.body.by_brand.length, 2);
+  assert.equal(res.body.by_brand.length, 5);
   assert.equal(res.body.by_brand[0].name, 'ViePro');
-  assert.equal(res.body.by_brand[0].bags, 900);
-  assert.equal(res.body.by_brand[1].name, '(no brand)');
-
-  assert.equal(res.body.by_customer.length, 1);
   assert.equal(res.body.by_customer[0].cardcode, 'CA000001');
-
-  assert.equal(res.body.whitespace[0].phone, null);
-
+  assert.equal(res.body.whitespace[0].name, 'WS');
   assert.equal(res.body.at_risk[0].tier, 'at_risk');
-  assert.equal(res.body.at_risk[0].days_since_last_order, 116);
-  assert.equal(res.body.at_risk[0].last_date, '2026-01-01');
 
-  // Sanity: 5 SAP calls fired, each with @slpCode = 41
-  assert.equal(_state.calls.length, 5);
-  for (const c of _state.calls) {
-    const slp = c.params.find((p) => p.name === 'slpCode');
-    assert.equal(slp.value, 41);
-  }
-});
-
-test('/all: 502 with friendly message on connection failure', async () => {
-  reset();
-  setSession(DSM);
-  setError(new Error('Failed to connect to analytics.vienovo.ph:4444 in 15000ms'));
-  const handler = load('../../api/sap/sales/all.js');
-  const res = mockRes();
-  await handler(mockReq(), res);
-  assert.equal(res.statusCode, 502);
-  assert.equal(res.body.error, 'SAP_UNAVAILABLE');
-  assert.match(res.body.message, /SAP server unreachable/i);
-  assert.match(res.body.detail, /Failed to connect/);
-});
-
-test('/all: 502 with generic message on non-connection failure', async () => {
-  reset();
-  setSession(DSM);
-  setError(new Error('Login failed for user'));
-  const handler = load('../../api/sap/sales/all.js');
-  const res = mockRes();
-  await handler(mockReq(), res);
-  assert.equal(res.statusCode, 502);
-  assert.equal(res.body.error, 'SAP_UNAVAILABLE');
-  assert.match(res.body.message, /SAP query failed/i);
+  assert.equal(res.body.patrol_meta.period, 'YTD');
+  assert.equal(res.body.patrol_meta.hq_scope && res.body.patrol_meta.hq_scope.district_label, 'Cebu South');
 });
