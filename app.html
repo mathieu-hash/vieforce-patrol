@@ -159,7 +159,8 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- TSR HOME — Task list (Phase 4.5, no bags / no team feed) -->
 <!-- ========================================= -->
-<div id="page-home-tsr" class="page phase4-page" style="background:var(--bg-chat);display:none;">
+<!-- Do not set display:none inline — it overrides .page.active from patrol.css and blanks TSR/DSM home. -->
+<div id="page-home-tsr" class="page phase4-page" style="background:var(--bg-chat);">
   <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
     <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
     <button type="button" class="phase4-inline-search-hit" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border:none;border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:left;font:inherit;"
@@ -232,7 +233,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- DSM HOME — Squad dashboard + squad feed (Phase 4.5) -->
 <!-- ========================================= -->
-<div id="page-home-dsm" class="page phase4-page" style="background:var(--bg-chat);display:none;">
+<div id="page-home-dsm" class="page phase4-page" style="background:var(--bg-chat);">
   <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
     <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
     <button type="button" class="phase4-inline-search-hit" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border:none;border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:left;font:inherit;"
