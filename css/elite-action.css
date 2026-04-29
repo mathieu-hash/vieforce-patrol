@@ -200,6 +200,36 @@
   background: linear-gradient(165deg, var(--bg-elevated) 0%, var(--bg-base, #e8ecf2) 100%);
   color: var(--text-primary);
 }
+/* Phase 4.6v3 — compact header row (mockup sc-header) */
+#page-home-tsr .scorecard-hero .sc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 16px 14px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 47, 69, 0.07) 0%,
+    rgba(45, 127, 249, 0.06) 50%,
+    rgba(151, 215, 0, 0.05) 100%
+  );
+  border-bottom: 1px solid var(--border-soft);
+}
+#page-home-tsr .scorecard-hero .sc-title {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1.25;
+  flex: 1;
+  min-width: 0;
+}
+#page-home-tsr .scorecard-hero .sc-header .sc-score {
+  flex-shrink: 0;
+  text-align: right;
+}
 #page-home-tsr .sc-head-visual {
   display: flex;
   justify-content: space-between;

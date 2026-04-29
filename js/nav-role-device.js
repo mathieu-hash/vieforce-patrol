@@ -33,20 +33,20 @@
   var NAV_CONFIGS = {
     tsr: {
       mobile: [
-        { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',    page: 'page-home-tsr' },
-        { id: 'stores',   icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
-        { id: 'visit',    icon: '\u2795',      label: 'Visit',   page: 'page-visits' },
-        { id: 'activity', icon: '\ud83d\udcca', label: 'Activity', page: 'page-leader' },
-        { id: 'profile',  icon: '\ud83d\udc64', label: 'Me',      page: 'page-profile' },
+        { id: 'home',     icon: '\ud83c\udfe0', labelKey: 'nav.home',    label: 'Home',    page: 'page-home-tsr' },
+        { id: 'stores',   icon: '\ud83c\udfea', labelKey: 'nav.pos',    label: 'POS',     page: 'page-stores', badge: 'stores' },
+        { id: 'visit',    icon: '\u2795',      labelKey: 'nav.visit',   label: 'Visit',   page: 'page-visits' },
+        { id: 'mapa',     icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-mapa-tsr' },
+        { id: 'profile',  icon: '\ud83d\udc64', labelKey: 'nav.me',      label: 'Me',      page: 'page-profile' },
       ],
     },
     champion: {
       mobile: [
-        { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',    page: 'page-home-tsr' },
-        { id: 'stores',   icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
-        { id: 'visit',    icon: '\u2795',      label: 'Visit',   page: 'page-visits' },
-        { id: 'activity', icon: '\ud83d\udcca', label: 'Activity', page: 'page-leader' },
-        { id: 'profile',  icon: '\ud83d\udc64', label: 'Me',      page: 'page-profile' },
+        { id: 'home',     icon: '\ud83c\udfe0', labelKey: 'nav.home',    label: 'Home',    page: 'page-home-tsr' },
+        { id: 'stores',   icon: '\ud83c\udfea', labelKey: 'nav.pos',    label: 'POS',     page: 'page-stores', badge: 'stores' },
+        { id: 'visit',    icon: '\u2795',      labelKey: 'nav.visit',   label: 'Visit',   page: 'page-visits' },
+        { id: 'mapa',     icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-mapa-tsr' },
+        { id: 'profile',  icon: '\ud83d\udc64', labelKey: 'nav.me',      label: 'Me',      page: 'page-profile' },
       ],
     },
 
@@ -142,11 +142,15 @@
         it.badge === 'stores'
           ? '<span class="nav-badge" aria-hidden="true" style="display:none">0</span>'
           : '';
+      var lbl =
+        typeof window.t === 'function' && it.labelKey
+          ? window.t(it.labelKey)
+          : it.label;
       html += '<button type="button" class="nav-item" data-nav="' + escAttr(it.id) + '"' + dataPage +
         ' onclick="' + onclickAttr + '">' +
         '<span class="nav-pip" aria-hidden="true"></span>' +
         '<span class="nav-ico">' + it.icon + '</span>' +
-        '<span class="nav-lbl">' + it.label + '</span>' +
+        '<span class="nav-lbl">' + String(lbl).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
         badgePart +
         '</button>';
     }

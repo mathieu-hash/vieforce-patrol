@@ -361,6 +361,22 @@
 
     var sess = typeof window.getSession === 'function' ? window.getSession() : null;
     var own = sess && String(sess.id) === String(uid);
+
+    var tsPanel = document.getElementById('tsrProfileMonthPanel');
+    if (tsPanel) {
+      tsPanel.style.display =
+        own && (rl === 'tsr' || rl === 'champion') ? '' : 'none';
+    }
+    try {
+      if (
+        own &&
+        (rl === 'tsr' || rl === 'champion') &&
+        typeof window.renderTsrProfileMonthStats === 'function'
+      ) {
+        await window.renderTsrProfileMonthStats(uid);
+      }
+    } catch (eProfileTs) {}
+
     var pa = document.getElementById('profileActions');
     if (pa) {
       pa.innerHTML = own

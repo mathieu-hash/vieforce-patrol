@@ -20,7 +20,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=1">
-<link rel="stylesheet" href="css/patrol.css?v=26">
+<link rel="stylesheet" href="css/patrol.css?v=27">
 <link rel="stylesheet" href="css/rsm.css?v=1">
 <link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=8">
 <link rel="stylesheet" href="css/density-pass.css?v=8">
@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="css/phase4-social.css?v=1">
 <link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
 <link rel="stylesheet" href="css/elite-components.css?v=1">
-<link rel="stylesheet" href="css/elite-action.css?v=2">
+<link rel="stylesheet" href="css/elite-action.css?v=3">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -185,34 +185,28 @@ if ('serviceWorker' in navigator) {
     </div>
     <!-- NBA HERO -->
     <div class="nba-hero" id="tsrNbaHero">
-      <div class="nba-label">🎯 ANG UNANG BISITA MO NGAYON</div>
+      <div class="nba-label" id="tsrNbaLabel"></div>
       <div class="nba-title" id="tsrNbaTitle">Loading...</div>
       <div class="nba-meta" id="tsrNbaMeta"></div>
       <div class="nba-reason" id="tsrNbaReason"></div>
       <div class="nba-actions">
-        <button type="button" class="nba-btn" onclick="goToNbaStore()">🚀 GO NGAYON</button>
-        <button type="button" class="nba-btn secondary" onclick="skipNba()">Skip</button>
+        <button type="button" class="nba-btn" id="tsrNbaBtnGo" onclick="goToNbaStore()"></button>
+        <button type="button" class="nba-btn secondary" id="tsrNbaBtnSkip" onclick="skipNba()"></button>
       </div>
     </div>
     <!-- ROUTE TODAY -->
     <div class="tsr-section">
       <div class="tsr-section-hdr">
-        <div class="tsr-section-title" id="tsrRouteTitle">🗺️ Ruta ngayon · 0 stops</div>
-        <button type="button" class="tsr-section-action" onclick="optimizeRoute()">Optimize</button>
+        <div class="tsr-section-title" id="tsrRouteTitle"></div>
+        <button type="button" class="tsr-section-action" id="tsrRouteOptimize" onclick="optimizeRoute()"></button>
       </div>
       <div id="tsrRouteList"></div>
     </div>
     <!-- SCORECARD -->
     <div class="scorecard-hero">
-      <div class="sc-head-visual">
-        <div class="sc-head-text">
-          <div class="sc-kicker">Sales funnel · MTD</div>
-          <div class="sc-title-main">Prospection · Conversion · Retention</div>
-        </div>
-        <div class="sc-overall-wrap">
-          <div class="sc-score" id="tsrScScore"><span class="sc-overall-num-inner">0</span><span class="sc-overall-max">/5</span></div>
-          <div class="sc-overall-sub">Total score</div>
-        </div>
+      <div class="sc-header">
+        <div class="sc-title" id="tsrScTitle"></div>
+        <div class="sc-score" id="tsrScScore"><span class="sc-overall-num-inner">0</span><span class="sc-overall-max">/5</span></div>
       </div>
       <div class="sc-stages-wrap" id="tsrScStages"></div>
     </div>
@@ -259,45 +253,63 @@ if ('serviceWorker' in navigator) {
     <div class="kpi-grid" id="dsmKpiGrid"></div>
     <div class="table-card">
       <div class="table-card-hdr">
-        <div class="table-card-title">🏆 TSR Performance</div>
-        <button type="button" class="tsr-section-action" onclick="nav('page-team')">View details →</button>
+        <div class="table-card-title" id="dsmTsrPerfTitle"></div>
+        <button type="button" class="tsr-section-action" id="dsmTsrPerfDetails" onclick="nav('page-team')"></button>
       </div>
       <table>
         <thead>
           <tr>
-            <th>TSR</th>
-            <th class="num">ACTIVE</th>
-            <th class="num">PROSP</th>
-            <th class="num">CONV</th>
-            <th class="num">SCORE</th>
-            <th>TREND</th>
+            <th id="dsmColTsr">TSR</th>
+            <th class="num" id="dsmTh1"></th>
+            <th class="num" id="dsmTh2"></th>
+            <th class="num" id="dsmTh3"></th>
+            <th class="num" id="dsmTh4"></th>
+            <th id="dsmTh5"></th>
           </tr>
         </thead>
         <tbody id="dsmTsrTable"></tbody>
       </table>
     </div>
     <div class="coaching-card" id="dsmCoachingCard" style="display: none;">
-      <div style="font-size: 14px; font-weight: 800; font-family: 'Manrope', sans-serif; margin-bottom: 8px; color: var(--text-primary);">💡 Coaching moments</div>
+      <div id="dsmCoachingTitle" style="font-size: 14px; font-weight: 800; font-family: 'Manrope', sans-serif; margin-bottom: 8px; color: var(--text-primary);"></div>
       <div id="dsmCoachingList"></div>
     </div>
     <div class="composer phase4-composer-dsm">
       <div class="composer-row">
         <div class="elite-avatar" id="dsmComposerAvatar"></div>
-        <div class="composer-input" id="dsmComposerInput">Post to your squad...</div>
+        <div class="composer-input" id="dsmComposerInput"></div>
       </div>
       <div class="composer-actions">
-        <button type="button" onclick="typeof openVisitFlow==='function'&&openVisitFlow()"><span style="font-size:18px;color:var(--danger)">📍</span> Visit</button>
-        <button type="button"><span style="font-size:18px;color:var(--success)">📸</span> Photo</button>
-        <button type="button"><span style="font-size:18px;color:var(--brand-gold-2, #FA9E1B)">📢</span> Announce</button>
+        <button type="button" onclick="typeof openVisitFlow==='function'&&openVisitFlow()"><span style="font-size:18px;color:var(--danger)">📍</span> <span id="dsmComposerVisit"></span></button>
+        <button type="button"><span style="font-size:18px;color:var(--success)">📸</span> <span id="dsmComposerPhoto"></span></button>
+        <button type="button"><span style="font-size:18px;color:var(--brand-gold-2, #FA9E1B)">📢</span> <span id="dsmComposerAnnounce"></span></button>
       </div>
     </div>
-    <div class="section-label phase4-section">Squad activity</div>
+    <div class="section-label phase4-section" id="dsmSquadLabel"></div>
     <div id="dsmSquadFeed"></div>
   </div>
 </div>
 
 <!-- ========================================= -->
-<!-- STORE ASSIGNMENT PAGE (DSM/Admin only)    -->
+<!-- MAPA (TSR) — Phase 4.6v3 stub; Phase 5+ maps -->
+<!-- ========================================= -->
+<div id="page-mapa-tsr" class="page phase4-page phase4-home" style="background:var(--bg-chat);">
+  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;">
+    <button type="button" class="icon-btn" onclick="nav('page-home-tsr')" aria-label="Back">←</button>
+    <div style="flex:1;font-weight:800;font-size:16px;font-family:'Manrope',sans-serif;letter-spacing:-0.02em;" id="mapaPageTitle"></div>
+  </div>
+  <div class="app-content">
+    <div style="padding: 60px 24px; text-align: center;">
+      <div style="font-size: 64px; margin-bottom: 12px; opacity: 0.5;">🗺️</div>
+      <div style="font-size: 18px; font-weight: 800; font-family: 'Manrope', sans-serif; color: var(--text-primary); margin-bottom: 6px;" id="mapaComingTitle"></div>
+      <div style="font-size: 13px; color: var(--text-secondary); font-weight: 500;" id="mapaComingSub"></div>
+    </div>
+    <div class="section-label phase4-section" id="mapaListTitle"></div>
+    <div class="list-card" id="mapaPosList"></div>
+  </div>
+</div>
+
+<!-- ========================================= -->
 <!-- ========================================= -->
 <style>
   /* Assignment page styles — Vienovo navy design */
@@ -649,6 +661,23 @@ if ('serviceWorker' in navigator) {
       <div class="profile-stat">
         <div class="profile-stat-value" id="profileStat3Val">—</div>
         <div class="profile-stat-label" id="profileStat3Label">Visits MTD</div>
+      </div>
+    </div>
+    <div id="tsrProfileMonthPanel" class="card" style="display:none;margin:16px 12px;">
+      <div class="section-label phase4-section" id="tsrProfileMonthTitle" style="margin-bottom:12px;"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px;">
+        <div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="tsrProfileStatVisits">—</div>
+          <span id="tsrProfileLblVisits"></span>
+        </div>
+        <div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="tsrProfileStatProspects">—</div>
+          <span id="tsrProfileLblProspects"></span>
+        </div>
+        <div>
+          <div style="font-size:22px;font-weight:800;color:var(--status-ok)" id="tsrProfileStatConv">—</div>
+          <span id="tsrProfileLblConv"></span>
+        </div>
       </div>
     </div>
     <div class="section-label phase4-section">Achievements</div>
@@ -1175,9 +1204,10 @@ if ('serviceWorker' in navigator) {
 <script src="js/validate.js"></script>
 <script src="js/auth.js?v=21"></script>
 <script src="js/db.js?v=4"></script>
+<script src="js/i18n.js?v=1"></script>
 <script src="js/role-scope.js?v=1"></script>
-<script src="js/home-tsr.js?v=1"></script>
-<script src="js/home-dsm.js?v=1"></script>
+<script src="js/home-tsr.js?v=2"></script>
+<script src="js/home-dsm.js?v=2"></script>
 <script src="js/stores-nav-pref.js?v=1"></script>
 <script src="js/sales-tab.js?v=14"></script>
 <script src="js/gps.js"></script>
@@ -1188,7 +1218,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>
 <script src="js/activity-feed.js?v=2"></script>
-<script src="js/phase4-social.js?v=1"></script>
+<script src="js/phase4-social.js?v=2"></script>
 <script src="js/dashboard.js?v=7"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
@@ -1199,7 +1229,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/team.js?v=4"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
-<script src="js/nav-role-device.js?v=6"></script>
+<script src="js/nav-role-device.js?v=7"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=3"></script>
@@ -1368,6 +1398,11 @@ if ('serviceWorker' in navigator) {
     if (lat && lng) window.open('https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng, '_blank');
   }
 
+  var patrolI18nReady = Promise.resolve();
+  if (session && typeof PatrolI18n !== 'undefined' && typeof PatrolI18n.init === 'function') {
+    patrolI18nReady = PatrolI18n.init();
+  }
+
   // ===== Phase 4.5 — Role-based landing (TSR · DSM · RSM · Exec/admin) =====
   var MANAGER_ROLES = ['dsm','rsm','exec','admin','ceo'];
   var _roleLc = session && session.role ? session.role.toLowerCase() : '';
@@ -1388,7 +1423,11 @@ if ('serviceWorker' in navigator) {
         name: session.name,
         role: session.role,
         territory: session.territory,
+        territory_name: session.territory,
+        cluster_name: session.cluster_name || session.cluster || session.territory || session.region || session.district,
         district: session.district,
+        region: session.region,
+        language: session.language || session.locale || 'en',
       },
     };
 
@@ -1463,18 +1502,38 @@ if ('serviceWorker' in navigator) {
     }
 
     try {
-      landingInit();
-    } catch (e) {
-      console.error('Patrol: landing init failed:', e);
-      try {
-        if (window._patrolBootLog) {
-          window._patrolBootLog('FALLBACK: landing init failed \u2014 showing Home', true);
+      function runLandingInit() {
+        try {
+          landingInit();
+        } catch (e) {
+          console.error('Patrol: landing init failed:', e);
+          try {
+            if (window._patrolBootLog) {
+              window._patrolBootLog('FALLBACK: landing init failed \u2014 showing Home', true);
+            }
+          } catch (eLog3) {}
+          try {
+            if (landingEl) landingEl.classList.remove('active');
+            if (homeEl) homeEl.classList.add('active');
+          } catch (eDom) {}
         }
-      } catch (eLog3) {}
-      try {
-        if (landingEl) landingEl.classList.remove('active');
-        if (homeEl) homeEl.classList.add('active');
-      } catch (eDom) {}
+      }
+      if (typeof PatrolI18n !== 'undefined' && typeof PatrolI18n.init === 'function') {
+        patrolI18nReady
+          .then(function () {
+            if (typeof applyI18nLabels === 'function') applyI18nLabels(document.body);
+            runLandingInit();
+            if (typeof renderNav === 'function') renderNav();
+            if (typeof applyI18nLabels === 'function') applyI18nLabels(document.body);
+          })
+          .catch(function () {
+            runLandingInit();
+          });
+      } else {
+        runLandingInit();
+      }
+    } catch (eLand) {
+      console.error('Patrol: landing bootstrap failed:', eLand);
     }
 
     (function enforceSingleActivePatrolPage() {
@@ -1533,7 +1592,7 @@ if ('serviceWorker' in navigator) {
     target.classList.add('active');
 
     // Update bottom-nav active state
-    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-home-tsr','page-home-dsm','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-leader','page-notifs','page-search','page-tsr-scorecard','pg-sales','pg-region','pg-ar','pg-budget','pg-insights','pg-inventory','pg-speed'];
+    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-home-tsr','page-home-dsm','page-mapa-tsr','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-leader','page-notifs','page-search','page-tsr-scorecard','pg-sales','pg-region','pg-ar','pg-budget','pg-insights','pg-inventory','pg-speed'];
     if (_mainPages.indexOf(pageId) !== -1) {
       var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
       for (var j = 0; j < navBtns.length; j++) {
@@ -2576,6 +2635,9 @@ if ('serviceWorker' in navigator) {
     if (pageId === 'page-home-dsm' && typeof renderDsmHome === 'function') {
       renderDsmHome();
     }
+    if (pageId === 'page-mapa-tsr' && typeof renderMapaTsr === 'function') {
+      renderMapaTsr();
+    }
     if (pageId === 'page-stores') {
       _bootstrapStoresPage();
     }
@@ -2615,8 +2677,7 @@ if ('serviceWorker' in navigator) {
   if (_activeOnLoad && _activeOnLoad.id === 'page-stores') _bootstrapStoresPage();
   if (_activeOnLoad && _activeOnLoad.id === 'page-visits') _bootstrapVisitsPage();
   if (_activeOnLoad && _activeOnLoad.id === 'pg-sales' && typeof initSalesTab === 'function') initSalesTab();
-  if (_activeOnLoad && _activeOnLoad.id === 'page-home-tsr' && typeof renderTsrHome === 'function') renderTsrHome();
-  if (_activeOnLoad && _activeOnLoad.id === 'page-home-dsm' && typeof renderDsmHome === 'function') renderDsmHome();
+  // Landing init (renderTsrHome / renderDsmHome) runs after PatrolI18n.init() in the Phase 4.5 landing block.
 
   // ===== My Location button =====
   document.getElementById('btn-my-location').addEventListener('click', function() {
