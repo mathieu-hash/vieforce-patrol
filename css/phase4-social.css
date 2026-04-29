@@ -467,3 +467,12 @@
 [data-theme="dark"] .notif-row.unread {
   background: rgba(0, 132, 255, 0.09);
 }
+
+/* Phase 4.5 — TSR home defense-in-depth: hide feed chrome if mis-attributed */
+#page-home-tsr .stories,
+#page-home-tsr .composer,
+#page-home-tsr .achievement-banner,
+#page-home-tsr .post[data-feed-scope-exec],
+#page-home-tsr .kpi-strip[data-feed-kpi-strip] {
+  display: none !important;
+}

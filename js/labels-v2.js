@@ -1040,6 +1040,8 @@ function setLanguage(lang, opts) {
       if (rf2 === 'tsr' || rf2 === 'champion') initActivityFeed('tsr');
     }
     if (aid === 'page-rsm-home' && typeof initActivityFeed === 'function') initActivityFeed('rsm');
+    if (aid === 'page-home-tsr' && typeof renderTsrHome === 'function') renderTsrHome();
+    if (aid === 'page-home-dsm' && typeof renderDsmHome === 'function') renderDsmHome();
     if (aid === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {
       openStoreDetail(window._currentStoreId);
     }
@@ -1137,6 +1139,12 @@ function rerenderCurrentPage() {
   }
   if (id === 'page-rsm-home' && typeof initActivityFeed === 'function') {
     initActivityFeed('rsm');
+  }
+  if (id === 'page-home-tsr' && typeof renderTsrHome === 'function') {
+    renderTsrHome();
+  }
+  if (id === 'page-home-dsm' && typeof renderDsmHome === 'function') {
+    renderDsmHome();
   }
   if (id === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {
     openStoreDetail(window._currentStoreId);

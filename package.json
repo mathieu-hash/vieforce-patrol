@@ -7,7 +7,7 @@
     "test": "playwright test",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright test --reporter=html",
-    "test:unit": "node --test tests/unit/hq-client.test.js tests/unit/scope.test.js tests/unit/offline-queue-payload.test.js tests/unit/patrol-duplicate-error.test.js tests/unit/sales-tab-format.test.js tests/unit/sales-queries.test.js tests/unit/stores-nav-pref.test.js tests/unit/sap-sales-all.test.js tests/unit/sap-sales.test.js tests/unit/sap-ar.test.js tests/unit/sap-customers.test.js tests/unit/sap-customer.test.js tests/unit/sap-inventory.test.js tests/unit/sap-speed.test.js",
+    "test:unit": "node --test tests/unit/hq-client.test.js tests/unit/scope.test.js tests/unit/role-scope.test.js tests/unit/offline-queue-payload.test.js tests/unit/patrol-duplicate-error.test.js tests/unit/sales-tab-format.test.js tests/unit/sales-queries.test.js tests/unit/stores-nav-pref.test.js tests/unit/sap-sales-all.test.js tests/unit/sap-sales.test.js tests/unit/sap-ar.test.js tests/unit/sap-customers.test.js tests/unit/sap-customer.test.js tests/unit/sap-inventory.test.js tests/unit/sap-speed.test.js",
     "fix:supabase-auth-url": "node scripts/patch-supabase-auth-url.mjs",
     "check:supabase-auth": "node scripts/check-supabase-auth-config.mjs"
   },

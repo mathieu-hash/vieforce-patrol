@@ -31,13 +31,28 @@
   // page IDs where we have them so nav()'s active-state logic keeps
   // working without config changes.
   var NAV_CONFIGS = {
-    // TSR / Champion: null => leave existing bottom-nav DOM alone
-    tsr:      null,
-    champion: null,
+    tsr: {
+      mobile: [
+        { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',    page: 'page-home-tsr' },
+        { id: 'stores',   icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
+        { id: 'visit',    icon: '\u2795',      label: 'Visit',   page: 'page-visits' },
+        { id: 'activity', icon: '\ud83d\udcca', label: 'Activity', page: 'page-leader' },
+        { id: 'profile',  icon: '\ud83d\udc64', label: 'Me',      page: 'page-profile' },
+      ],
+    },
+    champion: {
+      mobile: [
+        { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',    page: 'page-home-tsr' },
+        { id: 'stores',   icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
+        { id: 'visit',    icon: '\u2795',      label: 'Visit',   page: 'page-visits' },
+        { id: 'activity', icon: '\ud83d\udcca', label: 'Activity', page: 'page-leader' },
+        { id: 'profile',  icon: '\ud83d\udc64', label: 'Me',      page: 'page-profile' },
+      ],
+    },
 
     dsm: {
       mobile: [
-        { id: 'home',   icon: '\ud83c\udfe0', label: 'Home',    page: 'page-dashboard' },
+        { id: 'home',   icon: '\ud83c\udfe0', label: 'Home',    page: 'page-home-dsm' },
         { id: 'stores', icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
         { id: 'visit',  icon: '\ud83d\udcdd', label: 'Visit',   page: 'page-visits' },
         { id: 'sales',  icon: '\ud83d\udcca', label: 'Sales',   page: 'pg-sales' },
@@ -104,8 +119,8 @@
     // Desktop: leave everything alone.
     if (!isMobile()) return;
 
-    // CEO: same 5-tab manager nav as DSM (HQ splash no longer applies to CEO).
-    var navRole = role === 'ceo' ? 'dsm' : role;
+    // CEO: RSM-style shell (Region feed + Leaders), not DSM dashboard.
+    var navRole = role === 'ceo' ? 'rsm' : role;
     var config = NAV_CONFIGS[navRole];
     if (!config || !config.mobile) return; // TSR / champion / unknown → no override
 

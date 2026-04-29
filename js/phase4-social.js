@@ -508,6 +508,189 @@
 
   var _leaderPeriod = 'month';
 
+  /** Activity-only synthetic stats for TSR/Champion (no SAP bags). */
+  function _deriveActivitySynth(sessId) {
+    var id = String(sessId || 'me');
+    return {
+      _id: id,
+      visits_mtd: Math.floor(8 + _seed(id + 'vm') * 25),
+      streak_days: Math.floor(_seed(id + 'st') * 12),
+      prospects_converted: Math.floor(_seed(id + 'pr') * 10),
+      avg_visits_per_day: 2 + _seed(id + 'vd') * 4,
+    };
+  }
+
+  /**
+   * Unlock rules aligned with PatrolScope.badgeCatalog() IDs (TSR path — no bag thresholds).
+   */
+  function checkUnlockedPatrolScope(syn) {
+    var unlocked = [];
+    if (!syn || !window.PatrolScope || typeof window.PatrolScope.badgeCatalog !== 'function') {
+      return unlocked;
+    }
+    var catalog = window.PatrolScope.badgeCatalog();
+    for (var i = 0; i < catalog.length; i++) {
+      var b = catalog[i];
+      var ok = false;
+      switch (b.id) {
+        case 'first-visits':
+          ok = (syn.visits_mtd || 0) >= 10;
+          break;
+        case 'streak-5':
+          ok = (syn.streak_days || 0) >= 5;
+          break;
+        case 'sniper':
+          ok = (syn.prospects_converted || 0) >= 5;
+          break;
+        case 'speedster':
+          ok = (syn.avg_visits_per_day || 0) >= 5;
+          break;
+        case 'territory':
+          ok = (syn.visits_mtd || 0) >= 15 && _seed(String(syn._id || '') + 'tr') > 0.35;
+          break;
+        case 'team-activity':
+          ok = (syn.team_tsrs_active || 0) >= 1 && (syn.team_tsrs_total || 0) > 0;
+          break;
+        case 'pos-coverage':
+          ok = (syn.pos_coverage_pct || 0) >= 0.9;
+          break;
+        case 'region-growth':
+          ok = (syn.region_mom_pct || 0) > 0;
+          break;
+        case 'first-10k':
+          ok = (syn.bags_mtd || 0) >= 10000;
+          break;
+        case 'diamond':
+          ok = (syn.bags_mtd || 0) >= 100000;
+          break;
+        default:
+          ok = false;
+      }
+      if (ok) unlocked.push(b.id);
+    }
+    return unlocked;
+  }
+
+  function renderBadgesPatrolCatalog(container, unlockedIds) {
+    if (!container || !window.PatrolScope || typeof window.PatrolScope.badgeCatalog !== 'function') {
+      return;
+    }
+    var catalog = window.PatrolScope.badgeCatalog();
+    var set = {};
+    for (var ui = 0; ui < (unlockedIds || []).length; ui++) set[unlockedIds[ui]] = true;
+    var html = '';
+    for (var b = 0; b < catalog.length; b++) {
+      var bd = catalog[b];
+      var ok = !!set[bd.id];
+      html +=
+        '<div class="badge-tile' +
+        (ok ? ' unlocked' : ' locked') +
+        '">' +
+        '<span class="badge-tile-icon">' +
+        _escapeHtml(bd.icon) +
+        '</span>' +
+        '<span class="badge-tile-name">' +
+        _escapeHtml(bd.name) +
+        '</span>' +
+        '<span class="badge-tile-desc">' +
+        _escapeHtml(bd.desc) +
+        '</span></div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function restoreLeaderboardRankedLayout() {
+    var page = document.getElementById('page-leader');
+    if (!page) return;
+    var tabBar = page.querySelector('.phase4-tab-bar');
+    if (tabBar) tabBar.style.display = '';
+    var podiumSec = page.querySelector('.podium-section');
+    if (podiumSec) podiumSec.style.display = '';
+    var labels = page.querySelectorAll('.app-content > .section-label.phase4-section');
+    if (labels[0]) labels[0].style.display = '';
+    if (labels[1]) labels[1].textContent = 'Your achievements';
+    var rankingsList = document.getElementById('rankingsList');
+    if (rankingsList) rankingsList.style.display = '';
+    var slot = document.getElementById('leaderTsStatsSlot');
+    if (slot) {
+      slot.style.display = 'none';
+      slot.innerHTML = '';
+    }
+    var searchLab = page.querySelector('#leaderSearchTap span:last-child');
+    if (searchLab) searchLab.textContent = 'Search leaderboard';
+  }
+
+  function renderLeaderboardTsFallback() {
+    var page = document.getElementById('page-leader');
+    if (!page) return;
+    var tabBar = page.querySelector('.phase4-tab-bar');
+    if (tabBar) tabBar.style.display = 'none';
+    var podiumSec = page.querySelector('.podium-section');
+    if (podiumSec) podiumSec.style.display = 'none';
+    var labels = page.querySelectorAll('.app-content > .section-label.phase4-section');
+    if (labels[0]) labels[0].style.display = 'none';
+    if (labels[1]) labels[1].textContent = 'My achievements';
+    var rankingsList = document.getElementById('rankingsList');
+    if (rankingsList) rankingsList.style.display = 'none';
+
+    var searchLab = page.querySelector('#leaderSearchTap span:last-child');
+    if (searchLab) searchLab.textContent = 'My activity';
+
+    var ac = page.querySelector('.app-content');
+    if (!ac) return;
+    var slot = document.getElementById('leaderTsStatsSlot');
+    if (!slot) {
+      slot = document.createElement('div');
+      slot.id = 'leaderTsStatsSlot';
+      ac.insertBefore(slot, ac.firstChild);
+    }
+    slot.style.display = 'block';
+
+    var sess = typeof window.getSession === 'function' ? window.getSession() : null;
+    var syn = _deriveActivitySynth(sess && sess.id);
+    var visits = syn.visits_mtd;
+    var prospects = syn.prospects_converted;
+    var conv = Math.min(prospects, Math.floor(1 + _seed(String(sess && sess.id) + 'cv') * 3));
+
+    slot.innerHTML =
+      '<div class="velocity-card" style="margin:0 12px 12px;">' +
+      '<div style="font-weight:800;font-size:14px;font-family:Manrope,sans-serif;margin-bottom:14px;">📊 My stats this month</div>' +
+      '<div class="kpi-strip" style="margin:0;padding:0;border:none;box-shadow:none;background:transparent;">' +
+      '<div class="kpi">' +
+      '<div class="kpi-value">' +
+      visits +
+      '</div>' +
+      '<div class="kpi-label">Visits</div>' +
+      '<div class="kpi-delta flat">activity</div>' +
+      '</div>' +
+      '<div class="kpi">' +
+      '<div class="kpi-value">' +
+      prospects +
+      '</div>' +
+      '<div class="kpi-label">Prospects</div>' +
+      '<div class="kpi-delta flat">added</div>' +
+      '</div>' +
+      '<div class="kpi">' +
+      '<div class="kpi-value">' +
+      conv +
+      '</div>' +
+      '<div class="kpi-label">Conversions</div>' +
+      '<div class="kpi-delta up">▲</div>' +
+      '</div>' +
+      '</div>' +
+      '<p class="phase4-muted-hint" style="padding:12px 0 0;margin:0;font-size:12px;">No peer rankings — focus on your territory.</p>' +
+      '</div>';
+
+    var unlocked = checkUnlockedPatrolScope(syn);
+    renderBadgesPatrolCatalog(document.getElementById('ownBadges'), unlocked);
+
+    var pod = document.getElementById('podium');
+    if (pod) {
+      pod.innerHTML =
+        '<div class="phase4-muted-hint" style="padding:16px;">Leaderboard rankings are for managers.</div>';
+    }
+  }
+
   async function buildLeaderboardRows(period) {
     var session = typeof window.getSession === 'function' ? window.getSession() : null;
     var totalBags = 120000;
@@ -597,19 +780,6 @@
       });
     }
 
-    while (rows.length < 3) {
-      var pi = rows.length;
-      rows.push({
-        id: 'demo-peer-' + pi,
-        name: 'Demo peer ' + (pi + 1),
-        initials: 'DP',
-        role: 'TSR',
-        bags: Math.max(1, Math.round(totalBags * (0.04 + pi * 0.02))),
-        delta: 0,
-        first_name: 'Demo',
-      });
-    }
-
     rows.sort(function (a, b) {
       return b.bags - a.bags;
     });
@@ -622,44 +792,96 @@
 
   function renderPodium(top3) {
     var pod = document.getElementById('podium');
-    if (!pod || top3.length < 3) return;
-    var second = top3[1];
-    var first = top3[0];
-    var third = top3[2];
+    if (!pod) return;
+    if (!top3 || top3.length === 0) {
+      pod.innerHTML =
+        '<div class="phase4-muted-hint" style="padding:28px 16px;">No team ranked yet</div>';
+      return;
+    }
+    if (top3.length === 1) {
+      var only = top3[0];
+      pod.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;padding:16px;gap:10px;">' +
+        '<div class="podium-crown">\ud83d\udc51</div>' +
+        '<div class="avatar lg elite-ring" style="background:linear-gradient(135deg,#FFC72C,#FA9E1B);">' +
+        _escapeHtml(only.initials) +
+        '</div>' +
+        '<div class="podium-rank gold">1</div>' +
+        '<div class="podium-name" style="font-weight:800;">' +
+        _escapeHtml(only.first_name) +
+        '</div>' +
+        '<div class="podium-stat gold">' +
+        only.bags.toLocaleString('en-PH') +
+        ' bags \ud83d\udd25</div></div>';
+      return;
+    }
+    if (top3.length === 2) {
+      var first = top3[0];
+      var second = top3[1];
+      pod.innerHTML =
+        '<div class="podium" style="display:flex;justify-content:center;gap:20px;align-items:flex-end;padding:12px 8px;">' +
+        '<div class="podium-spot" style="text-align:center;max-width:42%;">' +
+        '<div class="avatar lg silver-ring">' +
+        _escapeHtml(second.initials) +
+        '</div>' +
+        '<div class="podium-rank silver">2</div>' +
+        '<div class="podium-name">' +
+        _escapeHtml(second.first_name) +
+        '</div>' +
+        '<div class="podium-stat">' +
+        second.bags.toLocaleString('en-PH') +
+        ' bags</div></div>' +
+        '<div class="podium-spot first" style="text-align:center;max-width:42%;">' +
+        '<div class="podium-crown">\ud83d\udc51</div>' +
+        '<div class="avatar lg elite-ring" style="background:linear-gradient(135deg,#FFC72C,#FA9E1B);">' +
+        _escapeHtml(first.initials) +
+        '</div>' +
+        '<div class="podium-rank gold">1</div>' +
+        '<div class="podium-name" style="font-weight:800;">' +
+        _escapeHtml(first.first_name) +
+        '</div>' +
+        '<div class="podium-stat gold">' +
+        first.bags.toLocaleString('en-PH') +
+        ' bags \ud83d\udd25</div></div></div>';
+      return;
+    }
+    var sec = top3[1];
+    var fst = top3[0];
+    var thd = top3[2];
     pod.innerHTML =
       '<div class="podium-spot">' +
       '<div class="avatar lg silver-ring">' +
-      _escapeHtml(second.initials) +
+      _escapeHtml(sec.initials) +
       '</div>' +
       '<div class="podium-rank silver">2</div>' +
       '<div class="podium-name">' +
-      _escapeHtml(second.first_name) +
+      _escapeHtml(sec.first_name) +
       '</div>' +
       '<div class="podium-stat">' +
-      second.bags.toLocaleString('en-PH') +
+      sec.bags.toLocaleString('en-PH') +
       ' bags</div></div>' +
       '<div class="podium-spot first">' +
       '<div class="podium-crown">👑</div>' +
       '<div class="avatar lg elite-ring" style="background:linear-gradient(135deg,#FFC72C,#FA9E1B);">' +
-      _escapeHtml(first.initials) +
+      _escapeHtml(fst.initials) +
       '</div>' +
       '<div class="podium-rank gold">1</div>' +
       '<div class="podium-name" style="font-weight:800;">' +
-      _escapeHtml(first.first_name) +
+      _escapeHtml(fst.first_name) +
       '</div>' +
       '<div class="podium-stat gold">' +
-      first.bags.toLocaleString('en-PH') +
+      fst.bags.toLocaleString('en-PH') +
       ' bags 🔥</div></div>' +
       '<div class="podium-spot">' +
       '<div class="avatar lg bronze-ring">' +
-      _escapeHtml(third.initials) +
+      _escapeHtml(thd.initials) +
       '</div>' +
       '<div class="podium-rank bronze">3</div>' +
       '<div class="podium-name">' +
-      _escapeHtml(third.first_name) +
+      _escapeHtml(thd.first_name) +
       '</div>' +
       '<div class="podium-stat">' +
-      third.bags.toLocaleString('en-PH') +
+      thd.bags.toLocaleString('en-PH') +
       ' bags</div></div>';
   }
 
@@ -711,8 +933,16 @@
   };
 
   async function refreshLeaderboardPage() {
+    var ps = window.PatrolScope;
+    if (ps && typeof ps.canSeeLeaderboard === 'function' && !ps.canSeeLeaderboard()) {
+      renderLeaderboardTsFallback();
+      return;
+    }
+
+    restoreLeaderboardRankedLayout();
+
     var rows = await buildLeaderboardRows(_leaderPeriod);
-    if (rows.length >= 3) renderPodium(rows.slice(0, 3));
+    renderPodium(rows.slice(0, Math.min(3, rows.length)));
     renderRankingsRest(rows);
 
     var sess = typeof window.getSession === 'function' ? window.getSession() : null;
