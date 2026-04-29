@@ -1,0 +1,526 @@
+/**
+ * Phase 4.6 v2 — Elite Action Layer (NBA, Route, Scorecard, DSM dashboard).
+ * Source: docs/elite-dashboards-mockup.html — vars mapped to css/tokens.css
+ * Scoped to #page-home-tsr / #page-home-dsm to avoid patrol.css .nba-hero / .streak-card / .scorecard-hero clashes.
+ */
+
+/* ============================================================
+   ELITE ACTION COMPONENTS
+   ============================================================ */
+
+/* ============= TSR GREETING BAND ============= */
+#page-home-tsr .tsr-greeting {
+  background: var(--brand-navy);
+  color: white;
+  padding: 16px 20px;
+}
+#page-home-tsr .tsr-greeting-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 2px;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+}
+#page-home-tsr .tsr-greeting-sub {
+  font-size: 13px;
+  opacity: 0.8;
+}
+#page-home-tsr .tsr-sync-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 184, 71, 0.2);
+  color: #95e3a7;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+/* ============= NEXT BEST ACTION HERO ============= */
+#page-home-tsr .nba-hero {
+  margin: 12px;
+  background: linear-gradient(135deg, #FF6B35, #FA383E);
+  border-radius: 20px;
+  padding: 16px;
+  color: white;
+  box-shadow: 0 12px 32px rgba(255, 107, 53, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+#page-home-tsr .nba-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(at 80% 20%, rgba(255, 199, 44, 0.3), transparent 50%);
+  pointer-events: none;
+}
+#page-home-tsr .nba-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  opacity: 0.85;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+}
+#page-home-tsr .nba-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 4px;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.02em;
+  position: relative;
+  z-index: 1;
+}
+#page-home-tsr .nba-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  opacity: 0.9;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+#page-home-tsr .nba-reason {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+#page-home-tsr .nba-actions {
+  display: flex;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+#page-home-tsr .nba-btn {
+  flex: 1;
+  padding: 11px;
+  border-radius: 12px;
+  background: white;
+  color: #FA383E;
+  font-weight: 800;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s;
+  font-family: inherit;
+}
+#page-home-tsr .nba-btn:active { transform: scale(0.98); }
+#page-home-tsr .nba-btn.secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  flex: 0.5;
+}
+
+/* ============= TSR ROUTE / SECTION ============= */
+#page-home-tsr .tsr-section {
+  margin: 12px;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,0.04));
+  border: 1px solid var(--border-soft);
+}
+#page-home-tsr .tsr-section-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+#page-home-tsr .tsr-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  font-family: 'Manrope', sans-serif;
+}
+.tsr-section-action {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 700;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+#page-home-tsr .route-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 13px;
+}
+#page-home-tsr .route-item:last-child { border-bottom: none; }
+#page-home-tsr .route-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 11px;
+  font-family: 'Manrope', sans-serif;
+  flex-shrink: 0;
+}
+#page-home-tsr .route-num.current {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(45, 127, 249, 0.2);
+}
+#page-home-tsr .route-name { flex: 1; font-weight: 600; color: var(--text-primary); }
+#page-home-tsr .route-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+}
+
+/* ============= SCORECARD WITH INSIGHTS (TSR home override) ============= */
+#page-home-tsr .scorecard-hero {
+  margin: 12px;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-soft);
+  color: var(--text-primary);
+}
+#page-home-tsr .sc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+#page-home-tsr .sc-title {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Manrope', sans-serif;
+  color: var(--text-primary);
+}
+#page-home-tsr .sc-score {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Manrope', sans-serif;
+  color: var(--brand-gold-2, #FA9E1B);
+}
+#page-home-tsr .sc-stage {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+}
+#page-home-tsr .sc-stage:last-child { border-bottom: none; }
+#page-home-tsr .sc-stage-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+#page-home-tsr .sc-stage-icon { font-size: 16px; }
+#page-home-tsr .sc-stage-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+#page-home-tsr .sc-stage-stars { font-size: 12px; letter-spacing: 1px; }
+#page-home-tsr .sc-stage-trend {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(0, 184, 71, 0.15);
+  color: var(--success);
+  font-family: 'Manrope', sans-serif;
+}
+#page-home-tsr .sc-stage-trend.down {
+  background: rgba(224, 65, 63, 0.15);
+  color: var(--danger);
+}
+#page-home-tsr .sc-stage-metric {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  margin-left: 24px;
+}
+#page-home-tsr .sc-stage-insight {
+  font-size: 12px;
+  background: var(--bg-tonal);
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--accent);
+  font-style: italic;
+  margin-left: 24px;
+  border-left: 3px solid var(--accent);
+}
+
+/* ============= STREAK CARD (gold mockup — TSR home) ============= */
+#page-home-tsr .streak-card {
+  margin: 12px;
+  background: linear-gradient(135deg, var(--brand-gold), #FA9E1B);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #1a1a1a;
+  box-shadow: 0 8px 20px rgba(255, 199, 44, 0.3);
+}
+#page-home-tsr .streak-icon {
+  font-size: 40px;
+  filter: drop-shadow(0 4px 12px rgba(255, 107, 50, 0.4));
+}
+#page-home-tsr .streak-content { flex: 1; }
+#page-home-tsr .streak-title {
+  font-weight: 800;
+  font-size: 16px;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.01em;
+}
+#page-home-tsr .streak-sub {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* ============= DSM ATTENTION ALERTS ============= */
+#page-home-dsm .alert-strip {
+  margin: 12px;
+  background: linear-gradient(135deg, rgba(247, 185, 40, 0.16), rgba(247, 185, 40, 0.05));
+  border: 1px solid rgba(247, 185, 40, 0.35);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  cursor: pointer;
+  transition: all 0.18s;
+  box-shadow: var(--shadow-sm);
+}
+#page-home-dsm .alert-strip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(247, 185, 40, 0.5);
+}
+#page-home-dsm .alert-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(247, 185, 40, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+#page-home-dsm .alert-body { flex: 1; min-width: 0; }
+#page-home-dsm .alert-title {
+  font-weight: 800;
+  font-size: 14px;
+  font-family: 'Manrope', sans-serif;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+#page-home-dsm .alert-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+#page-home-dsm .alert-tag {
+  background: rgba(247, 185, 40, 0.18);
+  color: #B07A00;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+}
+:root[data-theme="dark"] #page-home-dsm .alert-tag { color: #FFD073; }
+
+/* ============= DSM KPI GRID ============= */
+#page-home-dsm .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 0 12px 12px;
+}
+#page-home-dsm .kpi-tile {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.18s;
+}
+#page-home-dsm .kpi-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-glow);
+}
+#page-home-dsm .kpi-tile-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+#page-home-dsm .kpi-tile-trend {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: 'Manrope', sans-serif;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(0, 184, 71, 0.15);
+  color: var(--success);
+}
+#page-home-dsm .kpi-tile-trend.down {
+  background: rgba(224, 65, 63, 0.15);
+  color: var(--danger);
+}
+#page-home-dsm .kpi-tile-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: 'Manrope', sans-serif;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-top: 4px;
+}
+#page-home-dsm .kpi-tile-sub {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* ============= DSM TSR PERFORMANCE TABLE ============= */
+#page-home-dsm .table-card {
+  margin: 0 12px 12px;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+}
+#page-home-dsm .table-card-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+#page-home-dsm .table-card-title {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: 'Manrope', sans-serif;
+  color: var(--text-primary);
+}
+#page-home-dsm .table-card table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+#page-home-dsm .table-card thead th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+  font-weight: 800;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+#page-home-dsm .table-card thead th.num { text-align: right; }
+#page-home-dsm .table-card tbody td {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-primary);
+}
+#page-home-dsm .table-card tbody td.num {
+  text-align: right;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+}
+#page-home-dsm .table-card tbody tr:last-child td { border-bottom: none; }
+#page-home-dsm .score-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+#page-home-dsm .dot-green  { background: var(--success); box-shadow: 0 0 8px var(--success); }
+#page-home-dsm .dot-yellow { background: var(--warning); box-shadow: 0 0 8px var(--warning); }
+#page-home-dsm .dot-red    { background: var(--danger);  box-shadow: 0 0 8px var(--danger);  }
+#page-home-dsm .trend-arrow {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+  color: var(--text-tertiary);
+}
+#page-home-dsm .trend-arrow.trend-up   { color: var(--success); }
+#page-home-dsm .trend-arrow.trend-down { color: var(--danger); }
+
+/* ============= COACHING MOMENTS ============= */
+#page-home-dsm .coaching-card {
+  margin: 0 12px 12px;
+  background: var(--bg-elevated);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+#page-home-dsm .coaching-item {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  gap: 10px;
+}
+#page-home-dsm .coaching-item:last-child { border-bottom: none; }
+#page-home-dsm .coaching-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--bg-tonal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+#page-home-dsm .coaching-content { flex: 1; min-width: 0; }
+#page-home-dsm .coaching-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+#page-home-dsm .coaching-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* DSM header block */
+#page-home-dsm .dsm-home-header-block {
+  padding: 16px 16px 8px;
+}
