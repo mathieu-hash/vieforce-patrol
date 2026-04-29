@@ -637,6 +637,9 @@
   // ── Main entry ─────────────────────────────────────────
 
   async function initRsmHome() {
+    if (typeof window.initActivityFeed === 'function') {
+      return window.initActivityFeed('rsm');
+    }
     var session = (typeof getSession === 'function') ? getSession() : null;
     if (!session) return;
 

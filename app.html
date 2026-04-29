@@ -20,10 +20,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=1">
-<link rel="stylesheet" href="css/patrol.css?v=22">
+<link rel="stylesheet" href="css/patrol.css?v=23">
 <link rel="stylesheet" href="css/rsm.css?v=1">
 <link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=8">
 <link rel="stylesheet" href="css/density-pass.css?v=8">
+<link rel="stylesheet" href="css/activity-feed.css?v=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -127,83 +128,30 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
-<!-- HOME PAGE                                 -->
+<!-- HOME PAGE — Activity Feed (TSR / Champion) -->
 <!-- ========================================= -->
 <div id="page-home" class="page active" style="background:var(--bg-chat)">
   <div class="top-bar">
     <div style="flex:1">
       <h1 id="home-greeting">Magandang araw</h1>
-      <div class="subtitle" id="home-subtitle">Loading...</div>
+      <div class="subtitle" id="home-subtitle">Patrol</div>
     </div>
   </div>
 
-  <!-- Sync indicator removed — global-sync-bar at top of body is the single source of truth -->
-
-  <!-- Sprint B-TSR: Next Best Action hero (populated by renderNbaHero) -->
-  <div id="tsr-nba-container"></div>
-
-  <!-- TSR scorecard hero (populated by renderTsrScorecardHero) -->
-  <div id="tsr-scorecard-container"></div>
-
-  <!-- Sprint B-TSR: Streak counter (populated by renderStreakCard) -->
-  <div id="tsr-streak-container"></div>
-
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-trend" id="kpi-stores-trend"></div>
-      <div class="label" data-t="kpiStores">MGA TINDAHAN</div>
-      <div class="value" id="kpi-stores">--</div>
-      <div class="delta" id="kpi-stores-delta">...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-trend" id="kpi-visits-trend"></div>
-      <div class="label" data-t="kpiWeeklyVisits">BISITA/LINGGO</div>
-      <div class="value" id="kpi-visits">--</div>
-      <div class="delta" id="kpi-visits-delta">...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-trend" id="kpi-critical-trend"></div>
-      <div class="label" data-t="kpiCritical">CRITICAL</div>
-      <div class="value" id="kpi-critical" style="color:var(--status-crit)">--</div>
-      <div class="delta" id="kpi-critical-delta">...</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-trend" id="kpi-orders-trend"></div>
-      <div class="label" data-t="kpiOrders">ORDERS</div>
-      <div class="value" id="kpi-orders">--</div>
-      <div class="delta" id="kpi-orders-delta">...</div>
-    </div>
-  </div>
-
-  <!-- Manual sync button (visible when pending items) -->
-  <div id="home-sync-section" style="display:none;padding:0 16px;margin-bottom:8px">
-    <button class="big-button" id="btn-sync-now" onclick="manualSync()" style="background:var(--sync-pending);color:var(--text-primary)">
-      &#8635; I-sync ngayon
-    </button>
-  </div>
-
-  <!-- Champion Team Widget (visible only for is_champion TSRs) -->
-  <div id="home-champion-widget" style="display:none;margin:0 16px 12px">
-    <!-- Populated by JS: champion team progress bars -->
-  </div>
-
-  <!-- Weekly Leaderboard Widget (visible for all TSRs) -->
-  <div id="home-leaderboard-widget" style="display:none;margin:0 16px 12px">
-    <!-- Populated by JS: top 3 + own rank -->
-  </div>
-
-  <div class="section-title">Mga Huling Bisita</div>
-  <div id="home-recent-activity" style="background:var(--bg-main);border-radius:var(--radius);margin:0 16px">
-    <!-- Populated by JS -->
-  </div>
+  <div class="app-content feed-container" id="feed-mount-tsr"></div>
 </div>
 
 <!-- ========================================= -->
-<!-- DSM DASHBOARD (managers only)             -->
+<!-- DSM HOME — Activity Feed (Pulse replaced)   -->
 <!-- ========================================= -->
 <div id="page-dashboard" class="page page-pulse-density">
-  <div id="dsm-pulse-head" class="dsm-pulse-head" aria-label="Pulse dashboard header"></div>
-  <div class="dsm-dash density-dash-root" id="dsm-dash-v2-root"></div>
+  <div class="top-bar">
+    <div style="flex:1">
+      <h1 id="dsm-feed-greeting">Magandang araw</h1>
+      <div class="subtitle" id="dsm-feed-subtitle">Pulse · District</div>
+    </div>
+  </div>
+  <div class="app-content feed-container" id="feed-mount-dsm"></div>
 </div>
 
 <!-- ========================================= -->
@@ -605,7 +553,7 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
-<!-- RSM ELITE DASHBOARD (page-rsm-home)       -->
+<!-- RSM HOME — Activity Feed                  -->
 <!-- ========================================= -->
 <div class="page" id="page-rsm-home">
   <div class="rsm-topbar">
@@ -615,54 +563,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="rsm-user-badge" id="rsm-user-badge">RSM</div>
   </div>
-
-  <div class="rsm-shell">
-
-    <div class="rsm-hdr">
-      <div>
-        <div class="rsm-hdr-name" id="rsm-name">Loading...</div>
-        <div class="rsm-hdr-meta" id="rsm-meta">RSM &middot; --</div>
-      </div>
-      <div class="rsm-period-pill">MTD &middot; <span id="rsm-period-label"></span> &#9662;</div>
-    </div>
-
-    <div class="rsm-kpis" id="rsm-kpis"></div>
-
-    <div class="rsm-grid">
-      <div class="rsm-col">
-        <div class="rsm-card">
-          <div class="rsm-card-hdr">
-            <div class="rsm-card-title">&#128506;&#65039; Regional Performance Heatmap</div>
-            <div class="rsm-card-action">Drill &rarr;</div>
-          </div>
-          <div class="rsm-card-body" id="rsm-heatmap"></div>
-          <div style="padding:0 16px 16px" id="rsm-playbook"></div>
-        </div>
-      </div>
-
-      <div class="rsm-col">
-        <div class="rsm-card">
-          <div class="rsm-card-hdr">
-            <div class="rsm-card-title">&#127919; DSM Scorecards</div>
-          </div>
-          <div id="rsm-dsm-table"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="rsm-grid">
-      <div class="rsm-col">
-        <div id="rsm-whitespace"></div>
-        <div id="rsm-vet-roi"></div>
-      </div>
-      <div class="rsm-col">
-        <div class="rsm-small-title">&#128680; Audit alerts (cross-DSM)</div>
-        <div id="rsm-audit"></div>
-        <div id="rsm-decisions" style="margin-top:14px"></div>
-      </div>
-    </div>
-
-  </div>
+  <div class="app-content feed-container" id="feed-mount-rsm"></div>
 </div>
 
 <!-- ========================================= -->
@@ -1034,7 +935,8 @@ if ('serviceWorker' in navigator) {
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>
-<script src="js/dashboard.js?v=6"></script>
+<script src="js/activity-feed.js?v=1"></script>
+<script src="js/dashboard.js?v=7"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
 <script src="js/scorecard.js?v=3"></script>
@@ -2318,9 +2220,6 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('offline', function () { enhancedSyncStatus(); });
   enhancedSyncStatus();
 
-  // ===== Initialize home fast; defer heavy page data =====
-  updateHomeKPIs();
-
   var _storesBootstrapped = false;
   var _visitsBootstrapped = false;
 
@@ -2328,7 +2227,7 @@ if ('serviceWorker' in navigator) {
     if (_storesBootstrapped) return;
     _storesBootstrapped = true;
     initStoreSearch();
-    initStoreFilters(); // includes first renderStoreList()
+    initStoreFilters();
   }
 
   function _bootstrapVisitsPage() {
@@ -2339,17 +2238,11 @@ if ('serviceWorker' in navigator) {
     initVisitFilters();
   }
 
-  // ===== Phase 3: TSR scorecard hero on home =====
+  // ===== Initialize home =====
   if (session && (session.role === 'tsr' || session.role === 'champion')) {
-    if (typeof renderTsrScorecardHero === 'function') renderTsrScorecardHero();
-    // Sprint B-TSR: Next Best Action + Streak counter
-    if (typeof renderNbaHero === 'function') renderNbaHero();
-    if (typeof renderStreakCard === 'function') renderStreakCard();
-  }
-
-  // ===== Initialize champion team + leaderboard widgets (TSR home) =====
-  if (session && session.role === 'tsr') {
-    initChampionWidgets();
+    if (typeof initActivityFeed === 'function') initActivityFeed('tsr');
+  } else {
+    updateHomeKPIs();
   }
 
   // ===== Initialize map when map page is first shown =====
@@ -2357,6 +2250,10 @@ if ('serviceWorker' in navigator) {
   var _origNav = nav;
   nav = function(pageId) {
     _origNav(pageId);
+    if (pageId === 'page-home' && typeof initActivityFeed === 'function' && session &&
+        (session.role === 'tsr' || session.role === 'champion')) {
+      initActivityFeed('tsr');
+    }
     if (pageId === 'page-stores') {
       _bootstrapStoresPage();
     }

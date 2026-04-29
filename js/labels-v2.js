@@ -1034,6 +1034,12 @@ function setLanguage(lang, opts) {
     if (aid === 'page-home' && typeof renderStreakCard === 'function') renderStreakCard();
     if (aid === 'page-visits' && typeof renderVisitList === 'function') renderVisitList();
     if (aid === 'page-dashboard' && typeof initDashboard === 'function') initDashboard();
+    if (aid === 'page-home' && typeof initActivityFeed === 'function') {
+      var sFeed2 = typeof getSession === 'function' ? getSession() : null;
+      var rf2 = sFeed2 && sFeed2.role ? String(sFeed2.role).toLowerCase() : '';
+      if (rf2 === 'tsr' || rf2 === 'champion') initActivityFeed('tsr');
+    }
+    if (aid === 'page-rsm-home' && typeof initActivityFeed === 'function') initActivityFeed('rsm');
     if (aid === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {
       openStoreDetail(window._currentStoreId);
     }
@@ -1124,6 +1130,14 @@ function rerenderCurrentPage() {
   if (id === 'page-dashboard' && typeof initDashboard === 'function') {
     initDashboard();
   }
+  if (id === 'page-home' && typeof initActivityFeed === 'function') {
+    var sFeed = typeof getSession === 'function' ? getSession() : null;
+    var rf = sFeed && sFeed.role ? String(sFeed.role).toLowerCase() : '';
+    if (rf === 'tsr' || rf === 'champion') initActivityFeed('tsr');
+  }
+  if (id === 'page-rsm-home' && typeof initActivityFeed === 'function') {
+    initActivityFeed('rsm');
+  }
   if (id === 'page-store-detail' && typeof openStoreDetail === 'function' && window._currentStoreId) {
     openStoreDetail(window._currentStoreId);
   }
@@ -1149,6 +1163,13 @@ function rerenderCurrentPage() {
     var sess = typeof getSession === 'function' ? getSession() : null;
     var firstName = sess ? (sess.name || '').split(' ')[0] : '';
     greetingEl.textContent = getGreeting() + (firstName ? ', ' + firstName + '!' : '!');
+    var dsmGreet = document.getElementById('dsm-feed-greeting');
+    if (dsmGreet) dsmGreet.textContent = greetingEl.textContent;
+    var dsmSub = document.getElementById('dsm-feed-subtitle');
+    if (dsmSub && sess) {
+      dsmSub.textContent =
+        'Pulse · ' + (sess.district || sess.territory || sess.region || 'District');
+    }
   }
 
   // Update bottom nav labels

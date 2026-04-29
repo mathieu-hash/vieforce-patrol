@@ -33,9 +33,69 @@ function _fmtInt(n) {
 
 function _daysSince(iso) {
   if (!iso) return null;
-  var ms = Date.now() - new Date(iso).getTime();
-  if (isNaN(ms) || ms < 0) return null;
-  return Math.floor(ms / 86400000);
+  var t = new Date(iso).getTime();
+  if (isNaN(t)) return null;
+  var ms = Date.now() - t;
+  if (!isFinite(ms) || ms < 0) return null;
+  var d = Math.floor(ms / 86400000);
+  return isFinite(d) ? d : null;
+}
+
+/** Compact POS title on Pulse (demo prefixes, long SKUs). */
+function _pulseShortStoreName(raw) {
+  if (!raw) return 'Store';
+  var s = String(raw).trim();
+  s = s.replace(/^\[[^\]]+\]\s*/i, '');
+  if (s.length > 36) return s.slice(0, 34) + '\u2026';
+  return s;
+}
+
+/** Match Stores tab rep short labels. */
+function _pulseShortRep(name) {
+  if (!name || name === 'Unassigned') return 'Walang rep';
+  var s = String(name).trim();
+  var low = s.toLowerCase();
+  var idx = low.indexOf('tsr');
+  if (idx !== -1) {
+    var tail = s.slice(idx + 3).replace(/^[:\-\s]+/, '').trim();
+    if (tail.length) return tail.split(/\s+/).slice(0, 2).join(' ');
+  }
+  var parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length <= 2) return s;
+  return parts.slice(-2).join(' ');
+}
+
+function _safeAgeDaysLabel(days) {
+  if (days == null || !isFinite(days)) return '\u2014';
+  var n = Math.min(999, Math.max(0, Math.floor(days)));
+  return n + 'd';
+}
+
+/** Reps that actually hold outlets in this snapshot (ids resolve against users list). */
+function _pulseTeamFromStores(stores, users) {
+  var um = {};
+  (users || []).forEach(function (u) { um[u.id] = u; });
+  var seen = {};
+  var team = [];
+  for (var i = 0; i < (stores || []).length; i++) {
+    var tid = stores[i].assigned_tsr;
+    if (!tid || seen[tid]) continue;
+    seen[tid] = true;
+    var u = um[tid];
+    if (u && (u.role === 'tsr' || u.role === 'champion')) team.push(u);
+  }
+  team.sort(function (a, b) {
+    return (a.name || '').localeCompare(b.name || '');
+  });
+  return team;
+}
+
+function _pulseFilterStoresByRep(stores) {
+  var fid = window._pulseRepFilter || 'all';
+  if (fid === 'all') return stores || [];
+  return (stores || []).filter(function (s) {
+    return String(s.assigned_tsr || '') === String(fid);
+  });
 }
 
 function _homeGreeting(name) {
@@ -691,6 +751,7 @@ function _renderPulseStrip(stores, users, visits14, visits30) {
       '<span class="pulse-strip-sep">\u00b7</span>' +
       '<span><strong>' + riskStores.length + '</strong> at-risk</span>' +
     '</div>' +
+    '<p class="pulse-strip-hint">Who visited today \u00b7 footprint \u00b7 pipeline \u00b7 coaching priority.</p>' +
   '</div>';
 }
 
@@ -722,20 +783,21 @@ function _renderExecutionOutcomes(stores, visits30) {
 
   return '<div class="outcomes-card">' +
     '<div class="card-header">' +
-      '<div class="card-title">🎯 Execution Outcomes</div>' +
+      '<div class="card-title">\ud83c\udfaf Execution outcomes</div>' +
       '<div class="card-period">Last 30 days</div>' +
     '</div>' +
+    '<p class="pulse-outcomes-hint">Simplified scores from your mapped outlets \u2014 use Stores for detail.</p>' +
     '<div class="outcomes-strip">' +
-      '<div class="outcome-pill">' +
+      '<div class="outcome-pill" title="Prospects converted in the last 30 days vs open pipeline">' +
         '<div class="outcome-pill-label">Conversion</div>' +
         '<div class="outcome-pill-value">' + conversionRate + '%</div>' +
       '</div>' +
-      '<div class="outcome-pill">' +
+      '<div class="outcome-pill" title="Active outlets with an order signal in the last 60 days">' +
         '<div class="outcome-pill-label">Retention</div>' +
         '<div class="outcome-pill-value">' + retentionRate + '%</div>' +
       '</div>' +
-      '<div class="outcome-pill">' +
-        '<div class="outcome-pill-label">Store Coverage</div>' +
+      '<div class="outcome-pill" title="Share of active outlets visited at least once in 30 days">' +
+        '<div class="outcome-pill-label">Coverage</div>' +
         '<div class="outcome-pill-value">' + coverageRate + '%</div>' +
       '</div>' +
     '</div>' +
@@ -745,24 +807,19 @@ function _renderExecutionOutcomes(stores, visits30) {
 function _renderQuickWins(stores, users) {
   var overdue = 0;
   var prospects = 0;
-  var tsrs = 0;
   for (var i = 0; i < (stores || []).length; i++) {
     var s = stores[i];
     if (s.store_status === 'prospect') prospects++;
     var d = _daysSince(s.last_visit_at);
     if (s.store_status === 'active' && d != null && d > 14) overdue++;
   }
-  for (var j = 0; j < (users || []).length; j++) {
-    if (users[j].role === 'tsr' && users[j].is_active) tsrs++;
-  }
+  var tsrs = _pulseTeamFromStores(stores, users).length;
 
   return '<div class="quickwins-card">' +
-    '<div class="quickwins-row">' +
-      '<button type="button" class="quickwin-pill quickwin-warn" onclick="navStoresWithFilter(\'warn\')"><span class="quickwin-icon">⚠️</span><span>' + overdue + ' Overdue Stores</span></button>' +
-      '<button type="button" class="quickwin-pill quickwin-info" onclick="navStoresWithFilter(\'prospect\')"><span class="quickwin-icon">✨</span><span>' + prospects + ' New Prospects</span></button>' +
-      '<button type="button" class="quickwin-pill quickwin-blue" onclick="nav(\'page-team\')"><span class="quickwin-icon">🏆</span><span>Team Leaderboard</span></button>' +
-      '<button type="button" class="quickwin-pill quickwin-warn" onclick="navStoresWithFilter(\'warn\')"><span class="quickwin-icon">🧭</span><span>Overdue Visits</span></button>' +
-      '<button type="button" class="quickwin-pill quickwin-info" onclick="nav(\'page-team\')"><span class="quickwin-icon">👥</span><span>' + tsrs + ' Active TSRs</span></button>' +
+    '<div class="quickwins-row quickwins-row-tight">' +
+      '<button type="button" class="quickwin-pill quickwin-warn" onclick="navStoresWithFilter(\'warn\')"><span class="quickwin-icon">\u26a0\ufe0f</span><span>' + overdue + ' overdue</span></button>' +
+      '<button type="button" class="quickwin-pill quickwin-info" onclick="navStoresWithFilter(\'prospect\')"><span class="quickwin-icon">\u2728</span><span>' + prospects + ' prospects</span></button>' +
+      '<button type="button" class="quickwin-pill quickwin-blue" onclick="nav(\'page-team\')"><span class="quickwin-icon">\ud83c\udfc6</span><span>Team (' + tsrs + ')</span></button>' +
     '</div>' +
   '</div>';
 }
@@ -770,85 +827,155 @@ function _renderQuickWins(stores, users) {
 function _buildExceptionQueue(stores, users) {
   var userMap = {};
   (users || []).forEach(function (u) { userMap[u.id] = u.name; });
-  var queue = [];
+  var items = [];
 
   for (var i = 0; i < (stores || []).length; i++) {
     var s = stores[i];
-    var owner = userMap[s.assigned_tsr] || 'Unassigned';
+    var ownerLong = userMap[s.assigned_tsr] || 'Unassigned';
+    var repShort = _pulseShortRep(ownerLong);
+    var title = _pulseShortStoreName(s.name || 'Store');
 
     if (s.store_status === 'prospect') {
       var ageProspect = _daysSince(s.created_at);
-      if (ageProspect != null && ageProspect > 14) {
-        queue.push({
-          score: 120 + ageProspect,
-          tag: 'Prospect aging',
+      if (ageProspect != null && ageProspect > 14 && isFinite(ageProspect)) {
+        items.push({
+          score: 120 + Math.min(ageProspect, 800),
           severity: 'warn',
           storeId: s.id,
-          title: s.name || 'Store',
-          sub: owner + ' \u00b7 prospect',
-          ageLabel: ageProspect + 'd'
+          title: title,
+          sub: repShort + ' \u00b7 Prospect stalled',
+          ageLabel: _safeAgeDaysLabel(ageProspect),
+          sortOwner: repShort
         });
       }
     }
 
     var noVisitDays = _daysSince(s.last_visit_at);
-    if (s.store_status === 'active' && noVisitDays != null && noVisitDays > 14) {
-      queue.push({
-        score: 100 + noVisitDays,
-        tag: 'Visit overdue',
+    if (s.store_status === 'active' && noVisitDays != null && noVisitDays > 14 && isFinite(noVisitDays)) {
+      items.push({
+        score: 100 + Math.min(noVisitDays, 800),
         severity: 'warn',
         storeId: s.id,
-        title: s.name || 'Store',
-        sub: owner,
-        ageLabel: noVisitDays + 'd'
+        title: title,
+        sub: repShort + ' \u00b7 No visit 14d+',
+        ageLabel: _safeAgeDaysLabel(noVisitDays),
+        sortOwner: repShort
       });
     }
 
     if (s.risk_status === 'at_risk' || s.risk_status === 'lost' || s.health_status === 'crit') {
-      queue.push({
-        score: 200 + (s.risk_status === 'lost' ? 40 : 0),
-        tag: s.risk_status === 'lost' ? 'Lost risk' : 'At-risk account',
+      items.push({
+        score: 200 + (s.risk_status === 'lost' ? 40 : 0) + (s.health_status === 'crit' ? 15 : 0),
         severity: 'crit',
         storeId: s.id,
-        title: s.name || 'Store',
-        sub: owner + ' \u00b7 ' + (s.health_status === 'crit' ? 'critical' : 'at-risk'),
-        ageLabel: '\u26a0'
+        title: title,
+        sub: repShort + ' \u00b7 ' + (s.health_status === 'crit' ? 'Critical health' : 'At-risk'),
+        ageLabel: '\u26a0',
+        sortOwner: repShort
       });
     }
   }
 
-  queue.sort(function (a, b) { return b.score - a.score; });
-  return queue.slice(0, 8);
+  var best = {};
+  for (var j = 0; j < items.length; j++) {
+    var it = items[j];
+    var sid = it.storeId;
+    if (!sid) continue;
+    if (!best[sid] || best[sid].score < it.score) best[sid] = it;
+  }
+  var queue = [];
+  var k;
+  for (k in best) queue.push(best[k]);
+
+  queue.sort(function (a, b) {
+    var c = (a.sortOwner || '').localeCompare(b.sortOwner || '');
+    if (c !== 0) return c;
+    return b.score - a.score;
+  });
+
+  return queue.slice(0, 12);
 }
 
 function _renderExceptionQueue(stores, users) {
-  var queue = _buildExceptionQueue(stores, users);
+  var team = _pulseTeamFromStores(stores || [], users || []);
+  var scoped = _pulseFilterStoresByRep(stores || []);
+  var queue = _buildExceptionQueue(scoped, users);
+  var fid = window._pulseRepFilter || 'all';
+
+  var filterRow = '';
+  if (team.length > 0) {
+    filterRow = '<div class="pulse-rep-filter-row" role="tablist">';
+    filterRow +=
+      '<button type="button" class="pulse-rep-filter' +
+      (fid === 'all' ? ' active' : '') +
+      '" onclick="setPulseRepFilter(\'all\')">All reps</button>';
+    var ti;
+    for (ti = 0; ti < team.length; ti++) {
+      var u = team[ti];
+      var uid = String(u.id);
+      filterRow +=
+        '<button type="button" class="pulse-rep-filter' +
+        (String(fid) === uid ? ' active' : '') +
+        '" onclick="setPulseRepFilter(\'' +
+        uid.replace(/'/g, "\\'") +
+        '\')">' +
+        _ddEsc(_pulseShortRep(u.name)) +
+        '</button>';
+    }
+    filterRow += '</div>';
+  }
+
   if (queue.length === 0) {
-    return '<div class="queue-card-density">' +
-      '<div class="card-title-row">Exception queue</div>' +
-      '<div style="font-size:13px;color:#65676B;padding:6px 0 2px">\u2705 No urgent exceptions.</div>' +
-    '</div>';
+    return (
+      '<div class="queue-card-density">' +
+      '<div class="card-title-row">Needs attention</div>' +
+      '<p class="pulse-queue-help">Overdue visits, stalled prospects, or risky accounts — one row per outlet (worst issue).</p>' +
+      filterRow +
+      '<div class="pulse-queue-empty-msg">\u2705 Nothing in queue for this filter.</div>' +
+      '</div>'
+    );
   }
 
   var rows = '';
-  for (var i = 0; i < queue.length; i++) {
-    var q = queue[i];
+  var lastOwner = null;
+  var qi;
+  for (qi = 0; qi < queue.length; qi++) {
+    var q = queue[qi];
+    var own = q.sortOwner || 'Walang rep';
+    if (own !== lastOwner) {
+      lastOwner = own;
+      rows += '<div class="pulse-queue-subhdr">' + _ddEsc(own) + '</div>';
+    }
     var sid = q.storeId ? String(q.storeId).replace(/'/g, "\\'") : '';
     var oc = sid ? 'onclick="openStoreDetail(\'' + sid + '\')"' : '';
     rows +=
-      '<button type="button" class="queue-row-density queue-sev-' + q.severity + '" ' + oc + '>' +
+      '<button type="button" class="queue-row-density queue-sev-' +
+      q.severity +
+      '" ' +
+      oc +
+      '>' +
       '<span class="queue-row-main">' +
-        '<span class="queue-name-d">' + _ddEsc(q.title) + '</span>' +
-        '<span class="queue-sub-d">' + _ddEsc(q.sub) + '</span>' +
+      '<span class="queue-name-d">' +
+      _ddEsc(q.title) +
       '</span>' +
-      '<span class="queue-age-d">' + _ddEsc(q.ageLabel) + '</span>' +
+      '<span class="queue-sub-d">' +
+      _ddEsc(q.sub) +
+      '</span>' +
+      '</span>' +
+      '<span class="queue-age-d">' +
+      _ddEsc(q.ageLabel) +
+      '</span>' +
       '</button>';
   }
 
-  return '<div class="queue-card-density">' +
-    '<div class="card-title-row">Exception queue</div>' +
+  return (
+    '<div class="queue-card-density">' +
+    '<div class="card-title-row">Needs attention</div>' +
+    '<p class="pulse-queue-help">Grouped by assigned rep — tap a row to open the outlet.</p>' +
+    filterRow +
     rows +
-    '</div>';
+    '</div>'
+  );
 }
 
 // ── 8. Export section ────────────────────────────────────────
@@ -905,6 +1032,8 @@ async function renderDashboardV2() {
   var root = document.getElementById('dsm-dash-v2-root');
   if (!root) return;
 
+  if (typeof window._pulseRepFilter === 'undefined') window._pulseRepFilter = 'all';
+
   _renderPulseHead(session);
 
   root.className = 'dsm-dash density-dash-root';
@@ -954,8 +1083,16 @@ async function renderDashboardV2() {
 // Legacy entry-point name — app.html wires `initDashboard()` on role landing
 // and on nav('page-dashboard'). Keep the name; point it at the v2 renderer.
 async function initDashboard() {
+  if (typeof window.initActivityFeed === 'function') {
+    return window.initActivityFeed('dsm');
+  }
   return renderDashboardV2();
 }
+
+window.setPulseRepFilter = function (id) {
+  window._pulseRepFilter = id || 'all';
+  return renderDashboardV2();
+};
 
 // Public exports
 window.initDashboard            = initDashboard;

@@ -52,9 +52,20 @@ body {
   overflow-x: hidden;
 }
 
-/* Montserrat only for DSM/Admin screens — TSR screens use system fonts */
+/* DSM/Admin assignment screens — Elite Phase 2 uses Manrope stack */
 #page-dashboard, #page-dashboard *, #page-assign, #page-assign * {
-  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* VieForce Elite Phase 2 — display headings & KPI numerals */
+h1, h2, h3, .heading-display, .kpi-value, .stat-value, .hero-value {
+  font-family: 'Manrope', 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+.font-mono, .number-mono, code {
+  font-family: 'JetBrains Mono', monospace;
 }
 
 /* ===== GLOBAL COMPONENTS ===== */
@@ -3407,9 +3418,31 @@ body:has(#page-farm-new.active)  #fab-btn {
   .dsm-dash .team-cta { margin-left: 12px; margin-right: 12px; border-radius: 16px; }
 }
 
-/* ── VieForce Elite Phase 1 — typography helpers (future phases), theme toggle ── */
+/* ── VieForce Elite Phase 1 — typography helpers, theme toggle ── */
 .font-display { font-family: 'Manrope', 'Inter', sans-serif; letter-spacing: -0.02em; }
-.font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Bottom nav — Elite active indicator (Phase 2) — ::before bar + glow */
+.bottom-nav .nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--brand-green, var(--green)));
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 2px 8px var(--accent-glow, rgba(0, 132, 255, 0.35));
+  pointer-events: none;
+}
+.bottom-nav .nav-item.active .nav-ico {
+  filter: drop-shadow(0 0 8px var(--accent-glow, rgba(0, 132, 255, 0.45)));
+  transform: scale(1.05);
+}
+.bottom-nav .nav-item.active svg {
+  filter: drop-shadow(0 0 8px var(--accent-glow, rgba(0, 132, 255, 0.45)));
+  transform: scale(1.05);
+}
 
 .theme-toggle {
   display: flex;
