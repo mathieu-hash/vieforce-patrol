@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="css/phase4-social.css?v=1">
 <link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
 <link rel="stylesheet" href="css/elite-components.css?v=1">
-<link rel="stylesheet" href="css/elite-action.css?v=1">
+<link rel="stylesheet" href="css/elite-action.css?v=2">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -204,11 +204,17 @@ if ('serviceWorker' in navigator) {
     </div>
     <!-- SCORECARD -->
     <div class="scorecard-hero">
-      <div class="sc-header">
-        <div class="sc-title">📊 Scorecard ko this month</div>
-        <div class="sc-score" id="tsrScScore">⭐ 0/5</div>
+      <div class="sc-head-visual">
+        <div class="sc-head-text">
+          <div class="sc-kicker">Sales funnel · MTD</div>
+          <div class="sc-title-main">Prospection · Conversion · Retention</div>
+        </div>
+        <div class="sc-overall-wrap">
+          <div class="sc-score" id="tsrScScore"><span class="sc-overall-num-inner">0</span><span class="sc-overall-max">/5</span></div>
+          <div class="sc-overall-sub">Total score</div>
+        </div>
       </div>
-      <div id="tsrScStages"></div>
+      <div class="sc-stages-wrap" id="tsrScStages"></div>
     </div>
     <!-- STREAK -->
     <div class="streak-card" id="tsrStreakCard">
