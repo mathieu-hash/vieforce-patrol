@@ -70,7 +70,8 @@ h1, h2, h3, .heading-display, .kpi-value, .stat-value, .hero-value {
 
 /* ===== GLOBAL COMPONENTS ===== */
 .page { display: none; padding-bottom: 80px; min-height: 100vh; }
-.page.active { display: block; }
+/* !important: inline display:none on a .page (legacy markup / stale HTML) must not beat .active */
+.page.active { display: block !important; }
 #page-stores.active { display: flex !important; flex-direction: column; overflow: hidden; }
 #page-store-detail.active { display: flex !important; flex-direction: column; height: 100vh; overflow: hidden; padding-bottom: 60px; }
 #page-store-new.active,
