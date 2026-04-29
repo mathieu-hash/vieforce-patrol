@@ -164,7 +164,7 @@
         '<div class="row" role="button" tabindex="0" data-dsm-tsr="' +
         tid +
         '" style="cursor:pointer">' +
-        '<div class="avatar">' +
+        '<div class="elite-avatar sm online">' +
         _escapeHtml(t.initials) +
         '</div>' +
         '<div class="row-content">' +
@@ -205,7 +205,7 @@
     var cav = document.getElementById('dsmComposerAvatar');
     if (cav) {
       cav.textContent = _initials(session.name);
-      cav.classList.add('avatar');
+      cav.className = 'elite-avatar';
     }
 
     var teamStats = await getDsmTeamStats(session.id);

@@ -20,13 +20,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=1">
-<link rel="stylesheet" href="css/patrol.css?v=24">
+<link rel="stylesheet" href="css/patrol.css?v=25">
 <link rel="stylesheet" href="css/rsm.css?v=1">
 <link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=8">
 <link rel="stylesheet" href="css/density-pass.css?v=8">
 <link rel="stylesheet" href="css/activity-feed.css?v=2">
 <link rel="stylesheet" href="css/phase4-social.css?v=1">
 <link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
+<link rel="stylesheet" href="css/elite-components.css?v=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -160,8 +161,8 @@ if ('serviceWorker' in navigator) {
 <!-- TSR HOME — Task list (Phase 4.5, no bags / no team feed) -->
 <!-- ========================================= -->
 <!-- Do not set display:none inline — it overrides .page.active from patrol.css and blanks TSR/DSM home. -->
-<div id="page-home-tsr" class="page phase4-page" style="background:var(--bg-chat);">
-  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+<div id="page-home-tsr" class="page phase4-page phase4-home" style="background:var(--bg-chat);">
+  <div class="app-header phase4-home-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;">
     <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
     <button type="button" class="phase4-inline-search-hit" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border:none;border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:left;font:inherit;"
             onclick="nav('page-search')">
@@ -178,26 +179,28 @@ if ('serviceWorker' in navigator) {
     <div class="hero-kpi">
       <div class="hero-kpi-content">
         <div class="hero-kpi-label" id="tsrGreeting">Magandang umaga</div>
-        <div class="hero-kpi-value" id="tsrName" style="font-size:28px;line-height:1.1;margin-top:4px;">Patrol</div>
-        <div class="hero-kpi-meta" style="margin-top:12px;">
+        <div class="hero-kpi-value" id="tsrName" style="font-size:32px;line-height:1.1;margin-top:4px;">Patrol</div>
+        <div class="hero-kpi-meta" style="margin-top:14px;">
           <span class="hero-kpi-pill" id="tsrTodayPlan">🎯 —</span>
         </div>
       </div>
     </div>
     <div class="velocity-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <div style="font-weight:800;font-size:14px;font-family:'Manrope',sans-serif;">📋 Today's plan</div>
-        <button type="button" style="font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;font:inherit;" onclick="nav('page-stores')">View all ›</button>
+      <div class="velocity-card-head">
+        <div class="velocity-card-title">📋 Today's plan</div>
+        <button type="button" class="velocity-card-action" onclick="nav('page-stores')">View all ›</button>
       </div>
       <div id="tsrTodayList"></div>
     </div>
     <div class="velocity-card">
-      <div style="font-weight:800;font-size:14px;font-family:'Manrope',sans-serif;margin-bottom:14px;">📊 My activity this week</div>
-      <div class="kpi-strip" style="margin:0;padding:0;border:none;box-shadow:none;background:transparent;">
+      <div class="velocity-card-head">
+        <div class="velocity-card-title">📊 My activity this week</div>
+      </div>
+      <div class="elite-kpi-grid">
         <div class="kpi">
           <div class="kpi-value" id="tsrVisits">0</div>
           <div class="kpi-label">Visits</div>
-          <div class="kpi-delta up" id="tsrVisitsDelta">— vs LW</div>
+          <div class="kpi-delta flat" id="tsrVisitsDelta">— vs LW</div>
         </div>
         <div class="kpi">
           <div class="kpi-value" id="tsrProspects">0</div>
@@ -207,23 +210,25 @@ if ('serviceWorker' in navigator) {
         <div class="kpi">
           <div class="kpi-value" id="tsrConversions">0</div>
           <div class="kpi-label">Conversions</div>
-          <div class="kpi-delta up">▲</div>
+          <div class="kpi-delta flat">▲</div>
         </div>
       </div>
     </div>
     <div class="velocity-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-weight:800;font-size:14px;font-family:'Manrope',sans-serif;">🏪 My assigned POS</div>
-        <button type="button" style="font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;font:inherit;" onclick="nav('page-stores')">See all ›</button>
+      <div class="velocity-card-head">
+        <div class="velocity-card-title">🏪 My assigned POS</div>
+        <button type="button" class="velocity-card-action" onclick="nav('page-stores')">See all ›</button>
       </div>
       <div id="tsrPosList"></div>
     </div>
     <div class="velocity-card" id="tsrStreakCard">
       <div style="display:flex;align-items:center;gap:14px;">
-        <div style="font-size:40px;">🔥</div>
+        <div style="font-size:40px;filter:drop-shadow(0 4px 12px rgba(255,107,50,0.4));">🔥</div>
         <div style="flex:1;">
-          <div style="font-weight:800;font-family:'Manrope',sans-serif;font-size:16px;" id="tsrStreakValue">Visit streak</div>
-          <div style="font-size:12px;color:var(--text-secondary);font-weight:500;">Keep going — log a visit today to extend.</div>
+          <div class="font-display" style="font-weight:800;font-size:16px;color:var(--text-primary);" id="tsrStreakValue">Build your streak</div>
+          <div style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:2px;" id="tsrStreakHint">
+            Log a visit today to start. 5 days unlocks Hot Streak badge.
+          </div>
         </div>
       </div>
     </div>
@@ -233,8 +238,8 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- DSM HOME — Squad dashboard + squad feed (Phase 4.5) -->
 <!-- ========================================= -->
-<div id="page-home-dsm" class="page phase4-page" style="background:var(--bg-chat);">
-  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+<div id="page-home-dsm" class="page phase4-page phase4-home" style="background:var(--bg-chat);">
+  <div class="app-header phase4-home-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;">
     <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
     <button type="button" class="phase4-inline-search-hit" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border:none;border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:left;font:inherit;"
             onclick="nav('page-search')">
@@ -251,23 +256,25 @@ if ('serviceWorker' in navigator) {
     <div class="hero-kpi">
       <div class="hero-kpi-content">
         <div class="hero-kpi-label">My team today</div>
-        <div class="hero-kpi-value" id="dsmTeamActivity" style="font-size:32px;">—</div>
+        <div class="hero-kpi-value" id="dsmTeamActivity" style="font-size:36px;">—</div>
         <div class="hero-kpi-meta">
           <span class="hero-kpi-pill" id="dsmActiveCount">—</span>
-          <span class="hero-kpi-pill" id="dsmStoresAttention">—</span>
+          <span class="hero-kpi-pill up" id="dsmStoresAttention">—</span>
         </div>
       </div>
     </div>
     <div class="velocity-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-weight:800;font-size:14px;font-family:'Manrope',sans-serif;">👥 My TSRs · this week</div>
-        <button type="button" style="font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;font:inherit;" onclick="nav('page-team')">See all ›</button>
+      <div class="velocity-card-head">
+        <div class="velocity-card-title">👥 My TSRs · this week</div>
+        <button type="button" class="velocity-card-action" onclick="nav('page-team')">See all ›</button>
       </div>
       <div id="dsmTsrList"></div>
     </div>
     <div class="velocity-card" id="dsmOwnActivityCard">
-      <div style="font-weight:800;font-size:14px;font-family:'Manrope',sans-serif;margin-bottom:10px;">📊 My own activity</div>
-      <div class="kpi-strip" style="margin:0;padding:0;border:none;box-shadow:none;background:transparent;">
+      <div class="velocity-card-head">
+        <div class="velocity-card-title">📊 My own activity</div>
+      </div>
+      <div class="elite-kpi-grid">
         <div class="kpi">
           <div class="kpi-value" id="dsmOwnVisits">0</div>
           <div class="kpi-label">My visits</div>
@@ -285,14 +292,14 @@ if ('serviceWorker' in navigator) {
     <div class="at-risk-card" id="dsmAtRisk" style="display:none;">
       <div class="at-risk-icon">⚠️</div>
       <div style="flex:1;">
-        <div style="font-weight:700;color:var(--text-primary);" id="dsmAtRiskTitle">Stores need attention</div>
-        <div style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:2px;">Tap to review POS</div>
+        <div style="font-weight:700;color:var(--text-primary);" id="dsmAtRiskTitle">0 stores overdue</div>
+        <div style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:2px;">Tap to assign a TSR</div>
       </div>
       <span style="font-size:18px;color:var(--text-tertiary);">›</span>
     </div>
     <div class="composer phase4-composer-dsm">
       <div class="composer-row">
-        <div class="avatar" id="dsmComposerAvatar"></div>
+        <div class="elite-avatar" id="dsmComposerAvatar"></div>
         <div class="composer-input" id="dsmComposerInput">Post to your squad...</div>
       </div>
       <div class="composer-actions">

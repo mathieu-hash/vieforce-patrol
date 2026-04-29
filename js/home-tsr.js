@@ -132,21 +132,25 @@
     for (var i = 0; i < visits.length; i++) {
       var v = visits[i];
       var sid = String(v.id || '').replace(/'/g, '');
+      var initials = String(v.store_initials || _initials(v.store_name || '') || '··')
+        .slice(0, 2)
+        .toUpperCase();
       html +=
-        '<div class="list-row phase4-list-row" role="button" tabindex="0" data-tsr-store="' +
+        '<div class="row" role="button" tabindex="0" data-tsr-store="' +
         sid +
         '">' +
-        '<div class="avatar-tiny">' +
-        _initials(v.store_name) +
+        '<div class="elite-avatar sm">' +
+        initials +
         '</div>' +
-        '<div class="list-row-main">' +
-        '<div class="list-row-title">' +
+        '<div class="row-content">' +
+        '<div class="row-title">' +
         String(v.store_name || '') +
         '</div>' +
-        '<div class="list-row-sub">' +
+        '<div class="row-subtitle">' +
         String(v.last_visit_text || '') +
         '</div>' +
         '</div>' +
+        '<div class="row-meta"></div>' +
         '</div>';
     }
     host.innerHTML = html;
@@ -180,20 +184,21 @@
       var p = pos[i];
       var sid = String(p.id || '').replace(/'/g, '');
       html +=
-        '<div class="list-row phase4-list-row" role="button" data-tsr-pos="' +
+        '<div class="row" role="button" data-tsr-pos="' +
         sid +
         '">' +
-        '<div class="avatar-tiny" style="background:linear-gradient(135deg,#97D700,#00B847);">' +
+        '<div class="elite-avatar sm green">' +
         _initials(p.name) +
         '</div>' +
-        '<div class="list-row-main">' +
-        '<div class="list-row-title">' +
+        '<div class="row-content">' +
+        '<div class="row-title">' +
         String(p.name || '') +
         '</div>' +
-        '<div class="list-row-sub">' +
+        '<div class="row-subtitle">' +
         String(p.last_visit_text || '') +
         '</div>' +
         '</div>' +
+        '<div class="row-meta"></div>' +
         '</div>';
     }
     host.innerHTML = html;
@@ -248,6 +253,9 @@
           : stats.visitsDelta < 0
             ? '\u25bc ' + stats.visitsDelta + ' vs LW'
             : '\u2014 vs LW';
+      vd.className =
+        'kpi-delta ' +
+        (stats.visitsDelta > 0 ? 'up' : stats.visitsDelta < 0 ? 'down' : 'flat');
     }
 
     var pos = await getMyAssignedPos(session.id);
@@ -256,12 +264,20 @@
     var streak = await getMyStreak(session.id);
     var streakCard = document.getElementById('tsrStreakCard');
     var streakVal = document.getElementById('tsrStreakValue');
+    var streakHint = document.getElementById('tsrStreakHint');
     if (streakCard && streakVal) {
+      streakCard.style.display = 'block';
       if (streak >= 1) {
-        streakCard.style.display = 'block';
         streakVal.textContent = streak + '-day visit streak';
+        if (streakHint) {
+          streakHint.textContent = 'Keep going — log a visit today to extend.';
+        }
       } else {
-        streakCard.style.display = 'none';
+        streakVal.textContent = 'Build your streak';
+        if (streakHint) {
+          streakHint.textContent =
+            'Log a visit today to start. 5 days unlocks Hot Streak badge.';
+        }
       }
     }
 
