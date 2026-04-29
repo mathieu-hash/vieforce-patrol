@@ -8,6 +8,8 @@
   var _lastAt = 0;
   var _lastData = null;     // HQ /api/sap/sales response (hero, scope, freshness)
   var _lastDirect = null;   // Direct SAP /api/sap/sales/all response
+  /** TODO: replace MOCK_VELOCITY with /api/sales/velocity daily series when available */
+  var MOCK_VELOCITY = [40, 55, 48, 62, 58, 70, 68, 78, 72, 85, 82, 90, 95];
   var _periodBound = false;
   var _unitBound = false;
   var _expandBound = false;
@@ -24,35 +26,17 @@
     document.addEventListener('click', function (ev) {
       var t = ev.target;
       if (!t || !t.closest) return;
-      var btn = t.closest('.sales-expand-btn');
-      if (!btn) return;
-      var card = btn.closest('.sales-card-d');
+      var btn = t.closest('[data-sales-see-all]');
+      if (btn) {
+        console.log('TODO: expand sales section —', btn.getAttribute('data-sales-see-all'));
+        return;
+      }
+      var btn2 = t.closest('.sales-expand-btn');
+      if (!btn2) return;
+      var card = btn2.closest('.sales-card-d');
       if (card) card.classList.toggle('expanded');
     });
     _expandBound = true;
-  }
-
-  /** Sub-line under hero: uses HQ KPI keys when present (same upstream numbers). */
-  function _buildHeroSubline(hqData, period, unit) {
-    var k = (hqData && hqData.kpis) || {};
-    var parts = [];
-    var unitLabel = unit === 'MT' ? 'MT' : 'bags';
-    parts.push(period + ' ' + unitLabel);
-    var pct =
-      k.progress_pct != null ? Number(k.progress_pct)
-        : k.pct_to_target != null ? Number(k.pct_to_target)
-          : k.target_pct != null ? Number(k.target_pct)
-            : NaN;
-    if (!isNaN(pct)) parts.push(Math.round(pct) + '% of target');
-    var mom =
-      k.volume_mom_pct != null ? Number(k.volume_mom_pct)
-        : k.vs_last_month_pct != null ? Number(k.vs_last_month_pct)
-          : k.bags_mom_pct != null ? Number(k.bags_mom_pct)
-            : NaN;
-    if (!isNaN(mom)) {
-      parts.push((mom >= 0 ? '\u25b2 +' : '\u25bc ') + Math.abs(Math.round(mom)) + '% vs LM');
-    }
-    return parts.join(' \u00b7 ');
   }
 
   function _mtdDaysApprox() {
@@ -66,72 +50,95 @@
     return Math.max(1, Math.round((now - start) / 86400000) + 1);
   }
 
+  function customersAtRisk() {
+    return (_lastDirect && _lastDirect.at_risk) ? _lastDirect.at_risk : [];
+  }
+
   function _updateAtRiskStrip(direct) {
-    var el = document.getElementById('sales-atrisk-strip');
-    if (!el) return;
-    var n = (direct && direct.at_risk && direct.at_risk.length) || 0;
+    var card = document.getElementById('atRiskCard');
+    var title = document.getElementById('atRiskTitle');
+    if (!card || !title) return;
+    var list = (direct && direct.at_risk) ? direct.at_risk : [];
+    var n = list.length;
     if (n <= 0) {
-      el.classList.remove('visible');
-      el.setAttribute('aria-hidden', 'true');
-      el.textContent = '';
-      el.removeAttribute('aria-label');
-      el.onclick = null;
+      card.style.display = 'none';
+      card.onclick = null;
       return;
     }
-    el.classList.add('visible');
-    el.removeAttribute('aria-hidden');
-    el.textContent =
-      '\u26a0\ufe0f ' + n + ' customer' + (n === 1 ? '' : 's') + ' slowing \u2014 tap to view';
-    el.setAttribute(
-      'aria-label',
-      n + ' customer' + (n === 1 ? '' : 's') + ' slowing. Open stores list filtered to Babala.'
-    );
-    el.onclick = function () {
-      if (typeof window.navStoresWithFilter === 'function') {
-        window.navStoresWithFilter('warn');
-      } else {
-        try {
-          sessionStorage.setItem('patrol_stores_nav_pref', 'warn');
-        } catch (_e) {}
-        if (typeof window.nav === 'function') window.nav('page-stores');
-      }
+    card.style.display = 'flex';
+    title.textContent = n + ' customer' + (n === 1 ? '' : 's') + ' slowing down';
+    card.onclick = function () {
+      console.log('TODO: filter to at-risk');
     };
   }
 
+  function renderVelocityBars(dailyData) {
+    var bars = document.getElementById('velocityBars');
+    if (!bars) return;
+    if (!dailyData || !dailyData.length) {
+      bars.innerHTML = '';
+      return;
+    }
+    var max = Math.max.apply(
+      null,
+      dailyData.map(function (d) {
+        return d.bags;
+      })
+    );
+    if (!isFinite(max) || max <= 0) max = 1;
+    bars.innerHTML = dailyData.map(function (d, i) {
+      var h = (d.bags / max) * 100;
+      var isPeak = i === dailyData.length - 1;
+      var title =
+        (d.date != null ? String(d.date) : 'Day ' + (i + 1)) + ': ' + _fmtIntish(d.bags);
+      return (
+        '<div class="velocity-bar' + (isPeak ? ' peak' : '') + '" style="height:' + h + '%;" title="' +
+        _attrEsc(title) +
+        '"></div>'
+      );
+    }).join('');
+  }
+
   function _paintVelocity(hqData, direct, period) {
-    var spark = document.getElementById('sales-vel-spark');
-    var foot = document.getElementById('sales-vel-foot-text');
+    var foot = document.getElementById('velocityValue');
+    var deltaEl = document.getElementById('velocityDelta');
     if (!foot) return;
+
     var bags = direct && direct.kpis && direct.kpis.bags != null ? Number(direct.kpis.bags) : null;
     var days = period === 'YTD' ? _ytdDaysApprox() : _mtdDaysApprox();
     if (bags == null || isNaN(bags)) {
-      if (spark) spark.innerHTML = '';
       foot.textContent = '';
+      if (deltaEl) deltaEl.textContent = '';
+      renderVelocityBars([]);
       return;
     }
     var bpd = bags / days;
-    foot.textContent =
-      _fmtIntish(Math.round(bpd)) + ' bags/day' +
-      _velocityMomSuffix(hqData);
+    foot.textContent = _fmtIntish(Math.round(bpd)) + ' bags/day';
 
-    if (!spark) return;
-    var bars = '';
-    var i;
-    for (i = 0; i < 18; i++) {
-      bars += '<span class="sales-vel-bar" role="presentation"></span>';
-    }
-    spark.innerHTML = bars;
-  }
-
-  function _velocityMomSuffix(hqData) {
     var k = (hqData && hqData.kpis) || {};
-    var mom =
-      k.volume_mom_pct != null ? Number(k.volume_mom_pct)
-        : k.vs_last_month_pct != null ? Number(k.vs_last_month_pct)
-          : k.bags_mom_pct != null ? Number(k.bags_mom_pct)
-            : NaN;
-    if (isNaN(mom)) return '';
-    return ' \u00b7 ' + (mom >= 0 ? '\u25b2 +' : '\u25bc ') + Math.abs(Math.round(mom)) + '% vs LM';
+    var mom = _momPctFromKpis(k);
+    if (deltaEl) {
+      if (mom != null && !isNaN(mom)) {
+        var r = Math.round(mom);
+        deltaEl.style.color = r >= 0 ? 'var(--success, #16a34a)' : 'var(--danger, #dc2626)';
+        deltaEl.textContent =
+          (r >= 0 ? '\u25b2 ' : '\u25bc ') + Math.abs(r) + '%';
+      } else {
+        deltaEl.textContent = '';
+      }
+    }
+
+    var series = null;
+    if (direct && direct.velocity_daily && direct.velocity_daily.length) {
+      series = direct.velocity_daily;
+    }
+    // TODO: replace MOCK_VELOCITY with API daily bags when backend exposes it
+    if (!series || !series.length) {
+      series = MOCK_VELOCITY.map(function (bags, idx) {
+        return { bags: bags, date: 'Day ' + (idx + 1) };
+      });
+    }
+    renderVelocityBars(series);
   }
 
   function _esc(s) {
@@ -139,6 +146,126 @@
     var d = document.createElement('div');
     d.textContent = String(s);
     return d.innerHTML;
+  }
+
+  /** Safe single-quoted attribute value for title=. */
+  function _attrEsc(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/'/g, '&#39;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+  }
+
+  /**
+   * SAP often returns ALL CAPS product lines — sentence-case for readability on narrow screens.
+   * Full string stays on title= tooltip after truncation.
+   */
+  function _humanizeSapLabel(str) {
+    if (str == null) return '';
+    var t = String(str).trim();
+    if (!t) return '';
+    var letters = t.replace(/[^A-Za-zÀ-ÿ]/g, '');
+    if (!letters.length) return t;
+    var up = 0;
+    var i;
+    for (i = 0; i < letters.length; i++) {
+      var ch = letters.charAt(i);
+      if (ch >= 'A' && ch <= 'Z') up++;
+    }
+    if (up / letters.length < 0.58) return t;
+    var lower = t.toLowerCase();
+    return lower.replace(/\b([a-zÀ-ÿ])/g, function (m) {
+      return m.toUpperCase();
+    });
+  }
+
+  /** Ellipsis-truncate — full text preserved via title tooltip. */
+  function _truncateDisplayLabel(str, maxLen) {
+    maxLen = maxLen || 28;
+    if (str == null) return '';
+    var s = _humanizeSapLabel(str);
+    if (s.length <= maxLen) return s;
+    return s.slice(0, Math.max(0, maxLen - 1)) + '\u2026';
+  }
+
+  /** Overlay KPI fields from /api/sap/sales/all (same HQ payload, richer than first paint). */
+  function _mergeCompareKpisFromDirect(direct) {
+    if (!_lastData || !direct || !direct.kpis) return;
+    var src = direct.kpis;
+    var dst = _lastData.kpis = _lastData.kpis || {};
+    var k;
+    for (k in src) {
+      if (!Object.prototype.hasOwnProperty.call(src, k)) continue;
+      if (k === 'volume_bags') continue;
+      dst[k] = src[k];
+    }
+    if (src.bags != null) dst.bags = src.bags;
+  }
+
+  function _momPctFromKpis(k) {
+    if (!k || typeof k !== 'object') return null;
+    var v =
+      k.volume_mom_pct != null ? Number(k.volume_mom_pct)
+        : k.vs_last_month_pct != null ? Number(k.vs_last_month_pct)
+          : k.bags_mom_pct != null ? Number(k.bags_mom_pct)
+            : k.volume_chg_pct != null ? Number(k.volume_chg_pct)
+              : k.vol_mom_pct != null ? Number(k.vol_mom_pct)
+                : NaN;
+    return isNaN(v) ? null : v;
+  }
+
+  function _paintHeroMeta(hqData, period) {
+    var lm = document.getElementById('heroPillLm');
+    var tg = document.getElementById('heroPillTarget');
+    var rg = document.getElementById('heroPillRegion');
+    var label = document.getElementById('salesHeroLabel');
+    var unit = (_currentUnit || 'BAGS').toUpperCase();
+    var unitWord = unit === 'MT' ? 'MT' : 'bags';
+    var pr = (period || 'MTD').toUpperCase();
+    if (label) {
+      label.textContent = 'Total ' + unitWord + ' \u00b7 ' + pr;
+    }
+
+    var k = (hqData && hqData.kpis) || {};
+    if (lm) {
+      var pctLm = _momPctFromKpis(k);
+      if (pctLm != null && !isNaN(pctLm)) {
+        var r = Math.round(pctLm);
+        lm.style.display = '';
+        lm.className = 'hero-kpi-pill' + (r >= 0 ? ' up' : '');
+        var numPart =
+          r === 0 ? '0%'
+            : r > 0 ? '+' + Math.abs(r) + '%'
+              : '\u2212' + Math.abs(r) + '%';
+        lm.textContent = (r >= 0 ? '\u25b2 ' : '\u25bc ') + numPart + ' vs LM';
+      } else {
+        lm.style.display = 'none';
+      }
+    }
+    if (tg) {
+      var pct =
+        k.progress_pct != null ? Number(k.progress_pct)
+          : k.pct_to_target != null ? Number(k.pct_to_target)
+            : k.target_pct != null ? Number(k.target_pct)
+              : NaN;
+      if (!isNaN(pct)) {
+        tg.style.display = '';
+        tg.textContent = Math.round(pct) + '% of target';
+      } else {
+        tg.style.display = 'none';
+      }
+    }
+    if (rg) {
+      var rk = k.region_rank != null ? Number(k.region_rank) : NaN;
+      if (!isNaN(rk) && rk > 0 && rk <= 3) {
+        rg.style.display = '';
+        rg.textContent = 'Top ' + rk + ' region';
+      } else {
+        rg.style.display = 'none';
+      }
+    }
   }
 
   function _fmtVolumeMt(n) {
@@ -200,9 +327,18 @@
 
   function _showLoading(container) {
     container.innerHTML =
-      '<div class="sales-density-hero" style="opacity:.72">' +
-      '<div class="sales-hero-num-d"><span class="sales-hero-skeleton" aria-label="Loading">\u2026</span></div>' +
-      '<div class="sales-hero-sub-d">Loading sales\u2026</div>' +
+      '<div class="app-content sales-container" style="padding-bottom:28px">' +
+      '<div class="hero-kpi">' +
+      '<div class="sales-hero-fresh-slot" id="sales-sap-fresh-host"></div>' +
+      '<div class="hero-kpi-content">' +
+      '<div class="hero-kpi-label" id="salesHeroLabel">Sales</div>' +
+      '<div class="hero-kpi-value num" id="salesHeroValue"><span class="sales-hero-skeleton" aria-label="Loading">\u2026</span></div>' +
+      '<div class="hero-kpi-meta">' +
+      '<span class="hero-kpi-pill up" id="heroPillLm" style="display:none"></span>' +
+      '<span class="hero-kpi-pill" id="heroPillTarget" style="display:none"></span>' +
+      '<span class="hero-kpi-pill gold" id="heroPillRegion" style="display:none"></span>' +
+      '</div></div></div>' +
+      '<p style="text-align:center;color:var(--text-secondary);font-size:13px;padding:16px">Loading sales\u2026</p>' +
       '</div>';
   }
 
@@ -247,46 +383,55 @@
     var heroValueHtml = hero.loading
       ? '<span class="sales-hero-skeleton" aria-label="Loading">\u2026</span>'
       : hero.formatted;
-    var heroSub = _buildHeroSubline(data, period, _currentUnit);
 
-    var heroHtml =
-      '<div class="sales-density-hero">' +
-      '<div class="sales-sync-corner" id="sales-sap-fresh-host"></div>' +
-      '<div class="sales-hero-num-d" id="sales-hero-num-main">' + heroValueHtml + '</div>' +
-      '<div class="sales-hero-sub-d" id="sales-hero-subline">' + _esc(heroSub) + '</div>' +
-      '</div>';
-
-    var atriskHtml =
-      '<button type="button" class="sales-atrisk-strip" id="sales-atrisk-strip" aria-hidden="true"></button>';
-
-    var brandHtml =
-      '<div class="sales-card-d sales-by-brand-card">' +
-      '<div class="sales-card-d-h">' +
-      '<span class="sales-card-d-title">By brand</span>' +
+    container.innerHTML =
+      '<div class="app-content sales-container" style="padding-bottom:28px">' +
+      '<div class="hero-kpi">' +
+      '<div class="sales-hero-fresh-slot" id="sales-sap-fresh-host"></div>' +
+      '<div class="hero-kpi-content">' +
+      '<div class="hero-kpi-label" id="salesHeroLabel"></div>' +
+      '<div class="hero-kpi-value num" id="salesHeroValue">' + heroValueHtml + '</div>' +
+      '<div class="hero-kpi-meta">' +
+      '<span class="hero-kpi-pill up" id="heroPillLm" style="display:none"></span>' +
+      '<span class="hero-kpi-pill" id="heroPillTarget" style="display:none"></span>' +
+      '<span class="hero-kpi-pill gold" id="heroPillRegion" style="display:none"></span>' +
+      '</div></div></div>' +
+      '<div class="at-risk-card" id="atRiskCard" style="display:none">' +
+      '<div class="at-risk-icon">\u26a0\ufe0f</div>' +
+      '<div style="flex:1;">' +
+      '<div style="font-weight:700;color:var(--text-primary);" id="atRiskTitle"></div>' +
+      '<div style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:2px;">Tap to see who needs attention</div>' +
       '</div>' +
-      '<div id="sales-by-brand-body"><div class="sales-card-loading">Loading\u2026</div></div>' +
-      '<button type="button" class="sales-expand-btn" id="sales-brand-expand" style="display:none">' +
-      '+ more</button>' +
-      '</div>';
-
-    var custHtml =
-      '<div class="sales-card-d sales-by-customer">' +
-      '<div class="sales-card-d-h">' +
-      '<span class="sales-card-d-title">By customer</span>' +
+      '<span style="font-size:18px;color:var(--text-tertiary);">\u203a</span>' +
       '</div>' +
-      '<div id="sales-by-customer-body"><div class="sales-card-loading">Loading\u2026</div></div>' +
-      '<button type="button" class="sales-expand-btn" id="sales-customer-expand" style="display:none">' +
-      '+ more</button>' +
+      '<div class="velocity-card">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+      '<div style="font-weight:800;font-size:14px;font-family:Manrope,sans-serif;display:flex;align-items:center;gap:6px;">\ud83d\udcc8 Velocity</div>' +
+      '<div style="font-size:13px;color:var(--success);font-weight:700;font-family:Manrope,sans-serif;" id="velocityDelta"></div>' +
+      '</div>' +
+      '<div class="velocity-bars" id="velocityBars"></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);font-weight:600;">' +
+      '<span>13 days ago</span>' +
+      '<strong style="color:var(--text-primary);font-family:Manrope,sans-serif;" class="num" id="velocityValue"></strong>' +
+      '<span>today</span>' +
+      '</div></div>' +
+      '<div class="velocity-card" id="brandsCard">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+      '<div style="font-weight:800;font-size:14px;font-family:Manrope,sans-serif;display:flex;align-items:center;gap:6px;">\ud83c\udff7\ufe0f By brand</div>' +
+      '<button type="button" class="sales-see-all" data-sales-see-all="brand" style="font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;">See all \u203a</button>' +
+      '</div>' +
+      '<div id="brandBars"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div>' +
+      '</div>' +
+      '<div class="velocity-card" id="customersCard">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+      '<div style="font-weight:800;font-size:14px;font-family:Manrope,sans-serif;display:flex;align-items:center;gap:6px;">\ud83d\udc65 Top customers</div>' +
+      '<button type="button" class="sales-see-all" data-sales-see-all="customers" style="font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;">See all \u203a</button>' +
+      '</div>' +
+      '<div id="customerRows"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div>' +
+      '</div>' +
       '</div>';
 
-    var velHtml =
-      '<div class="sales-card-d" id="sales-velocity-card">' +
-      '<div class="sales-card-d-h"><span class="sales-card-d-title">Velocity</span></div>' +
-      '<div class="sales-vel-spark" id="sales-vel-spark" aria-hidden="true"></div>' +
-      '<div class="sales-vel-foot"><span id="sales-vel-foot-text"></span></div>' +
-      '</div>';
-
-    container.innerHTML = heroHtml + atriskHtml + brandHtml + custHtml + velHtml;
+    _paintHeroMeta(data, period);
 
     if (_lastDirect) {
       _renderDirectCards(_lastDirect);
@@ -295,34 +440,14 @@
       _updateFreshness('ok');
     } else {
       _updateFreshness('loading');
+      renderVelocityBars([]);
     }
     _loadAllDirectSap(period);
   }
 
-  function _icon(name, tone) {
-    var color = tone === 'amber' ? '#b45309'
-      : tone === 'rose' ? '#be123c'
-      : tone === 'primary' ? '#00A6CE'
-      : 'currentColor';
-    var stroke = 'stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
-    var paths = {
-      'box': '<rect x="3.5" y="6" width="17" height="14" rx="2"/><path d="M3.5 10h17M9 6V4h6v2"/>',
-      'tags': '<path d="M20 12 13 5H4v9l7 7 9-9z"/><circle cx="8" cy="8" r="1.4"/>',
-      'users': '<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M14 20c0-2.5 2-4 4.5-4S22 17.5 22 20"/>',
-      'flag': '<path d="M5 3v18M5 4h11l-2 4 2 4H5"/>',
-      'alert': '<path d="M12 3 2 20h20L12 3z"/><path d="M12 10v5M12 18v.5"/>',
-      'chart-line': '<path d="M4 4v16h16"/><path d="M7 15l4-5 4 3 5-7"/>',
-      'arrow-right': '<path d="M9 6l6 6-6 6"/>',
-      'briefcase': '<rect x="3.5" y="7" width="17" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>'
-    };
-    var inner = paths[name] || paths['box'];
-    return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" ' + stroke + '>' + inner + '</svg>';
-  }
-
   function _updateHero() {
     if (!_lastData) return;
-    var el = document.getElementById('sales-hero-num-main');
-    var sub = document.getElementById('sales-hero-subline');
+    var el = document.getElementById('salesHeroValue');
     if (!el) return;
     var hero = _heroForUnit(_currentUnit, _lastData, _lastDirect);
     if (hero.loading) {
@@ -330,7 +455,7 @@
     } else {
       el.textContent = hero.formatted;
     }
-    if (sub) sub.textContent = _buildHeroSubline(_lastData, _activePeriod(), _currentUnit);
+    _paintHeroMeta(_lastData, _activePeriod());
   }
 
   function _updateFreshness(state) {
@@ -358,8 +483,8 @@
    *  Has a 18s client-side timeout so a hung Vercel/SAP doesn't leave cards "Loading…" forever.
    */
   async function _loadAllDirectSap(period) {
-    var brEl = document.getElementById('sales-by-brand-body');
-    var byEl = document.getElementById('sales-by-customer-body');
+    var brEl = document.getElementById('brandBars');
+    var byEl = document.getElementById('customerRows');
 
     var url = '/api/sap/sales/all?period=' + encodeURIComponent(period);
     var session = (typeof getSession === 'function') ? getSession() : null;
@@ -412,6 +537,10 @@
     }
 
     _lastDirect = data;
+    try {
+      window._patrolSalesDirectSnapshot = data;
+    } catch (_snap) {}
+    _mergeCompareKpisFromDirect(data);
     _updateHero();
     _renderDirectCards(data);
     _updateAtRiskStrip(data);
@@ -426,7 +555,7 @@
   function _injectDirectRetry(period, message) {
     var existing = document.getElementById('sales-direct-retry');
     if (existing) existing.parentNode.removeChild(existing);
-    var anchor = document.querySelector('.sales-by-brand-card');
+    var anchor = document.getElementById('brandsCard');
     if (!anchor || !anchor.parentNode) return;
     var box = document.createElement('div');
     box.id = 'sales-direct-retry';
@@ -446,29 +575,19 @@
   }
 
   function _renderDirectCards(data) {
-    _renderByBrand(document.getElementById('sales-by-brand-body'), data.by_brand || []);
-    _renderByCustomer(document.getElementById('sales-by-customer-body'), data.by_customer || []);
-    _syncExpandButtons();
-  }
-
-  /** Navy / grey only — avoids rainbow accent clutter on dense rows. */
-  var _BRAND_DOTS = ['#004D71', '#6b7280', '#9ca3af', '#4b5563', '#374151'];
-
-  function _syncExpandButtons() {
-    ['sales-brand-expand', 'sales-customer-expand'].forEach(function (id) {
-      var btn = document.getElementById(id);
-      var card = btn && btn.closest('.sales-card-d');
-      if (!btn || !card) return;
-      var wrap = card.querySelector('.sales-extra-rows');
-      var extra = wrap ? wrap.querySelectorAll('.sales-row-d').length : 0;
-      btn.style.display = extra > 0 ? 'block' : 'none';
-      btn.textContent = '+' + extra + ' more';
-    });
+    _renderByBrand(document.getElementById('brandBars'), data.by_brand || []);
+    _renderByCustomer(document.getElementById('customerRows'), data.by_customer || []);
   }
 
   function _renderByBrand(el, brands) {
     if (!el) return;
-    var list = (brands || []).slice(0, 5);
+    var rawList = brands || [];
+    var list = rawList.slice(0, 5);
+    var seeBtn = document.querySelector('#brandsCard .sales-see-all');
+    if (seeBtn) {
+      seeBtn.textContent =
+        rawList.length > 0 ? ('See all ' + rawList.length + ' \u203a') : 'See all \u203a';
+    }
     if (!list.length) {
       el.innerHTML = '<div class="sales-card-empty">No brand breakdown for this period.</div>';
       return;
@@ -478,35 +597,35 @@
     if (total <= 0) total = 0;
 
     var top = list.slice(0, 3);
-    var rest = list.slice(3);
-
-    function rowHtml(r, idxGlobal) {
-      var name = (r && r.name) || '(no brand)';
-      var bags = parseFloat(r && r.bags) || 0;
-      var pct = total > 0 ? Math.round((bags / total) * 100) : 0;
-      var dot = _BRAND_DOTS[idxGlobal % _BRAND_DOTS.length];
-      return (
-        '<div class="sales-row-d">' +
-        '<span class="nm"><span class="sales-brand-dot" style="background:' + dot + '"></span>' +
-        _esc(name) + '</span>' +
-        '<span class="sales-brand-bar-track" aria-hidden="true">' +
-        '<span class="sales-brand-bar-fill" style="width:' + pct + '%"></span></span>' +
-        '<span class="meta">' + pct + '% \u00b7 ' + _fmtIntish(bags) + '</span>' +
-        '</div>'
-      );
-    }
+    var colors = [
+      'linear-gradient(90deg, #2D7FF9, #4595FF)',
+      'linear-gradient(90deg, #97D700, #00B847)',
+      'linear-gradient(90deg, #FFC72C, #FA9E1B)',
+      'linear-gradient(90deg, #F33E58, #FA6E32)',
+      'linear-gradient(90deg, #6A52E5, #8B6FFF)'
+    ];
 
     var html = '';
     var i;
-    for (i = 0; i < top.length; i++) html += rowHtml(top[i], i);
-
-    if (rest.length) {
-      html += '<div class="sales-extra-rows">';
-      var base = top.length;
-      for (var j = 0; j < rest.length; j++) html += rowHtml(rest[j], base + j);
-      html += '</div>';
+    for (i = 0; i < top.length; i++) {
+      var r = top[i];
+      var rawName = (r && r.name) || '(no brand)';
+      var disp = _truncateDisplayLabel(rawName, 28);
+      var bags = parseFloat(r && r.bags) || 0;
+      var pct = total > 0 ? Math.round((bags / total) * 100) : 0;
+      html +=
+        '<div class="brand-bar-row">' +
+        '<div class="brand-bar-head">' +
+        '<span style="color:var(--text-primary);font-weight:600;">' + _esc(disp) + '</span>' +
+        '<span style="color:var(--text-primary);font-weight:800;font-family:Manrope,sans-serif;" class="num">' +
+        _fmtIntish(bags) +
+        '</span>' +
+        '</div>' +
+        '<div class="brand-bar-track">' +
+        '<div class="brand-bar-fill" style="background:' + colors[i % colors.length] + ';width:' + pct + '%;"></div>' +
+        '</div>' +
+        '</div>';
     }
-
     el.innerHTML = html;
   }
 
@@ -525,30 +644,36 @@
 
   function _renderByCustomer(el, byCustomer) {
     if (!el) return;
-    var list = (byCustomer || []).slice(0, 5);
+    var list = (byCustomer || []).slice(0, 3);
     if (!list.length) {
       el.innerHTML = '<div class="sales-card-empty">No invoiced customers in this period.</div>';
       return;
     }
-    var top = list.slice(0, 3);
-    var rest = list.slice(3);
 
-    function rowHtml(r) {
-      return (
-        '<div class="sales-row-d">' +
-        '<span class="nm">' + _esc(r.name || r.cardcode || '\u2014') + '</span>' +
-        '<span class="meta">' + _fmtIntish(r.bags) + ' bags</span>' +
-        '</div>'
-      );
-    }
-
+    var cols = ['#004D71', '#00A6CE', '#6A52E5'];
     var html = '';
     var i;
-    for (i = 0; i < top.length; i++) html += rowHtml(top[i]);
-    if (rest.length) {
-      html += '<div class="sales-extra-rows">';
-      for (var j = 0; j < rest.length; j++) html += rowHtml(rest[j]);
-      html += '</div>';
+    for (i = 0; i < list.length; i++) {
+      var r = list[i];
+      var rawName = r.name || r.cardcode || '\u2014';
+      var disp = _truncateDisplayLabel(rawName, 28);
+      var bags = parseFloat(r && r.bags) || 0;
+      var initials = String(disp).trim().slice(0, 2).toUpperCase();
+      html +=
+        '<div class="customer-row-p3">' +
+        '<div class="cr-av num" style="background:' + cols[i % cols.length] + '">' +
+        _esc(initials) +
+        '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:700;font-size:14px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' +
+        _attrEsc(rawName) +
+        '">' +
+        _esc(disp) +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text-secondary);font-weight:500;">Bags (period)</div>' +
+        '</div>' +
+        '<div class="cr-meta">' + _fmtIntish(bags) + '</div>' +
+        '</div>';
     }
     el.innerHTML = html;
   }
@@ -657,6 +782,8 @@
       _updateHero();
     });
   }
+
+  window.customersAtRisk = customersAtRisk;
 
   window.refreshSalesTab = function (period) {
     period = (period || 'MTD').toUpperCase();

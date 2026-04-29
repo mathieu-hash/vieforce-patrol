@@ -12,7 +12,7 @@ var _longPressTouchMoved = false;
 
 function initLongPress() {
   // Delegate from store list container
-  var listEl = document.getElementById('store-list');
+  var listEl = document.getElementById('storesList') || document.getElementById('store-list');
   if (!listEl) return;
 
   listEl.addEventListener('touchstart', function(e) {

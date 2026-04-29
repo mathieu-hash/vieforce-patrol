@@ -25,6 +25,7 @@
 <link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=8">
 <link rel="stylesheet" href="css/density-pass.css?v=8">
 <link rel="stylesheet" href="css/activity-feed.css?v=1">
+<link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -360,7 +361,7 @@ if ('serviceWorker' in navigator) {
   <!-- Messenger-style white header (density classes for patrol.css / density-pass.css) -->
   <div class="header stores-head-density" style="flex-shrink:0;background:var(--bg);position:relative;z-index:10;border-bottom:1px solid var(--divider)">
     <div class="stores-head-row" style="display:flex;align-items:center;justify-content:space-between">
-      <div class="stores-title-text" style="color:var(--text);letter-spacing:-0.3px" id="stores-title" data-t="stores">Mga Tindahan</div>
+      <div class="stores-title-text" style="color:var(--text);letter-spacing:-0.3px" id="stores-title" data-t="stores">Stores</div>
       <div style="display:flex;gap:8px">
         <div class="hdr-btn" id="btn-new-store" style="width:36px;height:36px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">✏️</div>
         <div class="hdr-btn" id="stores-avatar-btn" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer">--</div>
@@ -373,26 +374,29 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 
-  <div class="filter-row filter-row-health" data-filter-row="health" style="flex-shrink:0">
-    <button class="filter-chip active" data-filter-label="all">Lahat</button>
-    <button class="filter-chip" data-filter-label="crit" style="color:var(--status-crit)">Critical</button>
-    <button class="filter-chip" data-filter-label="warn" style="color:var(--status-warn)">Babala</button>
-    <button class="filter-chip" data-filter-label="ok" style="color:var(--status-ok)">OK</button>
-    <button class="filter-chip prospect" data-filter-label="prospect">Prospect</button>
-    <button class="filter-chip" data-filter-label="active">Active</button>
+  <div class="tab-bar stores-tab-bar" data-filter-row="health" style="position:sticky;top:0;z-index:5;flex-shrink:0">
+    <button type="button" class="tab active" data-filter-label="all">All <span class="num" style="opacity:0.65" id="cntAll">0</span></button>
+    <button type="button" class="tab" data-filter-label="crit">Critical <span class="num" style="color:var(--danger,#dc2626);font-weight:800" id="cntCritical">0</span></button>
+    <button type="button" class="tab" data-filter-label="warn">Warning <span class="num" style="color:var(--warning,#f59e0b);font-weight:800" id="cntWarning">0</span></button>
+    <button type="button" class="tab" data-filter-label="ok">OK <span class="num" style="color:var(--success,#16a34a);font-weight:800" id="cntOk">0</span></button>
+    <button type="button" class="tab prospect" data-filter-label="prospect">Prospect</button>
   </div>
 
   <!-- DSM/RSM/CEO: drill by assigned TSR (populated in stores.js) -->
   <div class="filter-row filter-row-assignee" id="stores-assignee-filter-row" style="display:none;flex-shrink:0" data-filter-row="assignee" role="tablist" aria-label="Rep"></div>
 
-  <!-- Story circles: priority stores to visit (FB Messenger stories row) -->
-  <div class="stories" id="story-circles-row" style="display:none;flex-shrink:0">
-    <!-- Populated by JS: renderStoryCircles() -->
+  <!-- Phase 3: story carousel removed (status dots + rows carry urgency). -->
+  <div class="stories" id="story-circles-row" style="display:none!important;flex-shrink:0" aria-hidden="true"></div>
+
+  <div class="stores-list-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
+    <div class="list-card stores-rows-host" id="storesList"></div>
+    <div class="stores-empty-hint" id="stores-empty-hint" style="display:none">
+      <div style="font-size:36px;margin-bottom:8px;opacity:0.6;">🎯</div>
+      <div style="font-weight:600;">Tap the + button to register a new POS</div>
+    </div>
   </div>
 
-  <div id="store-list" class="conv-list" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
-    <!-- Skeleton rows rendered by JS (Rule 7: no spinners) -->
-  </div>
+  <button type="button" class="store-fab" id="store-fab-btn" aria-label="New POS">+</button>
 </div>
 
 <!-- ========================================= -->
@@ -918,7 +922,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
 <script src="js/theme-switcher.js?v=1"></script>
-<script src="js/labels-v2.js?v=11"></script>
+<script src="js/labels-v2.js?v=13"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -927,11 +931,11 @@ if ('serviceWorker' in navigator) {
 <script src="js/auth.js?v=21"></script>
 <script src="js/db.js?v=4"></script>
 <script src="js/stores-nav-pref.js?v=1"></script>
-<script src="js/sales-tab.js?v=13"></script>
+<script src="js/sales-tab.js?v=14"></script>
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/offline.js?v=4"></script>
-<script src="js/stores.js?v=6"></script>
+<script src="js/stores.js?v=7"></script>
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>
@@ -946,7 +950,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/team.js?v=4"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
-<script src="js/nav-role-device.js?v=4"></script>
+<script src="js/nav-role-device.js?v=5"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=3"></script>
@@ -1706,6 +1710,21 @@ if ('serviceWorker' in navigator) {
   if (btnNewStore) {
     btnNewStore.addEventListener('click', function() {
       openChatbotStore();
+    });
+  }
+  window.openNewStoreFlow = function () {
+    if (btnNewStore) btnNewStore.click();
+  };
+  var storeFabBtn = document.getElementById('store-fab-btn');
+  if (storeFabBtn) {
+    storeFabBtn.addEventListener('click', function () {
+      if (typeof window.openNewStoreFlow === 'function') window.openNewStoreFlow();
+    });
+  }
+  var storesAvHdr = document.getElementById('stores-avatar-btn');
+  if (storesAvHdr) {
+    storesAvHdr.addEventListener('click', function () {
+      if (typeof nav === 'function') nav('page-profile');
     });
   }
 

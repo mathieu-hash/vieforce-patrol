@@ -6,8 +6,8 @@
 //   before. Rule 1 for this file: no regressions to the field-worker
 //   experience.
 //
-// DSM mobile (<900px): Home / Stores / Sales / AR / More
-// RSM mobile (<900px): Home / Stores / Sales / AR / More  (Region lives in More / pg-region)
+// DSM mobile (<900px): Home / Stores / Visit / Sales / Leaders (Phase 3)
+// RSM mobile (<900px): same — Region lives in More sheet when opened from overflow patterns
 // Exec-like roles (exec/ceo/evp) on mobile: soft prompt to open HQ.
 //   Admin is NOT redirected (they need the Patrol admin panel).
 // Desktop any role: current nav stays — this script is a no-op.
@@ -37,21 +37,21 @@
 
     dsm: {
       mobile: [
-        { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',     page: 'page-dashboard' },
-        { id: 'tindahan', icon: '\ud83c\udfea', label: 'Stores',   page: 'page-stores'    },
-        { id: 'sales',    icon: '\ud83d\udcca', label: 'Sales',    page: 'pg-sales'       },
-        { id: 'ar',       icon: '\ud83d\udcb0', label: 'AR',       page: 'pg-ar'          },
-        { id: 'more',     icon: '\u2630',       label: 'More',     action: 'openMoreSheet' }
+        { id: 'home',   icon: '\ud83c\udfe0', label: 'Home',    page: 'page-dashboard' },
+        { id: 'stores', icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
+        { id: 'visit',  icon: '\ud83d\udcdd', label: 'Visit',   page: 'page-visits' },
+        { id: 'sales',  icon: '\ud83d\udcca', label: 'Sales',   page: 'pg-sales' },
+        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-team' }
       ]
     },
 
     rsm: {
       mobile: [
-        { id: 'home',     icon: '\ud83c\udfe0', label: 'Home',     page: 'page-rsm-home' },
-        { id: 'tindahan', icon: '\ud83c\udfea', label: 'Stores',   page: 'page-stores' },
-        { id: 'sales',    icon: '\ud83d\udcca', label: 'Sales',    page: 'pg-sales' },
-        { id: 'ar',       icon: '\ud83d\udcb0', label: 'AR',       page: 'pg-ar' },
-        { id: 'more',     icon: '\u2630',       label: 'More',     action: 'openMoreSheet' }
+        { id: 'home',    icon: '\ud83c\udfe0', label: 'Home',    page: 'page-rsm-home' },
+        { id: 'stores',  icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
+        { id: 'visit',   icon: '\ud83d\udcdd', label: 'Visit',   page: 'page-visits' },
+        { id: 'sales',   icon: '\ud83d\udcca', label: 'Sales',   page: 'pg-sales' },
+        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-team' }
       ]
     }
   };
@@ -123,11 +123,16 @@
         onclickAttr = "navTo('" + escAttr(it.page) + "')";
       }
       var dataPage = it.page ? ' data-page="' + escAttr(it.page) + '"' : '';
+      var badgePart =
+        it.badge === 'stores'
+          ? '<span class="nav-badge" aria-hidden="true" style="display:none">0</span>'
+          : '';
       html += '<button type="button" class="nav-item" data-nav="' + escAttr(it.id) + '"' + dataPage +
         ' onclick="' + onclickAttr + '">' +
         '<span class="nav-pip" aria-hidden="true"></span>' +
         '<span class="nav-ico">' + it.icon + '</span>' +
         '<span class="nav-lbl">' + it.label + '</span>' +
+        badgePart +
         '</button>';
     }
     navEl.innerHTML = html;
@@ -251,6 +256,7 @@
   function openMoreSheet() {
     var items = [
       { icon: '\ud83d\udc64', label: 'Profile', page: 'page-profile' },
+      { icon: '\ud83d\udcb0', label: 'AR', page: 'pg-ar' },
       { icon: '\ud83d\udc65', label: 'Team', page: 'page-team' },
       { icon: '\ud83d\uddfa\ufe0f', label: 'Map', page: 'page-map' },
       { icon: '\ud83c\udf0d', label: 'Region', page: 'pg-region' },

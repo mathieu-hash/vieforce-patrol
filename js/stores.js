@@ -128,8 +128,179 @@ window.renderVisitBubbleComponent = renderVisitBubbleComponent;
 
 var _storeCache = [];
 
+/** DSM/RSM/CEO: drill-down by assigned rep (client-side filter after one fetch). */
+var _storesTeamMembers = [];
+var _storesAssigneeScope = 'all'; // 'all' | 'unassigned' | 'mine' | '<uuid>'
+var _storesAssigneeHandlersBound = false;
+
+function _sessionShowsAssigneeFilters(sess) {
+  return !!(sess && (sess.role === 'dsm' || sess.role === 'rsm' || sess.role === 'ceo'));
+}
+
+function _shortRepLabel(name) {
+  if (!name) return '?';
+  var s = String(name).trim();
+  var low = s.toLowerCase();
+  var idx = low.indexOf('tsr');
+  if (idx !== -1) {
+    var tail = s.slice(idx + 3).replace(/^[:\-\s]+/, '').trim();
+    if (tail.length) return tail.split(/\s+/).slice(0, 2).join(' ');
+  }
+  var parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length <= 2) return s;
+  return parts.slice(-2).join(' ');
+}
+
+function _assigneeLabelForStore(s, lookup) {
+  lookup = lookup || {};
+  if (!s || !s.assigned_tsr) {
+    return (T && T.noRepTag) || 'Walang rep';
+  }
+  var id = s.assigned_tsr;
+  if (lookup[id]) return lookup[id];
+  if (s._assigned_name_cache) return s._assigned_name_cache;
+  return 'Rep';
+}
+
+var _lastStoresAssigneeLookup = {};
+
+function _collectHealthSearchFilterFromUi() {
+  var filter = {};
+  var page = document.getElementById('page-stores');
+  if (!page) return filter;
+  var row = page.querySelector('[data-filter-row="health"]');
+  var chips = row ? row.querySelectorAll('.tab') : [];
+  var label = 'all';
+  var ci;
+  for (ci = 0; ci < chips.length; ci++) {
+    if (chips[ci].classList.contains('active')) {
+      label = chips[ci].getAttribute('data-filter-label') || 'all';
+      break;
+    }
+  }
+  if (label === 'crit' || label === 'warn' || label === 'ok') filter.health_status = label;
+  else if (label === 'prospect') filter.store_status = 'prospect';
+  else if (label === 'active') filter.store_status = 'active';
+  var searchInput = document.getElementById('store-search');
+  var searchVal = searchInput ? searchInput.value.trim() : '';
+  if (searchVal) filter.search = searchVal;
+  return filter;
+}
+
+function _escAttr(s) {
+  return String(s == null ? '' : s).replace(/"/g, '&quot;');
+}
+
+function _refreshAssigneeChipStrip(stores) {
+  var row = document.getElementById('stores-assignee-filter-row');
+  if (!row || !_storesTeamMembers.length) return;
+
+  var counts = { all: stores.length, unassigned: 0, mine: 0 };
+  var sess = typeof getSession === 'function' ? getSession() : null;
+  var k;
+  for (k = 0; k < _storesTeamMembers.length; k++) {
+    counts[_storesTeamMembers[k].id] = 0;
+  }
+  var i;
+  for (i = 0; i < stores.length; i++) {
+    var st = stores[i];
+    if (!st.assigned_tsr) counts.unassigned++;
+    if (sess && st.created_by === sess.id) counts.mine++;
+    if (st.assigned_tsr && counts[st.assigned_tsr] != null) counts[st.assigned_tsr]++;
+  }
+
+  var html = '';
+  function chip(scope, lbl, count) {
+    var active = String(_storesAssigneeScope) === String(scope) ? ' active' : '';
+    html +=
+      '<button type="button" class="filter-chip filter-chip-assignee' + active + '" data-assignee-scope="' +
+      _escAttr(scope) +
+      '">' +
+      _esc(lbl) +
+      ' (' +
+      count +
+      ')</button>';
+  }
+
+  chip('all', (T && T.teamAll) || 'Lahat ng team', counts.all);
+  for (var j = 0; j < _storesTeamMembers.length; j++) {
+    var m = _storesTeamMembers[j];
+    var c = counts[m.id] != null ? counts[m.id] : 0;
+    chip(String(m.id), _shortRepLabel(m.name), c);
+  }
+  chip('unassigned', (T && T.noRepShort) || 'Walang rep', counts.unassigned);
+  chip('mine', (T && T.myListShort) || 'Lista ko', counts.mine);
+
+  row.innerHTML = html;
+  row.style.display = 'flex';
+  _bindAssigneeChipHandlersOnce();
+}
+
+function _bindAssigneeChipHandlersOnce() {
+  if (_storesAssigneeHandlersBound) return;
+  var row = document.getElementById('stores-assignee-filter-row');
+  if (!row) return;
+  _storesAssigneeHandlersBound = true;
+  row.addEventListener('click', function (ev) {
+    var btn = ev.target && ev.target.closest && ev.target.closest('.filter-chip-assignee');
+    if (!btn || !row.contains(btn)) return;
+    var scope = btn.getAttribute('data-assignee-scope');
+    if (scope == null) return;
+    _storesAssigneeScope = scope;
+    var assignees = row.querySelectorAll('.filter-chip-assignee');
+    var i;
+    for (i = 0; i < assignees.length; i++) assignees[i].classList.remove('active');
+    btn.classList.add('active');
+    renderStoreList();
+  });
+}
+
+async function initStoresAssigneeRow() {
+  var sess = typeof getSession === 'function' ? getSession() : null;
+  var row = document.getElementById('stores-assignee-filter-row');
+  if (!row || !_sessionShowsAssigneeFilters(sess) || !sess.id) return;
+  try {
+    var fn = typeof getTeamMembersForStoresFilter === 'function'
+      ? getTeamMembersForStoresFilter
+      : null;
+    if (!fn) return;
+    var members = await fn(sess.id);
+    _storesTeamMembers = members || [];
+    if (!_storesTeamMembers.length) {
+      row.style.display = 'none';
+      row.innerHTML = '';
+    }
+  } catch (e) {
+    console.warn('initStoresAssigneeRow', e);
+  }
+}
+
+function _filterStoresByAssignee(stores, scope, session) {
+  if (!_sessionShowsAssigneeFilters(session)) return stores;
+  scope = scope || 'all';
+  if (scope === 'all') return stores;
+  if (scope === 'unassigned') {
+    return stores.filter(function (s) { return !s.assigned_tsr; });
+  }
+  if (scope === 'mine' && session && session.id) {
+    return stores.filter(function (s) { return s.created_by === session.id; });
+  }
+  return stores.filter(function (s) {
+    return s.assigned_tsr && String(s.assigned_tsr) === String(scope);
+  });
+}
+
+function _repLookupFromMembers(members) {
+  var m = {};
+  for (var i = 0; i < (members || []).length; i++) {
+    var r = members[i];
+    if (r && r.id) m[r.id] = _shortRepLabel(r.name || '');
+  }
+  return m;
+}
+
 async function renderStoreList(filter) {
-  var listEl = document.getElementById('store-list');
+  var listEl = document.getElementById('storesList') || document.getElementById('store-list');
   if (!listEl) return;
 
   // Show skeleton while loading (Rule 7: never show spinners)
@@ -138,7 +309,25 @@ async function renderStoreList(filter) {
   }
 
   try {
-    var stores = await getStores(filter || {});
+    var session = typeof getSession === 'function' ? getSession() : null;
+    var baseFilter = filter != null ? filter : _collectHealthSearchFilterFromUi();
+
+    var storesRaw = await getStores(baseFilter || {});
+    var assigneeLookup = _repLookupFromMembers(_storesTeamMembers);
+    _lastStoresAssigneeLookup = assigneeLookup;
+
+    var stores = storesRaw;
+    if (_sessionShowsAssigneeFilters(session)) {
+      if (_storesTeamMembers.length > 0) {
+        for (var ai = 0; ai < storesRaw.length; ai++) {
+          var sid = storesRaw[ai].assigned_tsr;
+          if (sid && assigneeLookup[sid]) storesRaw[ai]._assigned_name_cache = assigneeLookup[sid];
+        }
+        _refreshAssigneeChipStrip(storesRaw);
+      }
+      stores = _filterStoresByAssignee(storesRaw, _storesAssigneeScope, session);
+    }
+
     _storeCache = stores;
 
     if (stores.length === 0) {
@@ -149,53 +338,37 @@ async function renderStoreList(filter) {
       return;
     }
 
-    // Check which stores were visited today
-    var todayStr = new Date().toISOString().slice(0, 10);
+    var mgrSession = typeof getSession === 'function' ? getSession() : null;
 
-    // Flat Messenger-style colors for conv rows (no gradients)
-    var _gradients = {
-      crit: '#E8746E',
-      warn: '#F2B14A',
-      ok:   '#7EB87E'
-    };
-    var _gradientArr = [
-      '#4A90E2',
-      '#6BA3E8',
-      '#C78AD9',
-      '#7EB87E',
-      '#65676B'
-    ];
+    _renderStoryCircles(stores);
 
-    // Split stores into unvisited-today and visited-today
-    var unvisited = [];
-    var visited = [];
-    for (var si = 0; si < stores.length; si++) {
-      var vs = stores[si].last_visit_at && stores[si].last_visit_at.slice(0, 10) === todayStr;
-      if (vs) visited.push(stores[si]); else unvisited.push(stores[si]);
-    }
+    var combined = stores.slice().sort(function (a, b) {
+      var da = _daysSinceVisitStore(a);
+      var db = _daysSinceVisitStore(b);
+      var aa = da == null ? 9999 : da;
+      var bb = db == null ? 9999 : db;
+      var ha = (a.health_status || 'ok');
+      var hb = (b.health_status || 'ok');
+      function rank(store, daysNum, hlth) {
+        if (hlth === 'crit' || daysNum == null || daysNum > 30) {
+          return 400000 + Math.min(daysNum != null ? daysNum : 9999, 999);
+        }
+        if (hlth === 'warn' || (daysNum >= 7 && daysNum <= 30)) {
+          return 300000 + (daysNum || 0);
+        }
+        return 100000 + (daysNum != null ? (365 - Math.min(daysNum, 365)) : 0);
+      }
+      return rank(b, bb, hb) - rank(a, aa, ha);
+    });
 
-    // Render story circles for priority stores (7+ days unvisited or critical)
-    _renderStoryCircles(stores, _gradients, _gradientArr);
-
-    // Build conversation rows
     var html = '';
-    if (unvisited.length > 0) {
-      html += '<div class="section-hdr">\u26a1 ' + T.notVisited + '</div>';
-      for (var u = 0; u < unvisited.length; u++) {
-        html += _buildConvRow(unvisited[u], todayStr, _gradients, _gradientArr);
-      }
+    var ci;
+    for (ci = 0; ci < combined.length; ci++) {
+      html += _buildCompactStoreRow(combined[ci], mgrSession, assigneeLookup);
     }
-    if (visited.length > 0) {
-      html += '<div class="section-hdr">\u2705 ' + (T.visited || 'Visited') + ' \u00b7 ' + (T.today || 'Today') + '</div>';
-      for (var v = 0; v < visited.length; v++) {
-        html += _buildConvRow(visited[v], todayStr, _gradients, _gradientArr);
-      }
-    }
-    if (unvisited.length === 0 && visited.length === 0) {
-      html = (typeof getEmptyStoreStateHTML === 'function')
-        ? getEmptyStoreStateHTML()
-        : '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:15px">' + _esc(T.noStores) + '</div>';
-    }
+
+    var hintEl = document.getElementById('stores-empty-hint');
+    if (hintEl) hintEl.style.display = 'none';
 
     listEl.innerHTML = html;
     _updateFilterCounts(stores);
@@ -262,6 +435,16 @@ function _buildConvRow(s, todayStr, gradients, gradientArr) {
     previewText = T.notVisited;
   }
 
+  var previewHtmlCombined = previewText;
+  var mgr = typeof getSession === 'function' ? getSession() : null;
+  if (_sessionShowsAssigneeFilters(mgr)) {
+    previewHtmlCombined =
+      '<span class="store-assignee-pill">' +
+      _esc(_assigneeLabelForStore(s, _lastStoresAssigneeLookup)) +
+      '</span><span class="store-assignee-sep"> · </span>' +
+      _esc(previewText);
+  }
+
   // Timestamp: short Messenger format
   var timeText = '';
   var timeClass = 'conv-time';
@@ -298,7 +481,7 @@ function _buildConvRow(s, todayStr, gradients, gradientArr) {
     name: s.name,
     nameClass: nameClass,
     previewClass: previewClass,
-    previewHtml: previewText,
+    previewHtml: previewHtmlCombined,
     timeClass: timeClass,
     timeText: timeText,
     statusHtml: statusHtml
@@ -311,6 +494,87 @@ function _shortTime(days) {
   if (days < 7) return days + 'd';
   if (days < 30) return Math.floor(days / 7) + 'w';
   return Math.floor(days / 30) + 'mo';
+}
+
+function _daysSinceVisitStore(s) {
+  if (!s || !s.last_visit_at) return null;
+  return Math.floor((Date.now() - new Date(s.last_visit_at).getTime()) / 86400000);
+}
+
+function _avatarDotClassForStore(s) {
+  var days = _daysSinceVisitStore(s);
+  if (days == null) return 'avatar-dot-danger';
+  if (days < 7) return 'avatar-dot-online';
+  if (days <= 30) return 'avatar-dot-warning';
+  return 'avatar-dot-danger';
+}
+
+function _rowSeverityClassForStore(s) {
+  var days = _daysSinceVisitStore(s);
+  var h = (s && s.health_status) || 'ok';
+  if (h === 'crit' || days == null || days > 30) return 'danger';
+  if (h === 'warn' || (days >= 7 && days <= 30)) return 'warn';
+  return '';
+}
+
+function _buildCompactStoreRow(s, mgrSession, assigneeLookup) {
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var visitedToday = s.last_visit_at && s.last_visit_at.slice(0, 10) === todayStr;
+  var initial = (s.name || '?').charAt(0).toUpperCase();
+  var second = (s.name || '').split(/\s+/)[1];
+  var initials = initial + (second ? second.charAt(0).toUpperCase() : '');
+  var dotCls = _avatarDotClassForStore(s);
+  var sev = _rowSeverityClassForStore(s);
+  var rowCls = 'row store-row' + (sev ? ' ' + sev : '');
+  var grad = 'linear-gradient(135deg, var(--brand-navy, #004D71), var(--accent, #00A6CE))';
+  var lastVisitText = formatRelativeTimeTagalog ? formatRelativeTimeTagalog(s.last_visit_at) : formatRelativeTime(s.last_visit_at);
+  var previewText = '';
+  if (visitedToday) {
+    previewText = '\u2713 ' + (T.lastVisit || '') + ' \u00b7 ' + lastVisitText;
+  } else if (s.last_visit_at) {
+    previewText = (T.lastVisit || '') + ' \u00b7 ' + lastVisitText;
+  } else {
+    previewText = (T.notVisited || '');
+  }
+  if (_sessionShowsAssigneeFilters(mgrSession)) {
+    previewText = _assigneeLabelForStore(s, assigneeLookup) + ' \u00b7 ' + previewText;
+  }
+  var days = _daysSinceVisitStore(s);
+  var timeText = '';
+  if (visitedToday) {
+    timeText = s.last_visit_at ? new Date(s.last_visit_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : '';
+  } else if (s.last_visit_at && days != null) {
+    timeText = _shortTime(days);
+  }
+
+  return (
+    '<div class="' +
+    _esc(rowCls) +
+    '" data-store-id="' +
+    _escAttr(s.id || '') +
+    '" onclick="openStoreDetail(\'' +
+    _esc(s.id || '') +
+    '\')">' +
+    '<div class="avatar ' +
+    dotCls +
+    '" style="background:' +
+    grad +
+    ';">' +
+    _esc(initials) +
+    '</div>' +
+    '<div class="row-content">' +
+    '<div class="row-title">' +
+    _esc(s.name || '--') +
+    '</div>' +
+    '<div class="row-subtitle">' +
+    _esc(previewText) +
+    '</div>' +
+    '</div>' +
+    '<div class="row-meta num">' +
+    _esc(timeText) +
+    '</div>' +
+    '</div>'
+  );
 }
 
 function _hashCode(str) {
@@ -326,95 +590,10 @@ function _hashCode(str) {
 
 function _renderStoryCircles(stores, gradients, gradientArr) {
   var el = document.getElementById('story-circles-row');
-  if (!el) return;
-
-  // Density pass: managers hide this row (CSS); skip DOM work for DSM/RSM/CEO.
-  var b = document.body;
-  if (b && (b.classList.contains('role-dsm') || b.classList.contains('role-rsm') || b.classList.contains('role-ceo'))) {
+  if (el) {
     el.style.display = 'none';
-    return;
+    el.innerHTML = '';
   }
-
-  // Story circles keep gradients (urgent priority visuals). Soft palette.
-  var storyGrads = {
-    crit: 'linear-gradient(135deg,#E8746E,#F0958F)',
-    warn: 'linear-gradient(135deg,#F2B14A,#F7C97A)',
-    ok:   'linear-gradient(135deg,#7EB87E,#95C695)'
-  };
-  var storyGradArr = [
-    'linear-gradient(135deg,#4A90E2,#6BA3E8)',
-    'linear-gradient(135deg,#C78AD9,#D5A0E2)',
-    'linear-gradient(135deg,#7EB87E,#95C695)'
-  ];
-
-  // Filter: unvisited 5+ days, critical, or new prospects
-  var priority = [];
-  for (var i = 0; i < stores.length; i++) {
-    var s = stores[i];
-    var days = s.last_visit_at ? Math.floor((Date.now() - new Date(s.last_visit_at).getTime()) / 86400000) : 999;
-    if (days >= 5 || s.health_status === 'crit') {
-      priority.push({ store: s, days: days });
-    }
-  }
-  // Sort by urgency (most overdue first)
-  priority.sort(function(a, b) { return b.days - a.days; });
-  priority = priority.slice(0, 10);
-
-  if (priority.length === 0) {
-    el.style.display = 'none';
-    return;
-  }
-  el.style.display = 'flex';
-
-  var html = '';
-  for (var j = 0; j < priority.length; j++) {
-    var p = priority[j];
-    var s = p.store;
-    var health = s.health_status || 'ok';
-    var initial = (s.name || '?').charAt(0).toUpperCase();
-    var second = (s.name || '').split(/\s+/)[1];
-    var initials = initial + (second ? second.charAt(0).toUpperCase() : '');
-    var shortName = (s.name || '').split(/\s+/).slice(0, 2).join(' ');
-    if (shortName.length > 10) shortName = shortName.slice(0, 9) + '\u2026';
-
-    // Ring class
-    var ringClass = 'story-ring ';
-    var badgeBg = '';
-    var badgeText = '';
-    if (p.days >= 7 && health === 'crit') {
-      ringClass += 'ring-urgent';
-      badgeBg = 'var(--status-crit)';
-      badgeText = '!';
-    } else if (p.days >= 7) {
-      ringClass += 'ring-warn';
-      badgeBg = 'var(--status-warn)';
-      badgeText = p.days + 'd';
-    } else if (health === 'crit') {
-      ringClass += 'ring-urgent';
-      badgeBg = 'var(--status-crit)';
-      badgeText = '!';
-    } else {
-      ringClass += 'ring-warn';
-      badgeBg = 'var(--status-warn)';
-      badgeText = p.days + 'd';
-    }
-
-    var typeColor = getStoreTypeColor(s.store_type);
-    var grad = 'linear-gradient(135deg,' + typeColor + ',#004A64)';
-    var icon = getStoreIcon(s.store_type);
-
-    html += '<div class="story" onclick="openStoreDetail(\'' + s.id + '\')">' +
-      '<div class="story-ring-wrap">' +
-        '<div class="' + ringClass + '">' +
-          '<div class="story-inner"><div class="story-av" style="background:' + grad + '">' + icon + '</div></div>' +
-        '</div>' +
-        '<div class="story-badge" style="background:' + badgeBg + '">' + badgeText + '</div>' +
-      '</div>' +
-      '<span class="story-label">' + _esc(shortName) + '</span>' +
-    '</div>';
-  }
-
-  el.innerHTML = html;
 }
 
 // ── Home Page KPIs ──
@@ -521,11 +700,7 @@ function initStoreSearch() {
     var val = input.value.trim();
     if (_searchTimer) clearTimeout(_searchTimer);
     _searchTimer = setTimeout(function () {
-      var activeFilter = _getActiveHealthFilter();
-      var filter = {};
-      if (activeFilter) filter.health_status = activeFilter;
-      if (val) filter.search = val;
-      renderStoreList(filter);
+      renderStoreList();
     }, 300);
   });
 }
@@ -536,39 +711,33 @@ function initStoreFilters() {
   var page = document.getElementById('page-stores');
   if (!page) return;
 
-  var chips = page.querySelectorAll('.filter-chip');
-  for (var i = 0; i < chips.length; i++) {
+  var healthRow = page.querySelector('[data-filter-row="health"]');
+  var chips = healthRow ? healthRow.querySelectorAll('.tab') : [];
+  var i;
+  for (i = 0; i < chips.length; i++) {
     (function (chip) {
       chip.addEventListener('click', function () {
-        for (var j = 0; j < chips.length; j++) chips[j].classList.remove('active');
+        var j;
+        for (j = 0; j < chips.length; j++) chips[j].classList.remove('active');
         chip.classList.add('active');
-
-        var label = chip.getAttribute('data-filter-label') || 'all';
-        var searchInput = document.getElementById('store-search');
-        var searchVal = searchInput ? searchInput.value.trim() : '';
-
-        var filter = {};
-        if (label === 'crit' || label === 'warn' || label === 'ok') {
-          filter.health_status = label;
-        } else if (label === 'prospect') {
-          filter.store_status = 'prospect';
-        } else if (label === 'active') {
-          filter.store_status = 'active';
-        }
-        if (searchVal) filter.search = searchVal;
-        renderStoreList(filter);
+        renderStoreList();
       });
     })(chips[i]);
   }
 
-  renderStoreList();
+  initStoresAssigneeRow()
+    .catch(function () {})
+    .finally(function () {
+      renderStoreList();
+    });
 }
 
 function _getActiveHealthFilter() {
   var page = document.getElementById('page-stores');
   if (!page) return null;
-  var chips = page.querySelectorAll('.filter-chip');
-  for (var i = 0; i < chips.length; i++) {
+  var chips = page.querySelectorAll('[data-filter-row="health"] .tab');
+  var i;
+  for (i = 0; i < chips.length; i++) {
     if (chips[i].classList.contains('active')) {
       var l = chips[i].getAttribute('data-filter-label');
       return (l === 'crit' || l === 'warn' || l === 'ok') ? l : null;
@@ -578,35 +747,43 @@ function _getActiveHealthFilter() {
 }
 
 function _updateFilterCounts(allStores) {
-  var page = document.getElementById('page-stores');
-  if (!page) return;
+  function setCt(id, n) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = String(n);
+  }
 
-  var chips = page.querySelectorAll('.filter-chip');
-  if (chips.length < 4) return;
-
-  // Prefer already-fetched list to avoid an extra round-trip per render.
   if (Array.isArray(allStores)) {
     var total = allStores.length;
-    var crit = 0, warn = 0, ok = 0;
-    for (var i = 0; i < allStores.length; i++) {
-      var h = allStores[i].health_status;
+    var crit = 0;
+    var warn = 0;
+    var ok = 0;
+    var pi;
+    for (pi = 0; pi < allStores.length; pi++) {
+      var h = allStores[pi].health_status;
       if (h === 'crit') crit++;
       else if (h === 'warn') warn++;
       else ok++;
     }
-    chips[0].textContent = (T.all || 'Lahat') + ' (' + total + ')';
-    chips[1].textContent = (T.critical || 'Critical') + ' (' + crit + ')';
-    chips[2].textContent = (T.warning || 'Babala') + ' (' + warn + ')';
-    chips[3].textContent = 'OK (' + ok + ')';
+    setCt('cntAll', total);
+    setCt('cntCritical', crit);
+    setCt('cntWarning', warn);
+    setCt('cntOk', ok);
+
+    var badge = document.querySelector('#bottom-nav .nav-item[data-page="page-stores"] .nav-badge');
+    if (badge) {
+      if (crit > 0) {
+        badge.style.display = 'inline-block';
+        badge.textContent = crit > 9 ? '9+' : String(crit);
+      } else {
+        badge.style.display = 'none';
+      }
+    }
     return;
   }
 
-  // Fallback if caller has no list yet.
   getStores().then(function (full) {
     _updateFilterCounts(full || []);
-  }).catch(function () {
-    // ignore — counts just won't update
-  });
+  }).catch(function () {});
 }
 
 /** Sales / Pulse → Stores: consume one-shot filter pref (sessionStorage). */
@@ -627,7 +804,7 @@ function applyStoresNavPreference() {
     ? window.normalizeStoresChipLabel(raw)
     : String(raw).trim().toLowerCase() || 'all';
 
-  var chips = page.querySelectorAll('.filter-chip');
+  var chips = page.querySelectorAll('[data-filter-row="health"] .tab');
   var i;
   var matched = false;
   for (i = 0; i < chips.length; i++) {

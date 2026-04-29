@@ -38,8 +38,8 @@ test.describe('02 — Stores', () => {
 
   test('Filter chips are present and clickable', async ({ page }) => {
     await page.click('.nav-item[data-page="page-stores"]');
-    const chips = page.locator('#page-stores .filter-chip');
-    await expect(chips).toHaveCount(4);
+    const chips = page.locator('[data-filter-row="health"] .tab');
+    await expect(chips).toHaveCount(5);
     // First chip should be active
     await expect(chips.first()).toHaveClass(/active/);
   });
@@ -60,14 +60,14 @@ test.describe('02 — Stores', () => {
     });
     await page.click('.nav-item[data-page="page-stores"]');
     // Store list area should exist even if empty
-    await expect(page.locator('#store-list')).toBeVisible();
+    await expect(page.locator('#storesList')).toBeVisible();
   });
 
   test('Tap store opens store detail', async ({ page }) => {
     await page.click('.nav-item[data-page="page-stores"]');
     // Wait for stores to render (or skeleton)
     await page.waitForTimeout(2000);
-    const storeRow = page.locator('#store-list .store-row').first();
+    const storeRow = page.locator('#storesList .store-row').first();
     if (await storeRow.isVisible()) {
       await storeRow.click();
       await expect(page.locator('#page-store-detail')).toHaveClass(/active/);
