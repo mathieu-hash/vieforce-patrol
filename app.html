@@ -1,14 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol</title>
+<script>
+(function() {
+  try {
+    var t = localStorage.getItem('patrol_theme') ||
+            (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', t);
+  } catch(e) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/patrol.css?v=21">
+<link rel="stylesheet" href="css/tokens.css?v=1">
+<link rel="stylesheet" href="css/patrol.css?v=22">
 <link rel="stylesheet" href="css/rsm.css?v=1">
 <link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=8">
-<link rel="stylesheet" href="css/density-pass.css?v=5">
+<link rel="stylesheet" href="css/density-pass.css?v=8">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -410,7 +425,7 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 
-  <div class="filter-row" style="flex-shrink:0">
+  <div class="filter-row filter-row-health" data-filter-row="health" style="flex-shrink:0">
     <button class="filter-chip active" data-filter-label="all">Lahat</button>
     <button class="filter-chip" data-filter-label="crit" style="color:var(--status-crit)">Critical</button>
     <button class="filter-chip" data-filter-label="warn" style="color:var(--status-warn)">Babala</button>
@@ -418,6 +433,9 @@ if ('serviceWorker' in navigator) {
     <button class="filter-chip prospect" data-filter-label="prospect">Prospect</button>
     <button class="filter-chip" data-filter-label="active">Active</button>
   </div>
+
+  <!-- DSM/RSM/CEO: drill by assigned TSR (populated in stores.js) -->
+  <div class="filter-row filter-row-assignee" id="stores-assignee-filter-row" style="display:none;flex-shrink:0" data-filter-row="assignee" role="tablist" aria-label="Rep"></div>
 
   <!-- Story circles: priority stores to visit (FB Messenger stories row) -->
   <div class="stories" id="story-circles-row" style="display:none;flex-shrink:0">
@@ -540,6 +558,15 @@ if ('serviceWorker' in navigator) {
       <button class="lang-pill login-lang-btn" data-lang="EN" onclick="window.setLanguage('EN')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
         EN English
       </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:8px" data-t="appearance">Hitsura</div>
+    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px" data-t="appearanceHint">Light / Dark mode</div>
+    <div class="theme-toggle" role="group" aria-label="Theme">
+      <button type="button" data-theme-toggle="light">☀ Light</button>
+      <button type="button" data-theme-toggle="dark">☾ Dark</button>
     </div>
   </div>
 
@@ -989,6 +1016,7 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
+<script src="js/theme-switcher.js?v=1"></script>
 <script src="js/labels-v2.js?v=11"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -996,17 +1024,17 @@ if ('serviceWorker' in navigator) {
 <script src="js/supabase.js?v=2"></script>
 <script src="js/validate.js"></script>
 <script src="js/auth.js?v=21"></script>
-<script src="js/db.js?v=3"></script>
+<script src="js/db.js?v=4"></script>
 <script src="js/stores-nav-pref.js?v=1"></script>
-<script src="js/sales-tab.js?v=11"></script>
+<script src="js/sales-tab.js?v=13"></script>
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/offline.js?v=4"></script>
-<script src="js/stores.js?v=4"></script>
+<script src="js/stores.js?v=6"></script>
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>
-<script src="js/dashboard.js?v=5"></script>
+<script src="js/dashboard.js?v=6"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
 <script src="js/scorecard.js?v=3"></script>
