@@ -455,9 +455,16 @@ function logout() {
   if (window.supabaseClient && supabaseClient.auth) {
     supabaseClient.auth.signOut().catch(function () {});
   }
-  localStorage.removeItem(SESSION_KEY);
+  try {
+    localStorage.removeItem(SESSION_KEY);
+  } catch (_e) {}
   resetLoginAttempts();
-  window.location.href = 'index.html';
+  // Absolute URL — reliable navigation from /app.html for PWAs, automation (CDP), and odd base paths.
+  var origin = '';
+  try {
+    origin = String(window.location.origin || '').replace(/\/$/, '');
+  } catch (_e2) {}
+  window.location.href = origin ? origin + '/index.html' : 'index.html';
 }
 
 function hasRole(roles) {
