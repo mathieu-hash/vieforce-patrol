@@ -1,7 +1,8 @@
 # Phase 4.5 Smoke Test Results
 
 Date: 2026-04-29  
-Tested commit: `a5ac882`  
+Tested commit (deploy): `a5ac882`  
+Smoke results doc committed as: `d311632`  
 Live URL: https://vieforce-patrol.vercel.app  
 Tester: Cursor agent (automated) + Mat (sign-off pending)
 
