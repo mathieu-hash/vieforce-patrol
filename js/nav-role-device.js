@@ -41,7 +41,7 @@
         { id: 'stores', icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
         { id: 'visit',  icon: '\ud83d\udcdd', label: 'Visit',   page: 'page-visits' },
         { id: 'sales',  icon: '\ud83d\udcca', label: 'Sales',   page: 'pg-sales' },
-        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-team' }
+        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-leader' }
       ]
     },
 
@@ -51,7 +51,7 @@
         { id: 'stores',  icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
         { id: 'visit',   icon: '\ud83d\udcdd', label: 'Visit',   page: 'page-visits' },
         { id: 'sales',   icon: '\ud83d\udcca', label: 'Sales',   page: 'pg-sales' },
-        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-team' }
+        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-leader' }
       ]
     }
   };

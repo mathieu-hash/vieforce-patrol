@@ -1155,6 +1155,21 @@ function rerenderCurrentPage() {
           (session.territory ? ' \u00B7 ' + session.territory : '');
       }
     }
+    var uid = window._patrolProfileUserId;
+    if (!uid && session) uid = session.id;
+    if (typeof window.loadPatrolProfile === 'function') {
+      window.loadPatrolProfile(uid);
+    }
+  }
+
+  if (id === 'page-leader' && typeof window.refreshLeaderboardPage === 'function') {
+    window.refreshLeaderboardPage();
+  }
+  if (id === 'page-notifs' && typeof window.renderPatrolNotifs === 'function') {
+    window.renderPatrolNotifs();
+  }
+  if (id === 'page-search' && typeof window.renderSearchEmpty === 'function') {
+    window.renderSearchEmpty();
   }
 
   // Update greeting

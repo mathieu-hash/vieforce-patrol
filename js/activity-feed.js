@@ -8,7 +8,13 @@
   var MOCK_FEED = [
     {
       type: 'achievement',
-      user: { name: 'Jefrey Gatchalian', initials: 'JG', role: 'DSM Cebu South' },
+      user: {
+        id: 'mock-jefrey',
+        name: 'Jefrey Gatchalian',
+        initials: 'JG',
+        role: 'dsm',
+        roleLabel: 'DSM Cebu South',
+      },
       time: '2h',
       body:
         '🎉 Hit 100 bags milestone for Sao Feeds Trading! 11,725 bags MTD — that\'s +28% vs last month.',
@@ -23,7 +29,13 @@
     },
     {
       type: 'visit',
-      user: { name: 'Edfrey Buenaventura', initials: 'EB', role: 'RSM' },
+      user: {
+        id: 'mock-edfrey',
+        name: 'Edfrey Buenaventura',
+        initials: 'EB',
+        role: 'rsm',
+        roleLabel: 'RSM',
+      },
       time: '5h',
       pills: [
         { kind: 'success', text: '✓ Visit complete' },
@@ -38,7 +50,16 @@
     },
     {
       type: 'standard',
-      user: { name: 'Mathieu Guillaume', initials: 'MG', role: 'CEO', verified: true, pinned: true },
+      user: {
+        id: 'mock-mathieu',
+        name: 'Mathieu Guillaume',
+        initials: 'MG',
+        role: 'ceo',
+        roleLabel: 'CEO',
+        verified: true,
+        pinned: true,
+        tier: 'elite',
+      },
       time: '8h',
       body:
         'Team — we crossed <strong>338,164 bags MTD</strong>, our best April since 2024. Push hard. Let\'s hit 400K. 🎯',
@@ -46,6 +67,50 @@
       comments: 9,
     },
   ];
+
+  function patrolHydrateMockUserRegistry() {
+    window.PATROL_MOCK_FEED_POSTS = MOCK_FEED.slice();
+    var reg = {};
+    for (var hi = 0; hi < MOCK_FEED.length; hi++) {
+      var u = MOCK_FEED[hi].user;
+      if (!u || !u.id) continue;
+      reg[u.id] = {
+        id: u.id,
+        name: u.name,
+        initials: u.initials,
+        role: String(u.role || '').toLowerCase(),
+        roleLabel: u.roleLabel || String(u.role || '').toUpperCase(),
+        tier: u.tier || '',
+        unlocked: ['first10k', 'hotstreak'],
+      };
+    }
+    window.PATROL_MOCK_USER_REGISTRY = reg;
+  }
+
+  patrolHydrateMockUserRegistry();
+
+  function getPatrolFeedPostsForUser(userId) {
+    var uid = String(userId || '');
+    var out = [];
+    for (var pi = 0; pi < MOCK_FEED.length; pi++) {
+      var pu = MOCK_FEED[pi].user;
+      if (!pu || String(pu.id) !== uid) continue;
+      var typ = MOCK_FEED[pi].type;
+      var title =
+        typ === 'achievement'
+          ? 'Achievement milestone'
+          : typ === 'visit'
+            ? 'Visit update'
+            : 'Feed post';
+      out.push({
+        snippetTitle: title,
+        time: MOCK_FEED[pi].time || '',
+      });
+    }
+    return out;
+  }
+
+  window.getPatrolFeedPostsForUser = getPatrolFeedPostsForUser;
 
   var MOCK_STORIES = [
     { kind: 'create' },
@@ -207,7 +272,7 @@
       '<span class="shortcut-sub">AR tab</span></span></button>' +
       '<button type="button" class="shortcut" data-shortcut="leader">' +
       '<span class="shortcut-icon">🏆</span><span class="shortcut-main"><span class="shortcut-title">Leaderboard</span>' +
-      '<span class="shortcut-sub">Phase 4</span></span></button>';
+      '<span class="shortcut-sub">Open leaderboard</span></span></button>';
 
     el.querySelectorAll('.shortcut').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -220,7 +285,8 @@
         } else if (k === 'ar') {
           if (typeof window.nav === 'function') window.nav('pg-ar');
         } else if (k === 'leader') {
-          _toast('Leaderboard — Phase 4');
+          if (typeof window.nav === 'function') window.nav('page-leader');
+          else if (typeof window.navTo === 'function') window.navTo('page-leader');
         }
       });
     });
@@ -251,7 +317,9 @@
       idx +
       '">' +
       '<div class="post-head">' +
-      '<div class="post-avatar">' +
+      '<div class="post-avatar phase4-clickable-post-avatar" tabindex="0" role="button" data-profile-user-id="' +
+      _esc(post.user && post.user.id ? post.user.id : '') +
+      '">' +
       _esc(post.user && post.user.initials) +
       '</div>' +
       '<div class="post-author">' +
@@ -262,7 +330,7 @@
         : '') +
       '</div>' +
       '<div class="post-author-meta">' +
-      _esc(post.user && post.user.role) +
+      _esc(post.user && (post.user.roleLabel || post.user.role)) +
       ' · ' +
       _esc(post.time) +
       '</div>' +
@@ -371,6 +439,12 @@
     postsRoot.addEventListener('click', function (ev) {
       var tgt = ev.target;
       if (!tgt || !tgt.closest) return;
+      var avatarTap = tgt.closest('[data-profile-user-id]');
+      if (avatarTap && avatarTap.getAttribute('data-profile-user-id')) {
+        var uid = avatarTap.getAttribute('data-profile-user-id');
+        if (uid && typeof window.navToProfile === 'function') window.navToProfile(uid);
+        return;
+      }
       var likeBtn = tgt.closest('[data-feed-like]');
       if (likeBtn) {
         var idx = parseInt(likeBtn.getAttribute('data-feed-like'), 10);
@@ -425,6 +499,11 @@
         initials = ((parts[0] || '?').charAt(0) + (parts[1] ? parts[1].charAt(0) : '')).toUpperCase();
       }
       av.textContent = initials;
+      av.style.cursor = 'pointer';
+      av.addEventListener('click', function () {
+        var s = typeof window.getSession === 'function' ? window.getSession() : null;
+        if (s && s.id && typeof window.navToProfile === 'function') window.navToProfile(s.id);
+      });
     }
     var ci = mount.querySelector('[data-composer-input]');
     if (ci) {

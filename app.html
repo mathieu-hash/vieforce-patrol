@@ -24,7 +24,8 @@
 <link rel="stylesheet" href="css/rsm.css?v=1">
 <link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=8">
 <link rel="stylesheet" href="css/density-pass.css?v=8">
-<link rel="stylesheet" href="css/activity-feed.css?v=1">
+<link rel="stylesheet" href="css/activity-feed.css?v=2">
+<link rel="stylesheet" href="css/phase4-social.css?v=1">
 <link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
@@ -476,69 +477,173 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- PROFILE PAGE                              -->
 <!-- ========================================= -->
-<div id="page-profile" class="page" style="background:var(--bg-chat)">
-  <div class="top-bar">
-    <h1 data-t="profile">Profile ko</h1>
+<div id="page-profile" class="page phase4-page" style="background:var(--bg-chat)">
+  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+    <button type="button" class="icon-btn" onclick="navBack()" aria-label="Back">←</button>
+    <div style="flex:1;font-weight:800;font-size:16px;font-family:'Manrope',sans-serif;letter-spacing:-0.02em;" id="profileHeaderName">Patrol</div>
+    <button type="button" class="icon-btn" onclick="patrolPhase4MoreStub()" aria-label="More">⋯</button>
   </div>
-
-  <div style="text-align:center">
-    <div class="profile-avatar" id="profile-avatar">--</div>
-    <h2 style="font-size:20px;font-weight:800;color:var(--text-primary)" id="profile-name">Loading...</h2>
-    <p style="font-size:13px;color:var(--text-secondary)" id="profile-role">Loading...</p>
-  </div>
-
-  <div class="card" style="margin-top:24px">
-    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px" data-t="myStats">Mga Stats ko</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px">
-      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-stores">--</div><span data-t="storesMapped">Tindahan</span></div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="stat-farms">--</div><span data-t="farmsLabel">Bukid</span></div>
-      <div><div style="font-size:22px;font-weight:800;color:var(--status-ok)" id="stat-visits">--</div><span data-t="visitsWeek">Bisita/linggo</span></div>
-    </div>
-  </div>
-
-  <!-- Language Switcher -->
-  <div class="card">
-    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px" data-t="language">Wika / Language</div>
-    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px" data-t="langHint">Pipiliin mo ang wika ng app.</div>
-    <div style="display:flex;gap:8px">
-      <button class="lang-pill login-lang-btn" data-lang="TL" onclick="window.setLanguage('TL')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
-        TL Tagalog
-      </button>
-      <button class="lang-pill login-lang-btn" data-lang="BIS" onclick="window.setLanguage('BIS')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
-        BIS Bisaya
-      </button>
-      <button class="lang-pill login-lang-btn" data-lang="EN" onclick="window.setLanguage('EN')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
-        EN English
-      </button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:8px" data-t="appearance">Hitsura</div>
-    <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px" data-t="appearanceHint">Light / Dark mode</div>
-    <div class="theme-toggle" role="group" aria-label="Theme">
-      <button type="button" data-theme-toggle="light">☀ Light</button>
-      <button type="button" data-theme-toggle="dark">☾ Dark</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px" data-t="account">Account</div>
-    <div style="font-size:12px">
-      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
-        <span style="color:#888" data-t="phone">Telepono</span><b id="profile-phone">--</b>
-      </div>
-      <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
-        <span style="color:#888" data-t="territory">Teritoryo</span><b id="profile-territory">--</b>
-      </div>
-      <div style="padding:8px 0;display:flex;justify-content:space-between">
-        <span style="color:#888" data-t="role">Tungkulin</span><b id="profile-role-badge">--</b>
+  <div class="app-content" style="padding:0;">
+    <div class="profile-cover" id="profileCover"></div>
+    <div class="phase4-profile-header-block">
+      <div class="profile-header">
+        <div class="profile-avatar-wrap">
+          <div class="avatar xl" id="profileAvatar"></div>
+          <div style="margin-bottom:8px;" id="profileEliteBadge"></div>
+        </div>
+        <div class="profile-name" id="profileName">Loading...</div>
+        <p id="profile-role" style="display:none">Loading...</p>
+        <div class="profile-title" id="profileTitle"></div>
+        <div class="profile-actions" id="profileActions"></div>
       </div>
     </div>
-  </div>
+    <div class="profile-stats-row">
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profileStat1Val">—</div>
+        <div class="profile-stat-label" id="profileStat1Label">Bags MTD</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profileStat2Val">—</div>
+        <div class="profile-stat-label" id="profileStat2Label">Stores</div>
+      </div>
+      <div class="profile-stat">
+        <div class="profile-stat-value" id="profileStat3Val">—</div>
+        <div class="profile-stat-label" id="profileStat3Label">Visits MTD</div>
+      </div>
+    </div>
+    <div class="section-label phase4-section">Achievements</div>
+    <div class="badge-grid" id="profileBadges" style="padding:0 8px 8px;"></div>
+    <div class="section-label phase4-section">Recent activity</div>
+    <div id="profileActivity"></div>
 
-  <a href="admin.html" id="admin-link" class="btn-primary" style="margin:16px;display:none;text-align:center;text-decoration:none" data-t="adminPanel">Admin Panel</a>
-  <button class="btn-secondary" style="margin:16px;color:var(--sync-error);border-color:var(--sync-error)" id="btn-logout" data-t="signOut">Mag-sign out</button>
+    <div id="profileSettingsOwn">
+      <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;">
+        <span id="stat-stores">--</span><span id="stat-farms">--</span><span id="stat-visits">--</span>
+      </div>
+      <div class="card" style="margin:16px 12px">
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px" data-t="myStats">Mga Stats ko</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;font-size:12px">
+          <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="profile-settings-stat-stores">—</div><span data-t="storesMapped">Tindahan</span></div>
+          <div><div style="font-size:22px;font-weight:800;color:var(--accent-dark)" id="profile-settings-stat-farms">—</div><span data-t="farmsLabel">Bukid</span></div>
+          <div><div style="font-size:22px;font-weight:800;color:var(--status-ok)" id="profile-settings-stat-visits">—</div><span data-t="visitsWeek">Bisita/linggo</span></div>
+        </div>
+      </div>
+
+      <!-- Language Switcher -->
+      <div class="card" style="margin:0 12px 12px">
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px" data-t="language">Wika / Language</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px" data-t="langHint">Pipiliin mo ang wika ng app.</div>
+        <div style="display:flex;gap:8px">
+          <button class="lang-pill login-lang-btn" data-lang="TL" onclick="window.setLanguage('TL')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
+            TL Tagalog
+          </button>
+          <button class="lang-pill login-lang-btn" data-lang="BIS" onclick="window.setLanguage('BIS')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
+            BIS Bisaya
+          </button>
+          <button class="lang-pill login-lang-btn" data-lang="EN" onclick="window.setLanguage('EN')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
+            EN English
+          </button>
+        </div>
+      </div>
+
+      <div class="card" style="margin:0 12px 12px">
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:8px" data-t="appearance">Hitsura</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px" data-t="appearanceHint">Light / Dark mode</div>
+        <div class="theme-toggle" role="group" aria-label="Theme">
+          <button type="button" data-theme-toggle="light">☀ Light</button>
+          <button type="button" data-theme-toggle="dark">☾ Dark</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin:0 12px 12px">
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px" data-t="account">Account</div>
+        <div style="font-size:12px">
+          <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+            <span style="color:#888" data-t="phone">Telepono</span><b id="profile-phone">--</b>
+          </div>
+          <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
+            <span style="color:#888" data-t="territory">Teritoryo</span><b id="profile-territory">--</b>
+          </div>
+          <div style="padding:8px 0;display:flex;justify-content:space-between">
+            <span style="color:#888" data-t="role">Tungkulin</span><b id="profile-role-badge">--</b>
+          </div>
+        </div>
+      </div>
+
+      <a href="admin.html" id="admin-link" class="btn-primary" style="margin:16px 12px;display:none;text-align:center;text-decoration:none" data-t="adminPanel">Admin Panel</a>
+      <button class="btn-secondary" style="margin:16px 12px;color:var(--sync-error);border-color:var(--sync-error)" id="btn-logout" data-t="signOut">Mag-sign out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- NOTIFICATIONS                             -->
+<!-- ========================================= -->
+<div id="page-notifs" class="page phase4-page" style="background:var(--bg-chat);">
+  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+    <button type="button" class="icon-btn" onclick="navBack()" aria-label="Back">←</button>
+    <div style="flex:1;font-weight:800;font-size:18px;font-family:'Manrope',sans-serif;letter-spacing:-0.02em;">Notifications</div>
+    <button type="button" class="icon-btn" onclick="patrolPhase4MoreStub()" aria-label="More">⋯</button>
+  </div>
+  <div class="tab-bar phase4-tab-bar">
+    <button type="button" class="tab active" data-filter="all">All</button>
+    <button type="button" class="tab" data-filter="mentions">Mentions <span style="color:var(--danger);font-weight:800;">3</span></button>
+    <button type="button" class="tab" data-filter="wins">Wins</button>
+    <button type="button" class="tab" data-filter="alerts">Alerts</button>
+  </div>
+  <div class="app-content">
+    <div class="section-label phase4-section">New</div>
+    <div class="list-card" id="notifsNew" style="margin:0 12px 12px;"></div>
+    <div class="section-label phase4-section">Earlier today</div>
+    <div class="list-card" id="notifsEarlier" style="margin:0 12px;"></div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- LEADERBOARD                               -->
+<!-- ========================================= -->
+<div id="page-leader" class="page phase4-page" style="background:var(--bg-chat);">
+  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+    <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
+    <div class="phase4-inline-search-hit" id="leaderSearchTap" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;">
+      <span style="font-size:14px;">🔍</span> <span>Search leaderboard</span>
+    </div>
+    <button type="button" class="icon-btn patrol-icon-lg" onclick="typeof navToNotifs==='function'&&navToNotifs()" aria-label="Notifications">
+      🔔 <span class="patrol-bell-badge patrol-bell-hide" id="bellBadge"></span>
+    </button>
+    <button type="button" class="icon-btn" onclick="typeof patrolLeaderHdrProfile==='function'&&patrolLeaderHdrProfile()" aria-label="Profile">
+      <span class="avatar" id="leaderHdrAvatar" style="width:32px;height:32px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;">--</span>
+    </button>
+  </div>
+  <div class="tab-bar phase4-tab-bar">
+    <button type="button" class="tab active" data-period="month">This month</button>
+    <button type="button" class="tab" data-period="ytd">YTD</button>
+    <button type="button" class="tab" data-period="today">Today</button>
+  </div>
+  <div class="app-content">
+    <div class="podium-section">
+      <div class="podium" id="podium"></div>
+    </div>
+    <div class="section-label phase4-section">Rankings</div>
+    <div class="list-card" id="rankingsList" style="margin:0 12px 12px;"></div>
+    <div class="section-label phase4-section">Your achievements</div>
+    <div class="badge-grid" id="ownBadges" style="padding:0 12px 24px;"></div>
+  </div>
+</div>
+
+<!-- ========================================= -->
+<!-- SEARCH                                    -->
+<!-- ========================================= -->
+<div id="page-search" class="page phase4-page" style="background:var(--bg-chat);">
+  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+    <button type="button" class="icon-btn" onclick="navBack()" aria-label="Back">←</button>
+    <input type="search" placeholder="Search Patrol — people, stores, posts..."
+           id="searchInput"
+           autocomplete="off"
+           style="flex:1;background:var(--bg-hover);border:none;border-radius:100px;padding:10px 18px;font-size:14px;color:var(--text-primary);font-family:inherit;outline:none;"
+           oninput="onSearchInput(this.value)">
+  </div>
+  <div class="app-content" id="searchResults"></div>
 </div>
 
 <!-- ========================================= -->
@@ -922,7 +1027,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
 <script src="js/theme-switcher.js?v=1"></script>
-<script src="js/labels-v2.js?v=13"></script>
+<script src="js/labels-v2.js?v=14"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -939,7 +1044,8 @@ if ('serviceWorker' in navigator) {
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>
-<script src="js/activity-feed.js?v=1"></script>
+<script src="js/activity-feed.js?v=2"></script>
+<script src="js/phase4-social.js?v=1"></script>
 <script src="js/dashboard.js?v=7"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
@@ -950,7 +1056,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/team.js?v=4"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
-<script src="js/nav-role-device.js?v=5"></script>
+<script src="js/nav-role-device.js?v=6"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/chatbot-register.js?v=3"></script>
@@ -999,12 +1105,14 @@ if ('serviceWorker' in navigator) {
   if (session) {
     try {
       const initials = session.name ? session.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : '--';
-      document.getElementById('profile-avatar').textContent = initials;
+      document.getElementById('profileAvatar').textContent = initials;
       var storesAvBtn = document.getElementById('stores-avatar-btn');
       if (storesAvBtn) storesAvBtn.textContent = initials;
       var dsmAvBtn = document.getElementById('dsm-avatar-btn');
       if (dsmAvBtn) dsmAvBtn.textContent = initials;
-      document.getElementById('profile-name').textContent = session.name || 'Unknown';
+      document.getElementById('profileName').textContent = session.name || 'Unknown';
+      var phn = document.getElementById('profileHeaderName');
+      if (phn) phn.textContent = session.name || 'Patrol';
       document.getElementById('profile-role').textContent =
         (session.role || '').toUpperCase() + (session.territory ? ' \u00B7 ' + session.territory : '');
       document.getElementById('profile-phone').textContent = session.phone || '--';
@@ -1239,7 +1347,7 @@ if ('serviceWorker' in navigator) {
     target.classList.add('active');
 
     // Update bottom-nav active state
-    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-tsr-scorecard','pg-sales','pg-region','pg-ar','pg-budget','pg-insights','pg-inventory','pg-speed'];
+    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-leader','page-notifs','page-search','page-tsr-scorecard','pg-sales','pg-region','pg-ar','pg-budget','pg-insights','pg-inventory','pg-speed'];
     if (_mainPages.indexOf(pageId) !== -1) {
       var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
       for (var j = 0; j < navBtns.length; j++) {
@@ -2304,6 +2412,9 @@ if ('serviceWorker' in navigator) {
     }
   };
 
+  window.nav = nav;
+  window.navBack = navBack;
+
   // If we land directly on these pages for any role flow, bootstrap immediately.
   var _activeOnLoad = document.querySelector('.page.active');
   if (_activeOnLoad && _activeOnLoad.id === 'page-stores') _bootstrapStoresPage();
@@ -2317,6 +2428,8 @@ if ('serviceWorker' in navigator) {
 
   // ===== UX Polish Init (action sheet, onboarding, etc.) =====
   if (typeof initUXPolish === 'function') initUXPolish();
+
+  if (typeof initPhase4Social === 'function') initPhase4Social();
 
   // SW permanently removed — kill script in <head> handles cleanup
 
