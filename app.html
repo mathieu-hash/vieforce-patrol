@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="css/phase4-social.css?v=1">
 <link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
 <link rel="stylesheet" href="css/elite-components.css?v=1">
-<link rel="stylesheet" href="css/elite-action.css?v=4">
+<link rel="stylesheet" href="css/elite-action.css?v=5">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -530,9 +530,9 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <div class="tindahan-filter-grid" id="tindahanFilterGrid">
-    <button type="button" class="tindahan-filter-item" data-filter="ar">
-      <div class="tindahan-filter-icon ar">AR</div>
-      <div class="tindahan-filter-label" data-i18n="tindahan.filter_ar"></div>
+    <button type="button" class="tindahan-filter-item" data-filter="visit_gt30">
+      <div class="tindahan-filter-icon visit-late">30+</div>
+      <div class="tindahan-filter-label" data-i18n="tindahan.filter_visit_gt30"></div>
     </button>
     <button type="button" class="tindahan-filter-item" data-filter="target">
       <div class="tindahan-filter-icon target">🎯</div>
@@ -1203,6 +1203,10 @@ if ('serviceWorker' in navigator) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
     Tindahan
   </button>
+  <button class="nav-item" data-page="page-visits" data-t="visit" style="min-height:56px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    Bisita
+  </button>
   <button class="nav-item" data-page="page-map" data-t="map" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
     Mapa
@@ -1217,7 +1221,7 @@ if ('serviceWorker' in navigator) {
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
 <script src="js/theme-switcher.js?v=1"></script>
-<script src="js/labels-v2.js?v=14"></script>
+<script src="js/labels-v2.js?v=15"></script>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -1234,7 +1238,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/offline.js?v=4"></script>
-<script src="js/stores.js?v=8"></script>
+<script src="js/stores.js?v=9"></script>
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>

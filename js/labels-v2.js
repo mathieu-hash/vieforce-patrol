@@ -7,6 +7,7 @@ var LABELS = {
     // Navigation
     home:        'Bahay',
     stores:      'Mga Tindahan',
+    visit:       'Bisita',
     map:         'Mapa',
     profile:     'Profile ko',
 
@@ -318,6 +319,7 @@ var LABELS = {
     // Navigation
     home:        'Balay',
     stores:      'Mga Tindahan',
+    visit:       'Bisita',
     map:         'Mapa',
     profile:     'Akong Profile',
 
@@ -629,6 +631,7 @@ var LABELS = {
     // Navigation
     home:        'Home',
     stores:      'Stores',
+    visit:       'Visit',
     map:         'Map',
     profile:     'My Profile',
 

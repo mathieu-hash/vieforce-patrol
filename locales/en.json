@@ -91,7 +91,7 @@
   "tindahan.sync_synced": "● SAP synced",
   "tindahan.sync_syncing": "● Mag-sync...",
 
-  "tindahan.filter_ar": "AR > 30d",
+  "tindahan.filter_visit_gt30": "Last visit >30d",
   "tindahan.filter_target": "Target",
   "tindahan.filter_promo": "Promo",
   "tindahan.filter_vip": "VIP",
@@ -105,10 +105,12 @@
 
   "tindahan.status_mtd": "₱{amount} MTD · {pct}% vs LY",
   "tindahan.status_ar_warn": "⚠️ AR ₱{amount} · {days} araw",
-  "tindahan.status_last_order": "Huling order: {days} araw",
+  "tindahan.status_visit_stale": "⚠️ {days} araw walang bisita",
+  "tindahan.status_last_visit_ok": "Last visit {days} araw ang nakalipas · OK",
+  "tindahan.status_last_order": "Huling bisita: {days} araw ang nakalipas",
   "tindahan.status_delivered": "Order delivered · {bags} bags",
   "tindahan.status_never_visited": "Never visited",
-  "tindahan.status_visit_today": "Bisitahin ngayon",
+  "tindahan.status_visit_today": "Binisita ngayon",
 
   "tindahan.time_today": "Today",
   "tindahan.time_yesterday": "Mier",
@@ -117,7 +119,7 @@
   "tindahan.search_placeholder": "Hanapin ang tindahan...",
 
   "tindahan.priority_reason_overdue": "{days}d walang bisita",
-  "tindahan.priority_reason_ar": "AR {days}d aging",
+  "tindahan.priority_reason_visit_idle": "Walang bisita > {days} araw",
   "tindahan.priority_reason_never": "Never visited",
   "tindahan.priority_reason_at_risk": "Target lagging"
 }

@@ -345,7 +345,8 @@ function _tAvatarColorForStore(store) {
 
 function _tStoreInitials(store) {
   if (store.initials) return String(store.initials).toUpperCase().slice(0, 2);
-  var words = (store.name || '').split(/\s+/).filter(Boolean);
+  var raw = String(store.name || '').replace(/^\[[^\]]*\]\s*/, '').trim();
+  var words = raw.split(/\s+/).filter(Boolean);
   if (!words.length) return '\u00b7\u00b7';
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
@@ -367,7 +368,7 @@ function _tComputePriorityScore(store) {
     reasons.push({ key: 'tindahan.priority_reason_never' });
   } else if (daysSinceVisit > 30) {
     score += 30;
-    reasons.push({ key: 'tindahan.priority_reason_overdue', days: daysSinceVisit });
+    reasons.push({ key: 'tindahan.priority_reason_visit_idle', days: daysSinceVisit });
   } else if (daysSinceVisit > 14) {
     score += 20;
     reasons.push({ key: 'tindahan.priority_reason_overdue', days: daysSinceVisit });
@@ -376,13 +377,7 @@ function _tComputePriorityScore(store) {
     reasons.push({ key: 'tindahan.priority_reason_overdue', days: daysSinceVisit });
   }
 
-  // Phase 5+: AR aging from SAP
-  if (store._mock_ar_days && store._mock_ar_days > 30) {
-    score += 25;
-    reasons.push({ key: 'tindahan.priority_reason_ar', days: store._mock_ar_days });
-  }
-
-  // Phase 5+: target gap from SAP MTD
+  // Phase 5+: conversion / penetration / merchandizing from HQ (not AR — POS accounts offline in SAP)
   if (store._mock_target_lagging) {
     score += 15;
     reasons.push({ key: 'tindahan.priority_reason_at_risk' });
@@ -395,38 +390,44 @@ function _tComputePriorityScore(store) {
   return { score: score, reasons: reasons };
 }
 
-function _tFormatNumberShort(n) {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
-  return String(n);
+function _tNormalizeCircleFilterKey(filterKey) {
+  if (filterKey === 'ar') return 'visit_gt30';
+  return filterKey;
+}
+
+function _tTindahanFilterEmptyLabel(filterKey) {
+  var k = _tNormalizeCircleFilterKey(filterKey);
+  if (k === 'visit_gt30') return t('tindahan.filter_visit_gt30');
+  if (k === 'target') return t('tindahan.filter_target');
+  if (k === 'promo') return t('tindahan.filter_promo');
+  if (k === 'vip') return t('tindahan.filter_vip');
+  return filterKey || '';
+}
+
+function _tFilterStoresByCircle(stores, filterKey) {
+  if (!filterKey) return stores;
+  var fk = _tNormalizeCircleFilterKey(filterKey);
+  switch (fk) {
+    case 'visit_gt30':
+      return stores.filter(function (s) {
+        var d = _tComputeDaysSinceVisit(s);
+        return d === null || d > 30;
+      });
+    case 'target':
+      return stores.filter(function (s) { return s._mock_target_lagging; });
+    case 'promo':
+      return stores.filter(function (s) { return s._mock_promo_active; });
+    case 'vip':
+      return stores.filter(function (s) { return s._mock_vip; });
+    default:
+      return stores;
+  }
 }
 
 function _tComputeStatusLine(store) {
-  var mtdAmount = store._mock_mtd_bags || 0;
-  var lyPct = store._mock_ly_pct;
-  var arAmount = store._mock_ar_amount || 0;
-  var arDays = store._mock_ar_days || 0;
-  var lastDeliveredBags = store._mock_last_delivered_bags;
   var daysSince = _tComputeDaysSinceVisit(store);
-
-  if (arDays > 30 && arAmount > 0) {
-    return {
-      text: t('tindahan.status_ar_warn', {
-        amount: _tFormatNumberShort(arAmount),
-        days: arDays
-      }),
-      severity: 'danger'
-    };
-  }
-  if (arDays > 14 && arAmount > 0) {
-    return {
-      text: t('tindahan.status_ar_warn', {
-        amount: _tFormatNumberShort(arAmount),
-        days: arDays
-      }),
-      severity: 'warn'
-    };
-  }
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var visitedToday = !!(store.last_visit_at && store.last_visit_at.slice(0, 10) === todayStr);
 
   if (daysSince === null) {
     return {
@@ -434,27 +435,27 @@ function _tComputeStatusLine(store) {
       severity: 'warn'
     };
   }
-
-  if (mtdAmount > 0 && lyPct !== undefined) {
+  if (visitedToday) {
     return {
-      text: t('tindahan.status_mtd', {
-        amount: _tFormatNumberShort(mtdAmount),
-        pct: lyPct
-      }),
+      text: t('tindahan.status_visit_today'),
       severity: 'normal'
     };
   }
-
-  if (lastDeliveredBags !== undefined) {
+  if (daysSince > 30) {
     return {
-      text: t('tindahan.status_delivered', { bags: lastDeliveredBags }),
-      severity: 'normal'
+      text: t('tindahan.status_visit_stale', { days: daysSince }),
+      severity: 'danger'
     };
   }
-
+  if (daysSince > 14) {
+    return {
+      text: t('tindahan.status_visit_stale', { days: daysSince }),
+      severity: 'warn'
+    };
+  }
   return {
-    text: t('tindahan.status_last_order', { days: daysSince }),
-    severity: daysSince > 14 ? 'warn' : 'normal'
+    text: t('tindahan.status_last_visit_ok', { days: daysSince }),
+    severity: 'normal'
   };
 }
 
@@ -487,33 +488,12 @@ function _tApplyMockSapData(stores) {
     for (k in s) {
       if (Object.prototype.hasOwnProperty.call(s, k)) o[k] = s[k];
     }
-    o._mock_mtd_bags = (seed % 3 === 0) ? (300 + seed * 47) * 1000 : 0;
-    o._mock_ly_pct = (seed % 3 === 0) ? 80 + (seed % 60) : undefined;
-    o._mock_ar_amount = (seed % 4 === 0) ? (50 + seed * 7) * 1000 : 0;
-    o._mock_ar_days = (seed % 4 === 0) ? 10 + (seed % 30) : 0;
-    o._mock_last_delivered_bags = (seed % 5 === 0) ? 30 + (seed % 50) : undefined;
     o._mock_notif_count = (seed % 7 === 0) ? 1 + (seed % 3) : 0;
     o._mock_target_lagging = (seed % 6 === 0);
     o._mock_promo_active = (seed % 8 === 0);
     o._mock_vip = (seed % 10 === 0);
     return o;
   });
-}
-
-function _tFilterStoresByCircle(stores, filterKey) {
-  if (!filterKey) return stores;
-  switch (filterKey) {
-    case 'ar':
-      return stores.filter(function (s) { return s._mock_ar_days > 30; });
-    case 'target':
-      return stores.filter(function (s) { return s._mock_target_lagging; });
-    case 'promo':
-      return stores.filter(function (s) { return s._mock_promo_active; });
-    case 'vip':
-      return stores.filter(function (s) { return s._mock_vip; });
-    default:
-      return stores;
-  }
 }
 
 function _tRestoreTindahanFilterActiveClass() {
@@ -686,7 +666,7 @@ async function renderTindahan(externalFilter) {
           '<div class="tindahan-empty">' +
           '<div class="tindahan-empty-icon">\ud83d\udd0d</div>' +
           '<div class="tindahan-empty-title">' +
-          _esc(t('tindahan.empty_filter', { filter: activeFilter })) +
+          _esc(t('tindahan.empty_filter', { filter: _tTindahanFilterEmptyLabel(activeFilter) })) +
           '</div></div>';
       } else {
         _tRenderTindahanRows('tindahanAllList', [], false, {
@@ -730,7 +710,17 @@ async function renderTindahan(externalFilter) {
     });
 
     _tRenderTindahanRows('tindahanPriorityList', priorityStores, true);
-    _tRenderTindahanRows('tindahanAllList', allOtherStores, false, {});
+
+    if (secAll) {
+      if (!allOtherStores.length && priorityStores.length) {
+        var allListEl = document.getElementById('tindahanAllList');
+        if (allListEl) allListEl.innerHTML = '';
+        secAll.style.display = 'none';
+      } else {
+        secAll.style.display = '';
+        _tRenderTindahanRows('tindahanAllList', allOtherStores, false, {});
+      }
+    }
 
     if (secPri) {
       secPri.style.display = priorityStores.length === 0 ? 'none' : '';
