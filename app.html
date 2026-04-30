@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="css/phase4-social.css?v=1">
 <link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
 <link rel="stylesheet" href="css/elite-components.css?v=1">
-<link rel="stylesheet" href="css/elite-action.css?v=3">
+<link rel="stylesheet" href="css/elite-action.css?v=4">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -508,46 +508,67 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <!-- ========================================= -->
-<!-- STORES PAGE                               -->
+<!-- STORES PAGE — Phase 4.7 Tindahan          -->
 <!-- ========================================= -->
-<div id="page-stores" class="page" style="background:var(--bg-chat)">
-  <!-- Messenger-style white header (density classes for patrol.css / density-pass.css) -->
-  <div class="header stores-head-density" style="flex-shrink:0;background:var(--bg);position:relative;z-index:10;border-bottom:1px solid var(--divider)">
-    <div class="stores-head-row" style="display:flex;align-items:center;justify-content:space-between">
-      <div class="stores-title-text" style="color:var(--text);letter-spacing:-0.3px" id="stores-title" data-t="stores">Stores</div>
-      <div style="display:flex;gap:8px">
+<div id="page-stores" class="page" style="background:var(--bg-chat);display:flex!important;flex-direction:column;overflow:hidden">
+  <div class="tindahan-header stores-head-density" style="flex-shrink:0;background:var(--bg);position:relative;z-index:10">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <div style="min-width:0;flex:1">
+        <div class="tindahan-title" id="tindahanTitle"></div>
+        <div class="tindahan-sync-pill" id="tindahanSyncPill"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px">
         <div class="hdr-btn" id="btn-new-store" style="width:36px;height:36px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">✏️</div>
         <div class="hdr-btn" id="stores-avatar-btn" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer">--</div>
       </div>
     </div>
     <div id="stores-subtitle" style="display:none"></div>
-    <div class="stores-search-wrap" style="background:var(--bg2);display:flex;align-items:center;gap:8px">
-      <span style="font-size:14px;color:var(--text2)">🔍</span>
-      <input type="text" id="store-search" placeholder="Hanapin ang tindahan..." style="border:none;background:none;color:var(--text);outline:none;width:100%;font-family:inherit">
-    </div>
+    <label class="tindahan-search" for="tindahan-store-search">
+      <span style="font-size:14px;opacity:0.75">🔍</span>
+      <input type="search" id="tindahan-store-search" autocomplete="off" />
+    </label>
   </div>
 
-  <div class="tab-bar stores-tab-bar" data-filter-row="health" style="position:sticky;top:0;z-index:5;flex-shrink:0">
-    <button type="button" class="tab active" data-filter-label="all">All <span class="num" style="opacity:0.65" id="cntAll">0</span></button>
-    <button type="button" class="tab" data-filter-label="crit">Critical <span class="num" style="color:var(--danger,#dc2626);font-weight:800" id="cntCritical">0</span></button>
-    <button type="button" class="tab" data-filter-label="warn">Warning <span class="num" style="color:var(--warning,#f59e0b);font-weight:800" id="cntWarning">0</span></button>
-    <button type="button" class="tab" data-filter-label="ok">OK <span class="num" style="color:var(--success,#16a34a);font-weight:800" id="cntOk">0</span></button>
-    <button type="button" class="tab prospect" data-filter-label="prospect">Prospect</button>
+  <div class="tindahan-filter-grid" id="tindahanFilterGrid">
+    <button type="button" class="tindahan-filter-item" data-filter="ar">
+      <div class="tindahan-filter-icon ar">AR</div>
+      <div class="tindahan-filter-label" data-i18n="tindahan.filter_ar"></div>
+    </button>
+    <button type="button" class="tindahan-filter-item" data-filter="target">
+      <div class="tindahan-filter-icon target">🎯</div>
+      <div class="tindahan-filter-label" data-i18n="tindahan.filter_target"></div>
+    </button>
+    <button type="button" class="tindahan-filter-item" data-filter="promo">
+      <div class="tindahan-filter-icon promo">📦</div>
+      <div class="tindahan-filter-label" data-i18n="tindahan.filter_promo"></div>
+    </button>
+    <button type="button" class="tindahan-filter-item" data-filter="vip">
+      <div class="tindahan-filter-icon vip">VIP</div>
+      <div class="tindahan-filter-label" data-i18n="tindahan.filter_vip"></div>
+    </button>
   </div>
 
-  <!-- DSM/RSM/CEO: drill by assigned TSR (populated in stores.js) -->
+  <!-- DSM/RSM/CEO: drill by assigned TSR (stores.js) -->
   <div class="filter-row filter-row-assignee" id="stores-assignee-filter-row" style="display:none;flex-shrink:0" data-filter-row="assignee" role="tablist" aria-label="Rep"></div>
 
-  <!-- Phase 3: story carousel removed (status dots + rows carry urgency). -->
   <div class="stories" id="story-circles-row" style="display:none!important;flex-shrink:0" aria-hidden="true"></div>
 
-  <div class="stores-list-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
-    <div class="list-card stores-rows-host" id="storesList"></div>
+  <div class="tindahan-scroll stores-list-scroll" id="tindahan-scroll-host" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
+    <div class="tindahan-section-label" id="tindahanSectionPriority"></div>
+    <div id="tindahanPriorityList"></div>
+    <div class="tindahan-section-label" id="tindahanSectionAll"></div>
+    <div id="tindahanAllList"></div>
     <div class="stores-empty-hint" id="stores-empty-hint" style="display:none">
       <div style="font-size:36px;margin-bottom:8px;opacity:0.6;">🎯</div>
       <div style="font-weight:600;">Tap the + button to register a new POS</div>
     </div>
   </div>
+
+  <!-- Hidden hooks for nav badge counts (stores.js _updateFilterCounts) -->
+  <span id="cntAll" style="display:none">0</span>
+  <span id="cntCritical" style="display:none">0</span>
+  <span id="cntWarning" style="display:none">0</span>
+  <span id="cntOk" style="display:none">0</span>
 
   <button type="button" class="store-fab" id="store-fab-btn" aria-label="New POS">+</button>
 </div>
@@ -1213,7 +1234,7 @@ if ('serviceWorker' in navigator) {
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/offline.js?v=4"></script>
-<script src="js/stores.js?v=7"></script>
+<script src="js/stores.js?v=8"></script>
 <script src="js/visits.js"></script>
 <script src="js/visit-wizard.js?v=3"></script>
 <script src="js/map.js"></script>
@@ -2640,6 +2661,9 @@ if ('serviceWorker' in navigator) {
     }
     if (pageId === 'page-stores') {
       _bootstrapStoresPage();
+      if (_storesBootstrapped && window.__patrolTindahanHydratedOnce && typeof renderStoreList === 'function') {
+        renderStoreList();
+      }
     }
     if (pageId === 'page-visits') {
       _bootstrapVisitsPage();

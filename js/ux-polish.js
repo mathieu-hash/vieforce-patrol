@@ -11,12 +11,15 @@ var _longPressStoreId = null;
 var _longPressTouchMoved = false;
 
 function initLongPress() {
-  // Delegate from store list container
-  var listEl = document.getElementById('storesList') || document.getElementById('store-list');
+  // Delegate from store list container (Phase 4.7: #tindahan-scroll-host)
+  var listEl =
+    document.getElementById('tindahan-scroll-host') ||
+    document.getElementById('storesList') ||
+    document.getElementById('store-list');
   if (!listEl) return;
 
   listEl.addEventListener('touchstart', function(e) {
-    var row = e.target.closest('.store-row');
+    var row = e.target.closest('.tindahan-row') || e.target.closest('.store-row');
     if (!row) return;
     _longPressTouchMoved = false;
     _longPressStoreId = row.getAttribute('data-store-id');
@@ -43,7 +46,7 @@ function initLongPress() {
 
   // Desktop: right-click
   listEl.addEventListener('contextmenu', function(e) {
-    var row = e.target.closest('.store-row');
+    var row = e.target.closest('.tindahan-row') || e.target.closest('.store-row');
     if (!row) return;
     e.preventDefault();
     var storeId = row.getAttribute('data-store-id');

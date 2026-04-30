@@ -164,29 +164,6 @@ function _assigneeLabelForStore(s, lookup) {
 
 var _lastStoresAssigneeLookup = {};
 
-function _collectHealthSearchFilterFromUi() {
-  var filter = {};
-  var page = document.getElementById('page-stores');
-  if (!page) return filter;
-  var row = page.querySelector('[data-filter-row="health"]');
-  var chips = row ? row.querySelectorAll('.tab') : [];
-  var label = 'all';
-  var ci;
-  for (ci = 0; ci < chips.length; ci++) {
-    if (chips[ci].classList.contains('active')) {
-      label = chips[ci].getAttribute('data-filter-label') || 'all';
-      break;
-    }
-  }
-  if (label === 'crit' || label === 'warn' || label === 'ok') filter.health_status = label;
-  else if (label === 'prospect') filter.store_status = 'prospect';
-  else if (label === 'active') filter.store_status = 'active';
-  var searchInput = document.getElementById('store-search');
-  var searchVal = searchInput ? searchInput.value.trim() : '';
-  if (searchVal) filter.search = searchVal;
-  return filter;
-}
-
 function _escAttr(s) {
   return String(s == null ? '' : s).replace(/"/g, '&quot;');
 }
@@ -299,86 +276,9 @@ function _repLookupFromMembers(members) {
   return m;
 }
 
-async function renderStoreList(filter) {
-  var listEl = document.getElementById('storesList') || document.getElementById('store-list');
-  if (!listEl) return;
+// ── Phase 4.7 Tindahan (priority list + circle filters; mock SAP fields Phase 5+) ──
 
-  // Show skeleton while loading (Rule 7: never show spinners)
-  if (_storeCache.length === 0) {
-    listEl.innerHTML = _buildStoreSkeleton(4);
-  }
-
-  try {
-    var session = typeof getSession === 'function' ? getSession() : null;
-    var baseFilter = filter != null ? filter : _collectHealthSearchFilterFromUi();
-
-    var storesRaw = await getStores(baseFilter || {});
-    var assigneeLookup = _repLookupFromMembers(_storesTeamMembers);
-    _lastStoresAssigneeLookup = assigneeLookup;
-
-    var stores = storesRaw;
-    if (_sessionShowsAssigneeFilters(session)) {
-      if (_storesTeamMembers.length > 0) {
-        for (var ai = 0; ai < storesRaw.length; ai++) {
-          var sid = storesRaw[ai].assigned_tsr;
-          if (sid && assigneeLookup[sid]) storesRaw[ai]._assigned_name_cache = assigneeLookup[sid];
-        }
-        _refreshAssigneeChipStrip(storesRaw);
-      }
-      stores = _filterStoresByAssignee(storesRaw, _storesAssigneeScope, session);
-    }
-
-    _storeCache = stores;
-
-    if (stores.length === 0) {
-      listEl.innerHTML = (typeof getEmptyStoreStateHTML === 'function')
-        ? getEmptyStoreStateHTML()
-        : '<div style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:15px">' + _esc(T.noStores) + '</div>';
-      _updateFilterCounts([]);
-      return;
-    }
-
-    var mgrSession = typeof getSession === 'function' ? getSession() : null;
-
-    _renderStoryCircles(stores);
-
-    var combined = stores.slice().sort(function (a, b) {
-      var da = _daysSinceVisitStore(a);
-      var db = _daysSinceVisitStore(b);
-      var aa = da == null ? 9999 : da;
-      var bb = db == null ? 9999 : db;
-      var ha = (a.health_status || 'ok');
-      var hb = (b.health_status || 'ok');
-      function rank(store, daysNum, hlth) {
-        if (hlth === 'crit' || daysNum == null || daysNum > 30) {
-          return 400000 + Math.min(daysNum != null ? daysNum : 9999, 999);
-        }
-        if (hlth === 'warn' || (daysNum >= 7 && daysNum <= 30)) {
-          return 300000 + (daysNum || 0);
-        }
-        return 100000 + (daysNum != null ? (365 - Math.min(daysNum, 365)) : 0);
-      }
-      return rank(b, bb, hb) - rank(a, aa, ha);
-    });
-
-    var html = '';
-    var ci;
-    for (ci = 0; ci < combined.length; ci++) {
-      html += _buildCompactStoreRow(combined[ci], mgrSession, assigneeLookup);
-    }
-
-    var hintEl = document.getElementById('stores-empty-hint');
-    if (hintEl) hintEl.style.display = 'none';
-
-    listEl.innerHTML = html;
-    _updateFilterCounts(stores);
-  } catch (err) {
-    listEl.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--sync-error);font-size:14px">' +
-      _esc(T.loadError) + '<br><small>' + _esc(err.message) + '</small></div>';
-  }
-}
-
-// Skeleton loading rows (Rule 7: no spinners)
+// Skeleton loading rows (Rule 7: no spinners) — hoisted for Tindahan first paint
 function _buildStoreSkeleton(count) {
   var html = '';
   for (var i = 0; i < count; i++) {
@@ -392,6 +292,471 @@ function _buildStoreSkeleton(count) {
     '</div>';
   }
   return html;
+}
+
+var _tindahanFiltersWired = false;
+var AVATAR_COLORS_TINDAHAN = ['c-gold', 'c-orange', 'c-teal', 'c-blue', 'c-green', 'c-purple', 'c-red'];
+
+function _wireTindahanFiltersOnce() {
+  var grid = document.getElementById('tindahanFilterGrid');
+  if (!grid || _tindahanFiltersWired) return;
+  _tindahanFiltersWired = true;
+  grid.addEventListener('click', function (ev) {
+    var btn = ev.target && ev.target.closest && ev.target.closest('.tindahan-filter-item');
+    if (!btn || !grid.contains(btn)) return;
+    var key = btn.getAttribute('data-filter');
+    if (window._tindahanActiveFilter === key) {
+      window._tindahanActiveFilter = null;
+      btn.classList.remove('active');
+    } else {
+      var items = grid.querySelectorAll('.tindahan-filter-item');
+      var i;
+      for (i = 0; i < items.length; i++) items[i].classList.remove('active');
+      btn.classList.add('active');
+      window._tindahanActiveFilter = key;
+    }
+    renderStoreList();
+  });
+}
+
+function _collectTindahanApiFilter(passThrough) {
+  var f = {};
+  if (passThrough) {
+    var k;
+    for (k in passThrough) {
+      if (Object.prototype.hasOwnProperty.call(passThrough, k)) f[k] = passThrough[k];
+    }
+  }
+  var input = document.getElementById('tindahan-store-search');
+  var searchVal = input ? input.value.trim() : '';
+  if (searchVal) f.search = searchVal;
+  return f;
+}
+
+function _tAvatarColorForStore(store) {
+  var seed = (store.id || store.name || '').toString();
+  var hash = 0;
+  var i;
+  for (i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+  }
+  return AVATAR_COLORS_TINDAHAN[Math.abs(hash) % AVATAR_COLORS_TINDAHAN.length];
+}
+
+function _tStoreInitials(store) {
+  if (store.initials) return String(store.initials).toUpperCase().slice(0, 2);
+  var words = (store.name || '').split(/\s+/).filter(Boolean);
+  if (!words.length) return '\u00b7\u00b7';
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+function _tComputeDaysSinceVisit(store) {
+  if (!store.last_visit_at) return null;
+  var last = new Date(store.last_visit_at).getTime();
+  return Math.floor((Date.now() - last) / (1000 * 60 * 60 * 24));
+}
+
+function _tComputePriorityScore(store) {
+  var score = 0;
+  var reasons = [];
+  var daysSinceVisit = _tComputeDaysSinceVisit(store);
+
+  if (daysSinceVisit === null) {
+    score += 25;
+    reasons.push({ key: 'tindahan.priority_reason_never' });
+  } else if (daysSinceVisit > 30) {
+    score += 30;
+    reasons.push({ key: 'tindahan.priority_reason_overdue', days: daysSinceVisit });
+  } else if (daysSinceVisit > 14) {
+    score += 20;
+    reasons.push({ key: 'tindahan.priority_reason_overdue', days: daysSinceVisit });
+  } else if (daysSinceVisit > 7) {
+    score += 10;
+    reasons.push({ key: 'tindahan.priority_reason_overdue', days: daysSinceVisit });
+  }
+
+  // Phase 5+: AR aging from SAP
+  if (store._mock_ar_days && store._mock_ar_days > 30) {
+    score += 25;
+    reasons.push({ key: 'tindahan.priority_reason_ar', days: store._mock_ar_days });
+  }
+
+  // Phase 5+: target gap from SAP MTD
+  if (store._mock_target_lagging) {
+    score += 15;
+    reasons.push({ key: 'tindahan.priority_reason_at_risk' });
+  }
+
+  if (store.pending_action) {
+    score += 15;
+  }
+
+  return { score: score, reasons: reasons };
+}
+
+function _tFormatNumberShort(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+  return String(n);
+}
+
+function _tComputeStatusLine(store) {
+  var mtdAmount = store._mock_mtd_bags || 0;
+  var lyPct = store._mock_ly_pct;
+  var arAmount = store._mock_ar_amount || 0;
+  var arDays = store._mock_ar_days || 0;
+  var lastDeliveredBags = store._mock_last_delivered_bags;
+  var daysSince = _tComputeDaysSinceVisit(store);
+
+  if (arDays > 30 && arAmount > 0) {
+    return {
+      text: t('tindahan.status_ar_warn', {
+        amount: _tFormatNumberShort(arAmount),
+        days: arDays
+      }),
+      severity: 'danger'
+    };
+  }
+  if (arDays > 14 && arAmount > 0) {
+    return {
+      text: t('tindahan.status_ar_warn', {
+        amount: _tFormatNumberShort(arAmount),
+        days: arDays
+      }),
+      severity: 'warn'
+    };
+  }
+
+  if (daysSince === null) {
+    return {
+      text: t('tindahan.status_never_visited'),
+      severity: 'warn'
+    };
+  }
+
+  if (mtdAmount > 0 && lyPct !== undefined) {
+    return {
+      text: t('tindahan.status_mtd', {
+        amount: _tFormatNumberShort(mtdAmount),
+        pct: lyPct
+      }),
+      severity: 'normal'
+    };
+  }
+
+  if (lastDeliveredBags !== undefined) {
+    return {
+      text: t('tindahan.status_delivered', { bags: lastDeliveredBags }),
+      severity: 'normal'
+    };
+  }
+
+  return {
+    text: t('tindahan.status_last_order', { days: daysSince }),
+    severity: daysSince > 14 ? 'warn' : 'normal'
+  };
+}
+
+function _tFormatTimeAgo(ts) {
+  if (!ts) return '';
+  var last = new Date(ts).getTime();
+  var hours = Math.floor((Date.now() - last) / (1000 * 60 * 60));
+
+  if (hours < 1) return t('tindahan.time_today');
+  if (hours < 24) return hours + 'h';
+
+  var days = Math.floor(hours / 24);
+  if (days === 1) return t('tindahan.time_yesterday');
+  if (days < 7) return t('tindahan.time_days_ago', { days: days });
+
+  var d = new Date(ts);
+  var monthShort = ['Ene', 'Peb', 'Mar', 'Abr', 'May', 'Hun', 'Hul', 'Ago', 'Set', 'Okt', 'Nob', 'Dis'];
+  return monthShort[d.getMonth()] + ' ' + d.getDate();
+}
+
+function _tNotificationCount(store) {
+  return store._mock_notif_count || 0;
+}
+
+function _tApplyMockSapData(stores) {
+  return stores.map(function (s, i) {
+    var seed = (s.id || s.name || '').toString().length + i;
+    var o = {};
+    var k;
+    for (k in s) {
+      if (Object.prototype.hasOwnProperty.call(s, k)) o[k] = s[k];
+    }
+    o._mock_mtd_bags = (seed % 3 === 0) ? (300 + seed * 47) * 1000 : 0;
+    o._mock_ly_pct = (seed % 3 === 0) ? 80 + (seed % 60) : undefined;
+    o._mock_ar_amount = (seed % 4 === 0) ? (50 + seed * 7) * 1000 : 0;
+    o._mock_ar_days = (seed % 4 === 0) ? 10 + (seed % 30) : 0;
+    o._mock_last_delivered_bags = (seed % 5 === 0) ? 30 + (seed % 50) : undefined;
+    o._mock_notif_count = (seed % 7 === 0) ? 1 + (seed % 3) : 0;
+    o._mock_target_lagging = (seed % 6 === 0);
+    o._mock_promo_active = (seed % 8 === 0);
+    o._mock_vip = (seed % 10 === 0);
+    return o;
+  });
+}
+
+function _tFilterStoresByCircle(stores, filterKey) {
+  if (!filterKey) return stores;
+  switch (filterKey) {
+    case 'ar':
+      return stores.filter(function (s) { return s._mock_ar_days > 30; });
+    case 'target':
+      return stores.filter(function (s) { return s._mock_target_lagging; });
+    case 'promo':
+      return stores.filter(function (s) { return s._mock_promo_active; });
+    case 'vip':
+      return stores.filter(function (s) { return s._mock_vip; });
+    default:
+      return stores;
+  }
+}
+
+function _tRestoreTindahanFilterActiveClass() {
+  var key = window._tindahanActiveFilter;
+  var grid = document.getElementById('tindahanFilterGrid');
+  if (!grid || !key) return;
+  var btn = grid.querySelector('.tindahan-filter-item[data-filter="' + key + '"]');
+  if (btn) btn.classList.add('active');
+}
+
+function _tRenderTindahanRow(store, isPriority) {
+  var colorClass = _tAvatarColorForStore(store);
+  var initials = _tStoreInitials(store);
+  var status = _tComputeStatusLine(store);
+  var timeAgo = _tFormatTimeAgo(store.last_visit_at);
+  var notifCount = _tNotificationCount(store);
+
+  var priorityClass = isPriority ? 'priority' : '';
+  var severityClass = '';
+  if (status.severity === 'warn' || status.severity === 'danger') {
+    severityClass = status.severity;
+  }
+
+  var badgeHtml = notifCount > 0
+    ? '<div class="tindahan-row-badge">' + _esc(String(notifCount)) + '</div>'
+    : '';
+
+  return (
+    '<div class="tindahan-row ' + priorityClass + ' ' + severityClass + '" data-store-id="' +
+    _escAttr(store.id || '') +
+    '" onclick="openStoreDetail(\'' +
+    _esc(store.id || '') +
+    '\')">' +
+    '<div class="tindahan-avatar ' +
+    colorClass +
+    '">' +
+    _esc(initials) +
+    '</div>' +
+    '<div class="tindahan-row-content">' +
+    '<div class="tindahan-row-name">' +
+    _esc(store.name || '') +
+    '</div>' +
+    '<div class="tindahan-row-status ' +
+    severityClass +
+    '">' +
+    status.text +
+    '</div>' +
+    '</div>' +
+    '<div class="tindahan-row-meta">' +
+    '<div class="tindahan-row-time ' +
+    severityClass +
+    '">' +
+    _esc(timeAgo) +
+    '</div>' +
+    badgeHtml +
+    '</div>' +
+    '</div>'
+  );
+}
+
+function _tRenderTindahanRows(containerId, stores, isPriority, opts) {
+  opts = opts || {};
+  var el = document.getElementById(containerId);
+  if (!el) return;
+
+  if (!stores.length) {
+    if (isPriority) {
+      el.innerHTML = '';
+      return;
+    }
+    var emptyKey = opts.emptyKey || 'tindahan.empty_all';
+    var icon = opts.icon || '\ud83c\udfea';
+    el.innerHTML =
+      '<div class="tindahan-empty">' +
+      '<div class="tindahan-empty-icon">' +
+      icon +
+      '</div>' +
+      '<div class="tindahan-empty-title">' +
+      t(emptyKey) +
+      '</div>' +
+      '</div>';
+    return;
+  }
+
+  var html = '';
+  var i;
+  for (i = 0; i < stores.length; i++) {
+    html += _tRenderTindahanRow(stores[i], isPriority);
+  }
+  el.innerHTML = html;
+}
+
+async function renderTindahan(externalFilter) {
+  var priEl = document.getElementById('tindahanPriorityList');
+  var allEl = document.getElementById('tindahanAllList');
+  if (!priEl || !allEl) {
+    console.warn('renderTindahan: DOM missing');
+    return;
+  }
+
+  var tit = document.getElementById('tindahanTitle');
+  if (tit) tit.textContent = t('tindahan.page_title');
+
+  var synced = typeof navigator !== 'undefined' && navigator.onLine;
+  var pill = document.getElementById('tindahanSyncPill');
+  if (pill) {
+    pill.textContent = synced ? t('tindahan.sync_synced') : t('tindahan.sync_syncing');
+    pill.classList.toggle('syncing', !synced);
+  }
+
+  var secPri = document.getElementById('tindahanSectionPriority');
+  var secAll = document.getElementById('tindahanSectionAll');
+  if (secPri) secPri.textContent = t('tindahan.section_priority');
+  if (secAll) secAll.textContent = t('tindahan.section_all');
+
+  var searchInput = document.getElementById('tindahan-store-search');
+  if (searchInput && !searchInput.getAttribute('data-ph-done')) {
+    searchInput.setAttribute('placeholder', t('tindahan.search_placeholder'));
+    searchInput.setAttribute('data-ph-done', '1');
+  }
+
+  if (typeof applyI18nLabels === 'function') {
+    applyI18nLabels(document.getElementById('page-stores') || document);
+  }
+
+  _wireTindahanFiltersOnce();
+
+  var session = typeof getSession === 'function' ? getSession() : null;
+  var baseFilter = _collectTindahanApiFilter(externalFilter);
+
+  if (!window.__patrolTindahanHydratedOnce) {
+    priEl.innerHTML = _buildStoreSkeleton(4);
+    allEl.innerHTML = '';
+  }
+
+  try {
+    var storesRaw = await getStores(baseFilter || {});
+    var assigneeLookup = _repLookupFromMembers(_storesTeamMembers);
+    _lastStoresAssigneeLookup = assigneeLookup;
+
+    if (_sessionShowsAssigneeFilters(session)) {
+      if (_storesTeamMembers.length > 0) {
+        for (var ai = 0; ai < storesRaw.length; ai++) {
+          var sid = storesRaw[ai].assigned_tsr;
+          if (sid && assigneeLookup[sid]) storesRaw[ai]._assigned_name_cache = assigneeLookup[sid];
+        }
+        _refreshAssigneeChipStrip(storesRaw);
+      }
+    }
+
+    var storesScoped = storesRaw;
+    if (_sessionShowsAssigneeFilters(session)) {
+      storesScoped = _filterStoresByAssignee(storesRaw, _storesAssigneeScope, session);
+    }
+
+    _storeCache = storesScoped;
+
+    var storesMocked = _tApplyMockSapData(storesScoped);
+
+    var activeFilter = window._tindahanActiveFilter || null;
+    var filtered = _tFilterStoresByCircle(storesMocked, activeFilter);
+
+    _updateFilterCounts(storesScoped);
+
+    if (!filtered.length) {
+      priEl.innerHTML = '';
+      if (secPri) secPri.style.display = 'none';
+      if (activeFilter) {
+        allEl.innerHTML =
+          '<div class="tindahan-empty">' +
+          '<div class="tindahan-empty-icon">\ud83d\udd0d</div>' +
+          '<div class="tindahan-empty-title">' +
+          _esc(t('tindahan.empty_filter', { filter: activeFilter })) +
+          '</div></div>';
+      } else {
+        _tRenderTindahanRows('tindahanAllList', [], false, {
+          emptyKey: 'tindahan.empty_all',
+          icon: '\ud83c\udfea'
+        });
+      }
+      _tRestoreTindahanFilterActiveClass();
+      window.__patrolTindahanHydratedOnce = true;
+      return;
+    }
+
+    _renderStoryCircles(filtered);
+
+    var scored = filtered.map(function (s) {
+      var o = {};
+      var k;
+      for (k in s) {
+        if (Object.prototype.hasOwnProperty.call(s, k)) o[k] = s[k];
+      }
+      o._priority = _tComputePriorityScore(s);
+      return o;
+    });
+
+    scored.sort(function (a, b) {
+      return b._priority.score - a._priority.score;
+    });
+
+    var priorityStores = scored.filter(function (s) {
+      return s._priority.score >= 25;
+    }).slice(0, 3);
+
+    var priorityIds = {};
+    var pi;
+    for (pi = 0; pi < priorityStores.length; pi++) {
+      priorityIds[priorityStores[pi].id] = true;
+    }
+
+    var allOtherStores = scored.filter(function (s) {
+      return !priorityIds[s.id];
+    });
+
+    _tRenderTindahanRows('tindahanPriorityList', priorityStores, true);
+    _tRenderTindahanRows('tindahanAllList', allOtherStores, false, {});
+
+    if (secPri) {
+      secPri.style.display = priorityStores.length === 0 ? 'none' : '';
+    }
+
+    var hintEl = document.getElementById('stores-empty-hint');
+    if (hintEl) hintEl.style.display = 'none';
+
+    _tRestoreTindahanFilterActiveClass();
+    window.__patrolTindahanHydratedOnce = true;
+  } catch (err) {
+    priEl.innerHTML =
+      '<div class="tindahan-empty"><div class="tindahan-empty-title">' +
+      _esc(T.loadError) +
+      '</div><small>' +
+      _esc(err.message) +
+      '</small></div>';
+    allEl.innerHTML = '';
+    window.__patrolTindahanHydratedOnce = true;
+  }
+}
+
+window.renderTindahan = renderTindahan;
+
+async function renderStoreList(filter) {
+  await renderTindahan(filter);
 }
 
 // HTML-escape helper
@@ -693,7 +1058,7 @@ async function updateHomeKPIs() {
 var _searchTimer = null;
 
 function initStoreSearch() {
-  var input = document.getElementById('store-search');
+  var input = document.getElementById('tindahan-store-search');
   if (!input) return;
 
   input.addEventListener('keyup', function () {
@@ -818,7 +1183,7 @@ function applyStoresNavPreference() {
     chips[0].classList.add('active');
   }
 
-  var searchInput = document.getElementById('store-search');
+  var searchInput = document.getElementById('tindahan-store-search');
   var searchVal = searchInput ? searchInput.value.trim() : '';
 
   var filter = typeof window.storesNavPrefToFilter === 'function'

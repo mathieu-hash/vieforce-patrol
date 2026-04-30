@@ -28,20 +28,20 @@ test.describe('02 — Stores', () => {
   test('Store list page loads for TSR', async ({ page }) => {
     await page.click('.nav-item[data-page="page-stores"]');
     await expect(page.locator('#page-stores')).toHaveClass(/active/);
-    await expect(page.locator('#stores-title')).toBeVisible();
+    await expect(page.locator('#tindahanTitle')).toBeVisible();
   });
 
   test('Store search input is visible', async ({ page }) => {
     await page.click('.nav-item[data-page="page-stores"]');
-    await expect(page.locator('#store-search')).toBeVisible();
+    await expect(page.locator('#tindahan-store-search')).toBeVisible();
   });
 
-  test('Filter chips are present and clickable', async ({ page }) => {
+  test('Circle filters are present and clickable', async ({ page }) => {
     await page.click('.nav-item[data-page="page-stores"]');
-    const chips = page.locator('[data-filter-row="health"] .tab');
-    await expect(chips).toHaveCount(5);
-    // First chip should be active
-    await expect(chips.first()).toHaveClass(/active/);
+    const filters = page.locator('#tindahanFilterGrid .tindahan-filter-item');
+    await expect(filters).toHaveCount(4);
+    await filters.first().click();
+    await expect(filters.first()).toHaveClass(/active/);
   });
 
   test('New store button opens wizard', async ({ page }) => {
@@ -60,14 +60,14 @@ test.describe('02 — Stores', () => {
     });
     await page.click('.nav-item[data-page="page-stores"]');
     // Store list area should exist even if empty
-    await expect(page.locator('#storesList')).toBeVisible();
+    await expect(page.locator('#tindahanAllList')).toBeVisible();
   });
 
   test('Tap store opens store detail', async ({ page }) => {
     await page.click('.nav-item[data-page="page-stores"]');
     // Wait for stores to render (or skeleton)
     await page.waitForTimeout(2000);
-    const storeRow = page.locator('#storesList .store-row').first();
+    const storeRow = page.locator('#tindahanAllList .tindahan-row, #tindahanPriorityList .tindahan-row').first();
     if (await storeRow.isVisible()) {
       await storeRow.click();
       await expect(page.locator('#page-store-detail')).toHaveClass(/active/);

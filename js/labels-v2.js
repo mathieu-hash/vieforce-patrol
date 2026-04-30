@@ -968,7 +968,11 @@ var T = getT();
 window.T = T;
 
 function _rerenderDynamicLocalizedViews() {
-  if (typeof renderStoreList === 'function' && (document.getElementById('storesList') || document.getElementById('store-list'))) {
+  if (typeof renderStoreList === 'function' && (
+    document.getElementById('tindahanAllList') ||
+    document.getElementById('storesList') ||
+    document.getElementById('store-list')
+  )) {
     renderStoreList();
   }
   if (typeof updateHomeKPIs === 'function') {
