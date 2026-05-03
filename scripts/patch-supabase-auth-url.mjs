@@ -23,7 +23,7 @@ const SITE_URL = (
 /** Include HQ so running this script does not break VieForce HQ Google sign-in (same Supabase project). */
 const URI_ALLOW_LIST =
   process.env.PATROL_URI_ALLOW_LIST ||
-  'https://vieforce-patrol.vercel.app/**,https://vieforce-hq.vercel.app/**,https://vieforce-hq.vercel.app/index.html,http://localhost:3000/**,http://127.0.0.1:3000/**';
+  'https://vieforce-patrol.vercel.app/**,https://vieforce-hq.vercel.app/**,https://vieforce-hq.vercel.app/index.html,https://vieforce-hq.vercel.app/auth/callback.html**,http://localhost:3000/**,http://127.0.0.1:3000/**';
 
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 if (!token || !String(token).trim()) {
