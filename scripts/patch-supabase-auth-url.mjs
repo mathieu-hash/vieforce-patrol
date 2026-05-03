@@ -11,7 +11,14 @@
  */
 const API = 'https://api.supabase.com';
 const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'yolxcmeoovztuindrglk';
-const SITE_URL = process.env.PATROL_SITE_URL || 'https://vieforce-patrol.vercel.app';
+// Shared Supabase project with VieForce HQ: site_url must be HQ so HQ Google OAuth redirect_to
+// (vieforce-hq.vercel.app) passes IsRedirectURLValid hostname check. Patrol uses explicit redirectTo
+// to vieforce-patrol — still allowed via uri_allow_list below.
+const SITE_URL = (
+  process.env.SUPABASE_AUTH_SITE_URL ||
+  process.env.PATROL_SITE_URL ||
+  'https://vieforce-hq.vercel.app'
+).replace(/\/$/, '');
 /** Comma-separated patterns (same as Dashboard "Redirect URLs"). */
 /** Include HQ so running this script does not break VieForce HQ Google sign-in (same Supabase project). */
 const URI_ALLOW_LIST =
