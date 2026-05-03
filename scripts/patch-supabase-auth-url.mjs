@@ -13,9 +13,10 @@ const API = 'https://api.supabase.com';
 const PROJECT_REF = process.env.SUPABASE_PROJECT_REF || 'yolxcmeoovztuindrglk';
 const SITE_URL = process.env.PATROL_SITE_URL || 'https://vieforce-patrol.vercel.app';
 /** Comma-separated patterns (same as Dashboard "Redirect URLs"). */
+/** Include HQ so running this script does not break VieForce HQ Google sign-in (same Supabase project). */
 const URI_ALLOW_LIST =
   process.env.PATROL_URI_ALLOW_LIST ||
-  'https://vieforce-patrol.vercel.app/**,http://localhost:3000/**,http://127.0.0.1:3000/**';
+  'https://vieforce-patrol.vercel.app/**,https://vieforce-hq.vercel.app/**,http://localhost:3000/**,http://127.0.0.1:3000/**';
 
 const token = process.env.SUPABASE_ACCESS_TOKEN;
 if (!token || !String(token).trim()) {
