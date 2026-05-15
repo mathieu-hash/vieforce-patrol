@@ -21,6 +21,23 @@ test.describe('09 — Language picker', () => {
     const tl = page.locator('[data-locale-option="tl"]');
     await expect(tl).toBeVisible();
     await tl.click();
+    await page.waitForFunction(
+      () => {
+        try {
+          if (
+            window.PatrolI18n &&
+            typeof PatrolI18n.getCurrentLocale === 'function' &&
+            PatrolI18n.getCurrentLocale() === 'tl'
+          ) {
+            return true;
+          }
+          return localStorage.getItem('patrol_locale') === 'tl';
+        } catch {
+          return false;
+        }
+      },
+      { timeout: 15000 }
+    );
     const locale = await page.evaluate(() => {
       if (window.PatrolI18n && typeof PatrolI18n.getCurrentLocale === 'function') {
         return PatrolI18n.getCurrentLocale();
