@@ -5,5 +5,6 @@ node_modules
 .DS_Store
 test-results/
 playwright-report/
+dogfood-output-*.png
 # Supabase CLI (local temp; link writes project ref — keep secrets out of git)
 supabase/.temp/
