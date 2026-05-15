@@ -253,6 +253,87 @@ async function getVisitsByTSR(tsrId, dateFrom) {
   return data || [];
 }
 
+/** DSM/RSM/CEO: all visits logged by TSRs/champions under this manager (flat team list). */
+async function getVisitsForManagerTeam(managerId) {
+  var members = await getTeamMembersForStoresFilter(managerId);
+  var ids = [];
+  for (var i = 0; i < (members || []).length; i++) {
+    if (members[i].id) ids.push(members[i].id);
+  }
+  if (!ids.length) return [];
+  var res = await supabaseClient
+    .from('visits')
+    .select('*')
+    .in('tsr_id', ids)
+    .order('visited_at', { ascending: false });
+  if (res.error) throw new Error('getVisitsForManagerTeam: ' + res.error.message);
+  return res.data || [];
+}
+
+/**
+ * DSM read-only Squad feed data: newest team visits enriched with TSR + store names.
+ * Returns [] on any failure so caller can render a safe empty state.
+ */
+async function getRecentTeamActivity(managerId, limit) {
+  var maxRows = parseInt(limit, 10);
+  if (!maxRows || maxRows < 1) maxRows = 15;
+
+  try {
+    var members = await getTeamMembersForStoresFilter(managerId);
+    var ids = [];
+    for (var mi = 0; mi < (members || []).length; mi++) {
+      if (members[mi] && members[mi].id) ids.push(members[mi].id);
+    }
+    if (!ids.length) return [];
+
+    var visitRes = await supabaseClient
+      .from('visits')
+      .select('*')
+      .in('tsr_id', ids)
+      .order('visited_at', { ascending: false })
+      .limit(maxRows);
+    if (visitRes.error) throw new Error('getRecentTeamActivity visits: ' + visitRes.error.message);
+    var visits = visitRes.data || [];
+    if (!visits || !visits.length) return [];
+
+    var stores = [];
+    var users = [];
+    try { stores = await getStores(); } catch (eStores) { stores = []; }
+    try { users = await getUsers(); } catch (eUsers) { users = []; }
+
+    var storeMap = {};
+    for (var si = 0; si < (stores || []).length; si++) {
+      if (stores[si] && stores[si].id) storeMap[stores[si].id] = stores[si].name || 'Store';
+    }
+    var userMap = {};
+    for (var ui = 0; ui < (users || []).length; ui++) {
+      if (users[ui] && users[ui].id) userMap[users[ui].id] = users[ui].name || 'TSR';
+    }
+
+    var out = [];
+    for (var i = 0; i < visits.length; i++) {
+      var v = visits[i] || {};
+      out.push({
+        id: v.id,
+        tsr_id: v.tsr_id || '',
+        tsr_name: userMap[v.tsr_id] || 'TSR',
+        store_id: v.store_id || '',
+        store_name: storeMap[v.store_id] || 'Store',
+        visited_at: v.visited_at || null,
+        order_taken: !!v.order_taken,
+        order_amount: Number(v.order_amount || 0),
+        notes: v.notes || '',
+        photo_url: v.photo_url || ''
+      });
+    }
+    return out;
+  } catch (e) {
+    console.warn('getRecentTeamActivity:', e && e.message ? e.message : e);
+    return [];
+  }
+}
+window.getRecentTeamActivity = getRecentTeamActivity;
+
 // ── DSM Summary ──
 
 async function getDSMSummary(district, dateFrom) {
@@ -295,11 +376,38 @@ async function getDSMSummary(district, dateFrom) {
 async function getUsers() {
   var { data, error } = await supabaseClient
     .from('users')
-    .select('id,name,phone,role,region,district,territory,is_active,is_champion,created_at,updated_at')
+    .select(
+      'id,name,phone,role,region,district,territory,is_active,is_champion,created_at,updated_at,pin_hash'
+    )
     .order('name', { ascending: true });
 
   if (error) throw new Error('getUsers: ' + error.message);
-  return data || [];
+  return (data || []).map(function (u) {
+    var row = Object.assign({}, u);
+    row.has_pin = !!(row.pin_hash && String(row.pin_hash).length > 0);
+    delete row.pin_hash;
+    return row;
+  });
+}
+
+/**
+ * Same as getUsers but keeps `pin_hash` for admin.html only.
+ * Patrol app screens must keep using getUsers() so PIN material never reaches the field app.
+ */
+async function getUsersForAdmin() {
+  var { data, error } = await supabaseClient
+    .from('users')
+    .select(
+      'id,name,phone,role,region,district,territory,is_active,is_champion,created_at,updated_at,pin_hash'
+    )
+    .order('name', { ascending: true });
+
+  if (error) throw new Error('getUsersForAdmin: ' + error.message);
+  return (data || []).map(function (u) {
+    var row = Object.assign({}, u);
+    row.has_pin = !!(row.pin_hash && String(row.pin_hash).length > 0);
+    return row;
+  });
 }
 
 async function createUser(userData) {
@@ -356,6 +464,60 @@ async function getDirectReports(userId, role) {
     return m;
   }));
   return enriched;
+}
+
+/**
+ * TSR/champion rows for the Tindahan assignee chip strip (stores.js).
+ * DSM: direct reports. RSM/CEO: TSRs under reporting DSMs, else flat direct reports.
+ */
+async function getTeamMembersForStoresFilter(managerId) {
+  var session = typeof getSession === 'function' ? getSession() : null;
+  var role = (session && session.role ? String(session.role) : '').toLowerCase();
+  var collected = [];
+
+  function addRep(r) {
+    if (!r || !r.id) return;
+    var rl = (r.role || '').toLowerCase();
+    if (rl !== 'tsr' && rl !== 'champion') return;
+    collected.push({ id: r.id, name: r.name || 'TSR' });
+  }
+
+  async function dedupe() {
+    var seen = {};
+    var out = [];
+    for (var i = 0; i < collected.length; i++) {
+      var x = collected[i];
+      if (seen[x.id]) continue;
+      seen[x.id] = true;
+      out.push(x);
+    }
+    return out;
+  }
+
+  if (!managerId) return [];
+
+  if (role === 'rsm' || role === 'ceo') {
+    var layer1 = await getDirectReports(managerId);
+    for (var i = 0; i < (layer1 || []).length; i++) {
+      var node = layer1[i];
+      var nr = (node.role || '').toLowerCase();
+      if (nr === 'dsm') {
+        var tsrs = await getDirectReports(node.id);
+        for (var j = 0; j < (tsrs || []).length; j++) addRep(tsrs[j]);
+      } else {
+        addRep(node);
+      }
+    }
+    if (collected.length === 0) {
+      var flat = await getDirectReports(managerId);
+      for (var k = 0; k < (flat || []).length; k++) addRep(flat[k]);
+    }
+    return dedupe();
+  }
+
+  var reps = await getDirectReports(managerId);
+  for (var r = 0; r < (reps || []).length; r++) addRep(reps[r]);
+  return dedupe();
 }
 
 async function getTeamKPIs(userId, role) {
@@ -440,6 +602,152 @@ async function getStoresByTSR(tsrId) {
 
   if (error) throw new Error('getStoresByTSR: ' + error.message);
   return data || [];
+}
+
+/** Active TSRs in a sales region (RSM / CEO map legend + scoping helpers). */
+async function getTSRsByRegion(region) {
+  var query = supabaseClient
+    .from('users')
+    .select('id,name,territory,district,region')
+    .eq('role', 'tsr')
+    .eq('is_active', true)
+    .order('name', { ascending: true });
+
+  if (region) query = query.eq('region', region);
+
+  var { data, error } = await query;
+  if (error) throw new Error('getTSRsByRegion: ' + error.message);
+  return data || [];
+}
+
+/**
+ * Stores visible on the territory map — scoped for DSM/RSM/CEO; TSR unchanged.
+ * Does not change global getStores() used by the store list (narrower map-only scope).
+ */
+async function getStoresForTerritoryMap() {
+  var session = getSession();
+  if (!session) return [];
+
+  var role = (session.role || 'tsr').toLowerCase();
+
+  if (role === 'tsr' || role === 'champion') {
+    return getStores();
+  }
+
+  if (role === 'dsm' && session.district) {
+    var team = await getTSRsByDistrict(session.district);
+    var idList = team.map(function (u) {
+      return u.id;
+    });
+    idList.push(session.id);
+
+    var orClause =
+      'assigned_tsr.in.(' + idList.join(',') + '),' + 'created_by.in.(' + idList.join(',') + ')';
+
+    var res = await supabaseClient.from('stores').select('*').or(orClause).order('name', { ascending: true });
+
+    if (res.error) throw new Error('getStoresForTerritoryMap: ' + res.error.message);
+
+    var rows = res.data || [];
+    var seen = {};
+    var i;
+    for (i = 0; i < rows.length; i++) seen[rows[i].id] = rows[i];
+
+    var q2 = await supabaseClient.from('stores').select('*').eq('district', session.district).order('name', { ascending: true });
+    if (!q2.error && q2.data) {
+      for (var j = 0; j < q2.data.length; j++) {
+        var s = q2.data[j];
+        if (!seen[s.id]) seen[s.id] = s;
+      }
+    }
+
+    var merged = [];
+    for (var k in seen) merged.push(seen[k]);
+    merged.sort(function (a, b) {
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    return merged;
+  }
+
+  if ((role === 'rsm' || role === 'ceo') && session.region) {
+    return getStores({ region: session.region });
+  }
+
+  return getStores();
+}
+
+/**
+ * Farms table rows for the map — same role rules as getStoresForTerritoryMap.
+ */
+async function getFarmsForTerritoryMap() {
+  var session = getSession();
+  if (!session) return [];
+
+  var role = (session.role || 'tsr').toLowerCase();
+
+  if (role === 'tsr' || role === 'champion') {
+    var r0 = await supabaseClient
+      .from('farms')
+      .select('*')
+      .or('created_by.eq.' + session.id + ',assigned_tsr.eq.' + session.id)
+      .order('name', { ascending: true });
+    if (r0.error) throw new Error('getFarmsForTerritoryMap: ' + r0.error.message);
+    return r0.data || [];
+  }
+
+  if (role === 'dsm' && session.district) {
+    var teamD = await getTSRsByDistrict(session.district);
+    var idListD = teamD.map(function (u) {
+      return u.id;
+    });
+    idListD.push(session.id);
+
+    var orD =
+      'assigned_tsr.in.(' + idListD.join(',') + '),' + 'created_by.in.(' + idListD.join(',') + ')';
+
+    var r1 = await supabaseClient.from('farms').select('*').or(orD).order('name', { ascending: true });
+    if (r1.error) throw new Error('getFarmsForTerritoryMap: ' + r1.error.message);
+
+    var rowsD = r1.data || [];
+    var seenD = {};
+    var a;
+    for (a = 0; a < rowsD.length; a++) seenD[rowsD[a].id] = rowsD[a];
+
+    if (session.region) {
+      var r2 = await supabaseClient
+        .from('farms')
+        .select('*')
+        .eq('region', session.region)
+        .order('name', { ascending: true });
+      if (!r2.error && r2.data) {
+        for (var b = 0; b < r2.data.length; b++) {
+          var f = r2.data[b];
+          if (!seenD[f.id]) seenD[f.id] = f;
+        }
+      }
+    }
+
+    var outD = [];
+    for (var kd in seenD) outD.push(seenD[kd]);
+    outD.sort(function (x, y) {
+      return (x.name || '').localeCompare(y.name || '');
+    });
+    return outD;
+  }
+
+  if ((role === 'rsm' || role === 'ceo') && session.region) {
+    var rr = await supabaseClient
+      .from('farms')
+      .select('*')
+      .eq('region', session.region)
+      .order('name', { ascending: true });
+    if (rr.error) throw new Error('getFarmsForTerritoryMap: ' + rr.error.message);
+    return rr.data || [];
+  }
+
+  var rAll = await supabaseClient.from('farms').select('*').order('name', { ascending: true });
+  if (rAll.error) throw new Error('getFarmsForTerritoryMap: ' + rAll.error.message);
+  return rAll.data || [];
 }
 
 async function assignStores(storeIds, tsrId) {

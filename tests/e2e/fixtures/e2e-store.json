@@ -1,0 +1,9 @@
+{
+  "id": "e2e-store-001",
+  "name": "E2E Test Store",
+  "city": "Manila",
+  "owner_name": "Test Owner",
+  "phone": "09171234567",
+  "bags_per_month": 100,
+  "store_status": "active"
+}

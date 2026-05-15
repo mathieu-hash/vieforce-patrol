@@ -13,6 +13,8 @@
   var _periodBound = false;
   var _unitBound = false;
   var _expandBound = false;
+  var _salesV2NavBound = false;
+  var _onlineListenersBound = false;
   var _currentUnit = 'BAGS'; // 'BAGS' | 'MT'
 
   function _activePeriod() {
@@ -229,20 +231,29 @@
     }
 
     var k = (hqData && hqData.kpis) || {};
+    var subLm = document.getElementById('salesV2MomSub');
     if (lm) {
       var pctLm = _momPctFromKpis(k);
       if (pctLm != null && !isNaN(pctLm)) {
         var r = Math.round(pctLm);
         lm.style.display = '';
-        lm.className = 'hero-kpi-pill' + (r >= 0 ? ' up' : '');
+        lm.className = 'hero-kpi-pill' + (r >= 0 ? ' up' : ' down');
         var numPart =
           r === 0 ? '0%'
             : r > 0 ? '+' + Math.abs(r) + '%'
               : '\u2212' + Math.abs(r) + '%';
-        lm.textContent = (r >= 0 ? '\u25b2 ' : '\u25bc ') + numPart + ' vs LM';
+        lm.textContent = (r >= 0 ? '\u25b2 ' : '\u25bc ') + numPart;
+        if (subLm) {
+          subLm.style.display = '';
+          subLm.textContent = 'vs last month';
+          subLm.classList.toggle('mom-neg', r < 0);
+        }
       } else {
         lm.style.display = 'none';
+        if (subLm) subLm.style.display = 'none';
       }
+    } else if (subLm) {
+      subLm.style.display = 'none';
     }
     if (tg) {
       var pct =
@@ -298,6 +309,122 @@
     return day + 'd ago';
   }
 
+  function _initialsFromName(name) {
+    if (!name) return '—';
+    var parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '—';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  function _paintOnlineIndicator() {
+    var dot = document.getElementById('salesV2OnlineDot');
+    var lbl = document.getElementById('salesV2OnlineLbl');
+    var on = typeof navigator !== 'undefined' && navigator.onLine;
+    if (dot) dot.classList.toggle('off', !on);
+    if (lbl) lbl.textContent = on ? 'Online' : 'Offline';
+  }
+
+  function _bindOnlineListenersOnce() {
+    if (_onlineListenersBound) return;
+    _onlineListenersBound = true;
+    window.addEventListener('online', _paintOnlineIndicator);
+    window.addEventListener('offline', _paintOnlineIndicator);
+  }
+
+  function _bindSalesV2NavOnce() {
+    if (_salesV2NavBound) return;
+    var root = document.getElementById('pg-sales');
+    if (!root) return;
+    _salesV2NavBound = true;
+    root.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      if (t.closest('#salesV2OpenHq')) {
+        ev.preventDefault();
+        try {
+          window.open('https://hq.vienovo.ph', '_blank', 'noopener,noreferrer');
+        } catch (_e) {}
+        return;
+      }
+      if (t.closest('#salesInsightsSeeAll')) {
+        ev.preventDefault();
+        if (typeof window.nav === 'function') window.nav('page-stores');
+        return;
+      }
+      if (t.closest('#salesInsightWhitespace') || t.closest('#salesInsightAtRisk')) {
+        ev.preventDefault();
+        if (typeof window.nav === 'function') window.nav('page-stores');
+        return;
+      }
+      var mod = t.closest('[data-sales-nav]');
+      if (mod && typeof window.nav === 'function') {
+        ev.preventDefault();
+        var pid = mod.getAttribute('data-sales-nav');
+        if (pid) window.nav(pid);
+      }
+    });
+  }
+
+  /** Header row: session + optional HQ scope name (refines after first SAP response). */
+  function _paintSalesChrome(hqData) {
+    var session = typeof getSession === 'function' ? getSession() : null;
+    var scopeObj = {};
+    if (hqData && hqData.patrol_meta && hqData.patrol_meta.hq_scope) {
+      scopeObj = hqData.patrol_meta.hq_scope;
+    }
+    var scopeLabel =
+      scopeObj.name || scopeObj.scope_name || scopeObj.territory || scopeObj.label || '';
+    var sub =
+      (scopeLabel && String(scopeLabel).trim()) ||
+      (session && (session.territory || session.district || session.region)) ||
+      'Your territory';
+    var pillRaw =
+      (session && (session.territory || session.district)) ||
+      (scopeLabel && String(scopeLabel).trim()) ||
+      sub;
+    var subEl = document.getElementById('salesV2ScopeSubtitle');
+    if (subEl) subEl.textContent = sub;
+    var pillEl = document.getElementById('salesV2TerritoryPill');
+    if (pillEl) {
+      var pr = String(pillRaw || '').trim() || sub;
+      pillEl.textContent = pr.length > 18 ? pr.slice(0, 17) + '\u2026' : pr;
+    }
+    var name = (session && session.name) ? String(session.name) : '\u2014';
+    var nameEl = document.getElementById('salesV2UserName');
+    if (nameEl) nameEl.textContent = name;
+    var role = session && session.role ? String(session.role).toUpperCase() : '';
+    var reg = session && session.region ? ' \u00b7 ' + session.region : '';
+    var metaEl = document.getElementById('salesV2UserMeta');
+    if (metaEl) metaEl.textContent = (role + reg).trim();
+    var av = document.getElementById('salesV2UserAv');
+    if (av) av.textContent = _initialsFromName(name);
+  }
+
+  function _paintQuickInsights(direct) {
+    var nWs = document.getElementById('salesWsCount');
+    var nAr = document.getElementById('salesArCount');
+    if (!direct) {
+      if (nWs) nWs.textContent = '\u2014';
+      if (nAr) nAr.textContent = '\u2014';
+      return;
+    }
+    var wsList = direct.whitespace ? direct.whitespace : [];
+    var arList = direct.at_risk ? direct.at_risk : [];
+    if (nWs) nWs.textContent = _fmtIntish(wsList.length);
+    if (nAr) nAr.textContent = _fmtIntish(arList.length);
+    var sWs = document.getElementById('salesWsSub');
+    var sAr = document.getElementById('salesArSub');
+    if (sWs) {
+      sWs.textContent =
+        wsList.length === 1 ? 'store with 0 bags (MTD)' : 'stores with 0 bags (MTD)';
+    }
+    if (sAr) {
+      sAr.textContent =
+        arList.length === 1 ? 'account needs attention' : 'accounts need attention';
+    }
+  }
+
   /**
    * Returns { label, value, formatted, loading } for the current hero unit,
    * sourced from HQ (MT) and direct-SAP (Bags). When the data for the chosen
@@ -327,18 +454,72 @@
 
   function _showLoading(container) {
     container.innerHTML =
-      '<div class="app-content sales-container" style="padding-bottom:28px">' +
-      '<div class="hero-kpi">' +
-      '<div class="sales-hero-fresh-slot" id="sales-sap-fresh-host"></div>' +
+      '<div class="app-content sales-v2-container">' +
+      '<div class="sales-v2-hero-card">' +
+      '<div class="sales-v2-hero-top">' +
+      '<div class="sales-v2-hero-left">' +
+      '<div class="sales-v2-hero-icon">\ud83d\udce6</div>' +
       '<div class="hero-kpi-content">' +
-      '<div class="hero-kpi-label" id="salesHeroLabel">Sales</div>' +
+      '<div class="hero-kpi-label" id="salesHeroLabel">Total bags \u00b7 MTD</div>' +
       '<div class="hero-kpi-value num" id="salesHeroValue"><span class="sales-hero-skeleton" aria-label="Loading">\u2026</span></div>' +
-      '<div class="hero-kpi-meta">' +
+      '</div></div>' +
+      '<div class="sales-v2-hero-right">' +
       '<span class="hero-kpi-pill up" id="heroPillLm" style="display:none"></span>' +
+      '<div class="sales-v2-mom-sub" id="salesV2MomSub" style="display:none">vs last month</div>' +
+      '</div></div>' +
+      '<div class="velocity-card">' +
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:2px;">' +
+      '<div style="font-size:12px;font-weight:700;" id="velocityDelta"></div></div>' +
+      '<div class="velocity-bars" id="velocityBars"></div>' +
+      '<div class="sales-v2-vel-foot"><span>Earlier</span><strong class="num" id="velocityValue"></strong><span>Latest</span></div>' +
+      '</div>' +
+      '<div class="sales-v2-hero-foot">' +
       '<span class="hero-kpi-pill" id="heroPillTarget" style="display:none"></span>' +
       '<span class="hero-kpi-pill gold" id="heroPillRegion" style="display:none"></span>' +
-      '</div></div></div>' +
-      '<p style="text-align:center;color:var(--text-secondary);font-size:13px;padding:16px">Loading sales\u2026</p>' +
+      '</div></div>' +
+      '<div class="sales-v2-section">' +
+      '<div class="sales-v2-section-hdr"><span>QUICK INSIGHTS</span>' +
+      '<button type="button" class="sales-v2-seeall" id="salesInsightsSeeAll">See all</button></div>' +
+      '<div class="sales-v2-insights-grid">' +
+      '<button type="button" class="sales-v2-insight" id="salesInsightWhitespace">' +
+      '<div class="sales-v2-insight-h"><span>\ud83d\udcc8</span> Whitespace</div>' +
+      '<div class="sales-v2-insight-num" id="salesWsCount">\u2014</div>' +
+      '<div class="sales-v2-insight-sub" id="salesWsSub">stores with 0 bags (MTD)</div></button>' +
+      '<button type="button" class="sales-v2-insight" id="salesInsightAtRisk">' +
+      '<div class="sales-v2-insight-h"><span>\u26a0\ufe0f</span> At risk</div>' +
+      '<div class="sales-v2-insight-num" id="salesArCount">\u2014</div>' +
+      '<div class="sales-v2-insight-sub" id="salesArSub">accounts need attention</div></button>' +
+      '</div></div>' +
+      '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>BREAKDOWN</span></div>' +
+      '<div class="sales-v2-card" id="brandsCard"><div class="sales-v2-card-h">' +
+      '<div class="sales-v2-card-title"><span>\ud83c\udff7\ufe0f</span> By brand</div>' +
+      '<span class="sales-v2-card-tag">Top 5</span></div>' +
+      '<div id="brandBars"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div>' +
+      '<div class="sales-v2-card" id="customersCard"><div class="sales-v2-card-h">' +
+      '<div class="sales-v2-card-title"><span>\ud83d\udc65</span> By customer</div>' +
+      '<span class="sales-v2-card-tag">Top 5</span></div>' +
+      '<div id="customerRows"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div></div>' +
+      '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>MORE MODULES</span></div>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-ar">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(244,63,94,0.12);">\ud83d\udcb0</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">AR overview</div>' +
+      '<div class="sales-v2-mod-sub">Aging &amp; collections</div></div><span class="sales-v2-mod-chev">\u203a</span></button>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-budget">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(139,92,246,0.12);">\ud83c\udfaf</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">Budget &amp; targets</div>' +
+      '<div class="sales-v2-mod-sub">Goals &amp; pacing</div></div><span class="sales-v2-mod-chev">\u203a</span></button>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-insights">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(14,165,233,0.12);">\ud83d\udca1</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">Customer insights</div>' +
+      '<div class="sales-v2-mod-sub">Opportunities</div></div><span class="sales-v2-mod-chev">\u203a</span></button>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-inventory">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(245,158,11,0.12);">\ud83d\udce6</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">Inventory</div>' +
+      '<div class="sales-v2-mod-sub">Stock signals</div></div><span class="sales-v2-mod-chev">\u203a</span></button></div>' +
+      '<div class="sales-v2-hq-cta">' +
+      '<button type="button" id="salesV2OpenHq">Open full dashboard in VieForce HQ <span aria-hidden="true">\u2197</span></button>' +
+      '<div class="sales-v2-hq-hint">Desktop experience \u00b7 Full analytics</div></div>' +
+      '<p style="text-align:center;color:var(--text-secondary);font-size:13px;padding:8px 0 0">Loading sales\u2026</p>' +
       '</div>';
   }
 
@@ -364,6 +545,8 @@
         refreshSalesTab(period);
       });
     }
+    _updateFreshness('error');
+    _paintOnlineIndicator();
   }
 
   function _render(container, data, period) {
@@ -373,9 +556,13 @@
 
     if (isEmpty) {
       container.innerHTML =
-        '<div class="sales-sap-empty">' +
-        '<p><strong>No SAP scope for this account.</strong></p>' +
-        '<p class="sales-sap-empty-hint">Check user mapping in VieForce HQ or Supabase.</p></div>';
+        '<div class="sales-sap-empty" role="status">' +
+        '<p><strong>No SAP territory mapped for this login.</strong></p>' +
+        '<p class="sales-sap-empty-hint">HQ needs at least one of: your <code>sap_slpcode</code> (from OSLP), ' +
+        '<code>sap_district_code</code> (if you use district scope), or your TSRs&rsquo; <code>sap_slpcode</code> ' +
+        'with <code>manager_id</code> set to you. Ask an admin to fix <code>public.users</code> in Supabase, then pull to refresh.</p>' +
+        '<p class="sales-sap-empty-hint" style="margin-top:10px;font-size:12px;">If you see errors instead of this message, check Vercel env ' +
+        '<code>HQ_SERVICE_TOKEN</code> (must match HQ Cloud Run) and <code>SUPABASE_SERVICE_ROLE_KEY</code>.</p></div>';
       return;
     }
 
@@ -385,61 +572,85 @@
       : hero.formatted;
 
     container.innerHTML =
-      '<div class="app-content sales-container" style="padding-bottom:28px">' +
-      '<div class="hero-kpi">' +
-      '<div class="sales-hero-fresh-slot" id="sales-sap-fresh-host"></div>' +
+      '<div class="app-content sales-v2-container">' +
+      '<div class="sales-v2-hero-card">' +
+      '<div class="sales-v2-hero-top">' +
+      '<div class="sales-v2-hero-left">' +
+      '<div class="sales-v2-hero-icon">\ud83d\udce6</div>' +
       '<div class="hero-kpi-content">' +
       '<div class="hero-kpi-label" id="salesHeroLabel"></div>' +
       '<div class="hero-kpi-value num" id="salesHeroValue">' + heroValueHtml + '</div>' +
-      '<div class="hero-kpi-meta">' +
+      '</div></div>' +
+      '<div class="sales-v2-hero-right">' +
       '<span class="hero-kpi-pill up" id="heroPillLm" style="display:none"></span>' +
+      '<div class="sales-v2-mom-sub" id="salesV2MomSub" style="display:none">vs last month</div>' +
+      '</div></div>' +
+      '<div class="velocity-card">' +
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:2px;">' +
+      '<div style="font-size:12px;font-weight:700;font-family:Manrope,sans-serif;" id="velocityDelta"></div></div>' +
+      '<div class="velocity-bars" id="velocityBars"></div>' +
+      '<div class="sales-v2-vel-foot"><span>Earlier</span><strong class="num" id="velocityValue"></strong><span>Latest</span></div>' +
+      '</div>' +
+      '<div class="sales-v2-hero-foot">' +
       '<span class="hero-kpi-pill" id="heroPillTarget" style="display:none"></span>' +
       '<span class="hero-kpi-pill gold" id="heroPillRegion" style="display:none"></span>' +
-      '</div></div></div>' +
-      '<div class="at-risk-card" id="atRiskCard" style="display:none">' +
-      '<div class="at-risk-icon">\u26a0\ufe0f</div>' +
-      '<div style="flex:1;">' +
-      '<div style="font-weight:700;color:var(--text-primary);" id="atRiskTitle"></div>' +
-      '<div style="font-size:12px;color:var(--text-secondary);font-weight:500;margin-top:2px;">Tap to see who needs attention</div>' +
-      '</div>' +
-      '<span style="font-size:18px;color:var(--text-tertiary);">\u203a</span>' +
-      '</div>' +
-      '<div class="velocity-card">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-      '<div style="font-weight:800;font-size:14px;font-family:Manrope,sans-serif;display:flex;align-items:center;gap:6px;">\ud83d\udcc8 Velocity</div>' +
-      '<div style="font-size:13px;color:var(--success);font-weight:700;font-family:Manrope,sans-serif;" id="velocityDelta"></div>' +
-      '</div>' +
-      '<div class="velocity-bars" id="velocityBars"></div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary);font-weight:600;">' +
-      '<span>13 days ago</span>' +
-      '<strong style="color:var(--text-primary);font-family:Manrope,sans-serif;" class="num" id="velocityValue"></strong>' +
-      '<span>today</span>' +
       '</div></div>' +
-      '<div class="velocity-card" id="brandsCard">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
-      '<div style="font-weight:800;font-size:14px;font-family:Manrope,sans-serif;display:flex;align-items:center;gap:6px;">\ud83c\udff7\ufe0f By brand</div>' +
-      '<button type="button" class="sales-see-all" data-sales-see-all="brand" style="font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;">See all \u203a</button>' +
-      '</div>' +
-      '<div id="brandBars"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div>' +
-      '</div>' +
-      '<div class="velocity-card" id="customersCard">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
-      '<div style="font-weight:800;font-size:14px;font-family:Manrope,sans-serif;display:flex;align-items:center;gap:6px;">\ud83d\udc65 Top customers</div>' +
-      '<button type="button" class="sales-see-all" data-sales-see-all="customers" style="font-size:12px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;">See all \u203a</button>' +
-      '</div>' +
-      '<div id="customerRows"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div>' +
-      '</div>' +
+      '<div class="sales-v2-section">' +
+      '<div class="sales-v2-section-hdr"><span>QUICK INSIGHTS</span>' +
+      '<button type="button" class="sales-v2-seeall" id="salesInsightsSeeAll">See all</button></div>' +
+      '<div class="sales-v2-insights-grid">' +
+      '<button type="button" class="sales-v2-insight" id="salesInsightWhitespace">' +
+      '<div class="sales-v2-insight-h"><span>\ud83d\udcc8</span> Whitespace</div>' +
+      '<div class="sales-v2-insight-num" id="salesWsCount">\u2014</div>' +
+      '<div class="sales-v2-insight-sub" id="salesWsSub">stores with 0 bags (MTD)</div></button>' +
+      '<button type="button" class="sales-v2-insight" id="salesInsightAtRisk">' +
+      '<div class="sales-v2-insight-h"><span>\u26a0\ufe0f</span> At risk</div>' +
+      '<div class="sales-v2-insight-num" id="salesArCount">\u2014</div>' +
+      '<div class="sales-v2-insight-sub" id="salesArSub">accounts need attention</div></button>' +
+      '</div></div>' +
+      '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>BREAKDOWN</span></div>' +
+      '<div class="sales-v2-card" id="brandsCard"><div class="sales-v2-card-h">' +
+      '<div class="sales-v2-card-title"><span>\ud83c\udff7\ufe0f</span> By brand</div>' +
+      '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="brand" ' +
+      'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;padding:0;">See all \u203a</button></div>' +
+      '<div id="brandBars"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div>' +
+      '<div class="sales-v2-card" id="customersCard"><div class="sales-v2-card-h">' +
+      '<div class="sales-v2-card-title"><span>\ud83d\udc65</span> By customer</div>' +
+      '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="customers" ' +
+      'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;padding:0;">See all \u203a</button></div>' +
+      '<div id="customerRows"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div></div>' +
+      '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>MORE MODULES</span></div>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-ar">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(244,63,94,0.12);">\ud83d\udcb0</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">AR overview</div>' +
+      '<div class="sales-v2-mod-sub">Aging &amp; collections</div></div><span class="sales-v2-mod-chev">\u203a</span></button>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-budget">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(139,92,246,0.12);">\ud83c\udfaf</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">Budget &amp; targets</div>' +
+      '<div class="sales-v2-mod-sub">Goals &amp; pacing</div></div><span class="sales-v2-mod-chev">\u203a</span></button>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-insights">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(14,165,233,0.12);">\ud83d\udca1</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">Customer insights</div>' +
+      '<div class="sales-v2-mod-sub">Opportunities</div></div><span class="sales-v2-mod-chev">\u203a</span></button>' +
+      '<button type="button" class="sales-v2-module" data-sales-nav="pg-inventory">' +
+      '<div class="sales-v2-mod-ico" style="background:rgba(245,158,11,0.12);">\ud83d\udce6</div>' +
+      '<div class="sales-v2-mod-body"><div class="sales-v2-mod-title">Inventory</div>' +
+      '<div class="sales-v2-mod-sub">Stock signals</div></div><span class="sales-v2-mod-chev">\u203a</span></button></div>' +
+      '<div class="sales-v2-hq-cta">' +
+      '<button type="button" id="salesV2OpenHq">Open full dashboard in VieForce HQ <span aria-hidden="true">\u2197</span></button>' +
+      '<div class="sales-v2-hq-hint">Desktop experience \u00b7 Full analytics</div></div>' +
       '</div>';
 
     _paintHeroMeta(data, period);
+    _paintSalesChrome(data);
 
     if (_lastDirect) {
       _renderDirectCards(_lastDirect);
-      _updateAtRiskStrip(_lastDirect);
       _paintVelocity(data, _lastDirect, period);
       _updateFreshness('ok');
     } else {
       _updateFreshness('loading');
+      _paintQuickInsights(null);
       renderVelocityBars([]);
     }
     _loadAllDirectSap(period);
@@ -459,23 +670,22 @@
   }
 
   function _updateFreshness(state) {
-    var host = document.getElementById('sales-sap-fresh-host');
-    if (!host) return;
+    var syncTxt = document.getElementById('salesV2SyncText');
     if (state === 'loading') {
-      host.innerHTML =
-        '<span class="sales-sap-fresh-dot sales-sap-fresh-dot-loading" role="status" aria-live="polite" title="Loading SAP"></span>';
+      if (syncTxt) syncTxt.textContent = 'Syncing SAP\u2026';
     } else if (state === 'error') {
-      host.innerHTML =
-        '<span class="sales-sap-fresh-dot sales-sap-fresh-dot-err" role="status" title="SAP unreachable"></span>';
+      if (syncTxt) syncTxt.textContent = 'SAP unavailable';
     } else if (state === 'ok' && _lastDirect) {
       var iso = (_lastDirect.patrol_meta && _lastDirect.patrol_meta.fetched_at) ||
         (_lastData && _lastData.patrol_meta && _lastData.patrol_meta.fetched_at);
       var label = _formatFreshness(iso);
-      host.innerHTML = label
-        ? '<span class="sales-sap-fresh-dot" role="img" aria-label="SAP synced ' + _esc(label) + '" title="SAP synced ' + _esc(label) + '"></span>'
-        : '';
+      if (syncTxt) {
+        syncTxt.textContent = label ? ('SAP synced ' + label) : 'SAP data loaded';
+      }
+    } else if (state === 'ok') {
+      if (syncTxt) syncTxt.textContent = 'SAP live';
     } else {
-      host.innerHTML = '';
+      if (syncTxt) syncTxt.textContent = 'Sales';
     }
   }
 
@@ -577,6 +787,7 @@
   function _renderDirectCards(data) {
     _renderByBrand(document.getElementById('brandBars'), data.by_brand || []);
     _renderByCustomer(document.getElementById('customerRows'), data.by_customer || []);
+    _paintQuickInsights(data);
   }
 
   function _renderByBrand(el, brands) {
@@ -688,6 +899,8 @@
         '<button type="button" class="sales-sap-retry">Retry</button></div>';
       var b = container.querySelector('.sales-sap-retry');
       if (b) b.addEventListener('click', function () { _lastKey = ''; refreshSalesTab(period); });
+      _updateFreshness('error');
+      _paintOnlineIndicator();
       return;
     }
 
@@ -699,6 +912,8 @@
     }
 
     _showLoading(container);
+    _updateFreshness('loading');
+    _paintOnlineIndicator();
 
     var url = '/api/sap/sales?period=' + encodeURIComponent(period);
     var data;
@@ -797,6 +1012,10 @@
     _bindExpandOnce();
     _bindPeriodRowOnce();
     _bindUnitRowOnce();
+    _bindSalesV2NavOnce();
+    _bindOnlineListenersOnce();
+    _paintSalesChrome(_lastData);
+    _paintOnlineIndicator();
     var pRow = document.querySelector('.sales-period-row');
     var pActive = pRow && pRow.querySelector('.sales-period-btn.active');
     var period = (pActive && pActive.getAttribute('data-period')) || 'MTD';

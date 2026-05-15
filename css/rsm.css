@@ -234,7 +234,8 @@
 /* ── Playbook card ──────────────────────────────────────── */
 #page-rsm-home .playbook-card {
   background: linear-gradient(135deg, rgba(49,162,76,0.08), rgba(149,201,61,0.08));
-  border-left: 4px solid var(--rsm-s-green);
+  border: 1px solid rgba(49, 162, 76, 0.22);
+  border-top: 4px solid var(--rsm-s-green);
   border-radius: 8px;
   padding: 14px;
   margin-top: 12px;
@@ -317,17 +318,11 @@
 #page-rsm-home .ws-num {
   font-size: 40px;
   font-weight: 900;
-  background: var(--rsm-grad);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #7c3aed;
   line-height: 1;
 }
 #page-rsm-home .whitespace-card.roi .ws-num {
-  background: linear-gradient(135deg, #31A24C, #95C93D);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #2f855a;
 }
 #page-rsm-home .ws-label {
   font-size: 12px;

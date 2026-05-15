@@ -5,3 +5,5 @@ node_modules
 .DS_Store
 test-results/
 playwright-report/
+# Supabase CLI (local temp; link writes project ref — keep secrets out of git)
+supabase/.temp/

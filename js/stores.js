@@ -111,11 +111,16 @@ window.renderStoreRowComponent = renderStoreRowComponent;
 
 function renderVisitBubbleComponent(opts) {
   var o = opts || {};
+  var photoHtml = '';
+  if (o.photoUrl) {
+    photoHtml = '<div class="visit-bubble-photo-wrap"><img class="visit-bubble-photo" src="' + _esc(o.photoUrl) + '" alt="Visit selfie"></div>';
+  }
   return '<div class="msg-row">' +
     '<div class="msg-av-small" style="background:' + _esc(o.avatarBg || '#5F6B76') + '">' + _esc(o.initials || '') + '</div>' +
     '<div>' +
       '<div class="bubble in visit-bubble-msg" onclick="showVisitDetail(\'' + _esc(o.visitId || '') + '\')">' +
         _esc(o.outcomeLabel || '') +
+        photoHtml +
         (o.notes ? '<br><span class="visit-bubble-notes">' + _esc(o.notes) + '</span>' : '') +
       '</div>' +
       '<div class="msg-time">' + _esc(o.timeText || '') + ' <span class="ticks gray">\u2713\u2713</span></div>' +
@@ -469,11 +474,13 @@ function _tFormatTimeAgo(ts) {
 
   var days = Math.floor(hours / 24);
   if (days === 1) return t('tindahan.time_yesterday');
-  if (days < 7) return t('tindahan.time_days_ago', { days: days });
+  if (days < 7) {
+    var d = new Date(ts);
+    return t('time.weekday_' + d.getDay() + '_short');
+  }
 
-  var d = new Date(ts);
-  var monthShort = ['Ene', 'Peb', 'Mar', 'Abr', 'May', 'Hun', 'Hul', 'Ago', 'Set', 'Okt', 'Nob', 'Dis'];
-  return monthShort[d.getMonth()] + ' ' + d.getDate();
+  var d2 = new Date(ts);
+  return t('time.month_' + d2.getMonth() + '_short') + ' ' + d2.getDate();
 }
 
 function _tNotificationCount(store) {
@@ -610,10 +617,15 @@ async function renderTindahan(externalFilter) {
   if (secAll) secAll.textContent = t('tindahan.section_all');
 
   var searchInput = document.getElementById('tindahan-store-search');
-  if (searchInput && !searchInput.getAttribute('data-ph-done')) {
+  if (searchInput) {
     searchInput.setAttribute('placeholder', t('tindahan.search_placeholder'));
-    searchInput.setAttribute('data-ph-done', '1');
+    searchInput.setAttribute('aria-label', t('tindahan.search_aria'));
   }
+
+  var hdrNew = document.getElementById('btn-new-store');
+  if (hdrNew) hdrNew.setAttribute('aria-label', t('tindahan.aria_new_store'));
+  var hdrAv = document.getElementById('stores-avatar-btn');
+  if (hdrAv) hdrAv.setAttribute('aria-label', t('tindahan.aria_profile'));
 
   if (typeof applyI18nLabels === 'function') {
     applyI18nLabels(document.getElementById('page-stores') || document);
@@ -740,6 +752,13 @@ async function renderTindahan(externalFilter) {
       '</small></div>';
     allEl.innerHTML = '';
     window.__patrolTindahanHydratedOnce = true;
+  } finally {
+    try {
+      var _ap = document.querySelector('.page.active');
+      if (_ap && typeof window.syncStoresPaneVisibility === 'function') {
+        window.syncStoresPaneVisibility(_ap.id);
+      }
+    } catch (eSync) {}
   }
 }
 
@@ -1191,3 +1210,19 @@ function applyStoresNavPreference() {
   return true;
 }
 window.applyStoresNavPreference = applyStoresNavPreference;
+
+window.addEventListener('patrol:locale-changed', function () {
+  var ap = document.querySelector('.page.active');
+  if (!ap || ap.id !== 'page-stores') return;
+  var tFn = typeof window.t === 'function' ? window.t : function (k) { return k; };
+  var si = document.getElementById('tindahan-store-search');
+  if (si) {
+    si.setAttribute('placeholder', tFn('tindahan.search_placeholder'));
+    si.setAttribute('aria-label', tFn('tindahan.search_aria'));
+  }
+  var nb = document.getElementById('btn-new-store');
+  if (nb) nb.setAttribute('aria-label', tFn('tindahan.aria_new_store'));
+  var sb = document.getElementById('stores-avatar-btn');
+  if (sb) sb.setAttribute('aria-label', tFn('tindahan.aria_profile'));
+  if (typeof renderStoreList === 'function') renderStoreList();
+});

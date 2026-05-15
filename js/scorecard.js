@@ -260,7 +260,8 @@ async function renderTsrScorecardHero() {
           _scStage('\ud83c\udfaf', T.conversion || 'Konbersyon', sc.conversion.stars,
             sc.conversion.converted + ' ' + (T.converted || 'converted') +
               ' \u00b7 ' + sc.conversion.rate + '% rate', sc.conversion.insight) +
-          _scStage('\ud83d\udc9a', T.retention || 'Retention', sc.retention.stars,
+          /* BMP heart (U+2764) — avoids surrogate-pair split showing as "dc9a" in some WebViews */
+          _scStage('\u2764', T.retention || 'Retention', sc.retention.stars,
             sc.retention.visited_pct + '% ' + (T.visited || 'na-bisita') +
               ' \u00b7 ' + sc.retention.at_risk + ' at-risk', sc.retention.insight) +
           _scStage('\ud83d\udcc8', T.growth || 'Paglago', sc.growth.stars,

@@ -5,6 +5,12 @@
 (function () {
   'use strict';
 
+  /**
+   * Team feed (Like / Comment / Share, composer, stories “create”) is not wired to a backend yet.
+   * When false, those controls are disabled so users are not teased with toasts. Visit → Tindahan stays on.
+   */
+  var FEED_SOCIAL_UI_ENABLED = false;
+
   var MOCK_FEED = [
     {
       type: 'achievement',
@@ -237,7 +243,16 @@
     }
     row.innerHTML = html;
     var createBtn = row.querySelector('[data-story-create]');
-    if (createBtn) createBtn.addEventListener('click', _openComposerStub);
+    if (createBtn) {
+      if (FEED_SOCIAL_UI_ENABLED) {
+        createBtn.addEventListener('click', _openComposerStub);
+      } else {
+        createBtn.setAttribute('aria-disabled', 'true');
+        createBtn.classList.add('story--disabled');
+        createBtn.removeAttribute('role');
+        createBtn.removeAttribute('tabindex');
+      }
+    }
   }
 
   function _roleShowsKpiStrip(roleLc) {
@@ -260,6 +275,11 @@
 
   function _renderShortcuts(el) {
     if (!el) return;
+    var leaderShortcut = FEED_SOCIAL_UI_ENABLED
+      ? '<button type="button" class="shortcut" data-shortcut="leader">' +
+        '<span class="shortcut-icon">🏆</span><span class="shortcut-main"><span class="shortcut-title">Leaderboard</span>' +
+        '<span class="shortcut-sub">Open leaderboard</span></span></button>'
+      : '';
     el.innerHTML =
       '<button type="button" class="shortcut" data-shortcut="overdue">' +
       '<span class="shortcut-icon">🚨</span><span class="shortcut-main"><span class="shortcut-title">3 Overdue</span>' +
@@ -270,11 +290,16 @@
       '<button type="button" class="shortcut" data-shortcut="ar">' +
       '<span class="shortcut-icon">⏰</span><span class="shortcut-main"><span class="shortcut-title">2 AR at risk</span>' +
       '<span class="shortcut-sub">AR tab</span></span></button>' +
-      '<button type="button" class="shortcut" data-shortcut="leader">' +
-      '<span class="shortcut-icon">🏆</span><span class="shortcut-main"><span class="shortcut-title">Leaderboard</span>' +
-      '<span class="shortcut-sub">Open leaderboard</span></span></button>';
+      leaderShortcut;
 
     el.querySelectorAll('.shortcut').forEach(function (btn) {
+      var sk = btn.getAttribute('data-shortcut');
+      if (!FEED_SOCIAL_UI_ENABLED && sk === 'prospects') {
+        btn.disabled = true;
+        btn.classList.add('shortcut--soon');
+        btn.title = 'Coming soon';
+        return;
+      }
       btn.addEventListener('click', function () {
         var k = btn.getAttribute('data-shortcut');
         if (k === 'overdue') {
@@ -399,17 +424,34 @@
       ' comments</span>' +
       '</div>';
 
+    var dis = FEED_SOCIAL_UI_ENABLED ? '' : ' disabled';
+    var disTitle = FEED_SOCIAL_UI_ENABLED ? '' : ' title="Coming soon"';
+    var disCls = FEED_SOCIAL_UI_ENABLED ? '' : ' post-action-btn--soon';
     html +=
       '<div class="post-actions">' +
       '<button type="button" class="post-action-btn' +
       (liked ? ' active' : '') +
-      '" data-feed-like="' +
+      disCls +
+      '"' +
+      dis +
+      disTitle +
+      ' data-feed-like="' +
       idx +
       '">👍 Like</button>' +
-      '<button type="button" class="post-action-btn" data-feed-comment="' +
+      '<button type="button" class="post-action-btn' +
+      disCls +
+      '"' +
+      dis +
+      disTitle +
+      ' data-feed-comment="' +
       idx +
       '">💬 Comment</button>' +
-      '<button type="button" class="post-action-btn" data-feed-share="' +
+      '<button type="button" class="post-action-btn' +
+      disCls +
+      '"' +
+      dis +
+      disTitle +
+      ' data-feed-share="' +
       idx +
       '">🔁 Share</button>' +
       '</div>' +
@@ -445,6 +487,7 @@
         if (uid && typeof window.navToProfile === 'function') window.navToProfile(uid);
         return;
       }
+      if (!FEED_SOCIAL_UI_ENABLED) return;
       var likeBtn = tgt.closest('[data-feed-like]');
       if (likeBtn) {
         var idx = parseInt(likeBtn.getAttribute('data-feed-like'), 10);
@@ -475,7 +518,11 @@
     var composerHint = greetLine.replace(/!$/, '') + ' — share a win or visit…';
 
     mount.innerHTML =
-      '<div class="feed-feed-mock-banner">Demo feed (mock data) — Phase 5 wires real posts</div>' +
+      '<div class="feed-feed-mock-banner">' +
+      (FEED_SOCIAL_UI_ENABLED
+        ? 'Demo feed (mock data) — Phase 5 wires real posts'
+        : 'Team feed preview — posts are sample data. Likes, comments, and share will be available in a future update.') +
+      '</div>' +
       '<div class="stories" data-feed-stories></div>' +
       '<div class="composer">' +
       '<div class="composer-row">' +
@@ -491,6 +538,12 @@
       '<div class="kpi-strip" data-feed-kpi></div>' +
       '<div data-feed-posts></div>';
 
+    var compEl = mount.querySelector('.composer');
+    if (compEl && !FEED_SOCIAL_UI_ENABLED) {
+      compEl.classList.add('composer--readonly');
+      compEl.title = 'Team posts and photos — coming in a future update';
+    }
+
     var av = mount.querySelector('[data-composer-avatar]');
     if (av) {
       var initials = '?';
@@ -499,26 +552,51 @@
         initials = ((parts[0] || '?').charAt(0) + (parts[1] ? parts[1].charAt(0) : '')).toUpperCase();
       }
       av.textContent = initials;
-      av.style.cursor = 'pointer';
-      av.addEventListener('click', function () {
-        var s = typeof window.getSession === 'function' ? window.getSession() : null;
-        if (s && s.id && typeof window.navToProfile === 'function') window.navToProfile(s.id);
-      });
+      if (FEED_SOCIAL_UI_ENABLED) {
+        av.style.cursor = 'pointer';
+        av.addEventListener('click', function () {
+          var s = typeof window.getSession === 'function' ? window.getSession() : null;
+          if (s && s.id && typeof window.navToProfile === 'function') window.navToProfile(s.id);
+        });
+      } else {
+        av.style.cursor = 'default';
+        av.setAttribute('aria-disabled', 'true');
+      }
     }
     var ci = mount.querySelector('[data-composer-input]');
     if (ci) {
-      ci.textContent = composerHint;
-      ci.addEventListener('click', _openComposerStub);
+      if (FEED_SOCIAL_UI_ENABLED) {
+        ci.textContent = composerHint;
+        ci.addEventListener('click', _openComposerStub);
+      } else {
+        ci.textContent = 'Team posts — coming soon';
+      }
     }
 
     var vBtn = mount.querySelector('[data-feed-visit]');
     if (vBtn) vBtn.addEventListener('click', openVisitFlow);
     var phBtn = mount.querySelector('[data-feed-photo]');
-    if (phBtn) phBtn.addEventListener('click', _composerPhotoStub);
+    if (phBtn) {
+      if (FEED_SOCIAL_UI_ENABLED) {
+        phBtn.addEventListener('click', _composerPhotoStub);
+      } else {
+        phBtn.disabled = true;
+        phBtn.classList.add('composer-action--soon');
+        phBtn.title = 'Coming soon';
+      }
+    }
     var prBtn = mount.querySelector('[data-feed-prospect]');
-    if (prBtn) prBtn.addEventListener('click', function () {
-      _toast('Prospects — Phase 5');
-    });
+    if (prBtn) {
+      if (FEED_SOCIAL_UI_ENABLED) {
+        prBtn.addEventListener('click', function () {
+          _toast('Prospects — Phase 5');
+        });
+      } else {
+        prBtn.disabled = true;
+        prBtn.classList.add('composer-action--soon');
+        prBtn.title = 'Coming soon';
+      }
+    }
 
     _renderStoriesMount(mount);
     _renderShortcuts(mount.querySelector('[data-feed-shortcuts]'));

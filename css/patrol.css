@@ -52,6 +52,14 @@ body {
   overflow-x: hidden;
 }
 
+/* Manager shell: body overflow-x:hidden clips the fixed 6-tab bar on some WebViews
+   (center tabs never paint). Field layout stays narrow; horizontal jitter is rare. */
+body.role-dsm,
+body.role-rsm,
+body.role-ceo {
+  overflow-x: visible;
+}
+
 /* DSM/Admin assignment screens — Elite Phase 2 uses Manrope stack */
 #page-dashboard, #page-dashboard *, #page-assign, #page-assign * {
   font-family: 'Manrope', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -72,7 +80,46 @@ h1, h2, h3, .heading-display, .kpi-value, .stat-value, .hero-value {
 .page { display: none; padding-bottom: 80px; min-height: 100vh; }
 /* !important: inline display:none on a .page (legacy markup / stale HTML) must not beat .active */
 .page.active { display: block !important; }
-#page-stores.active { display: flex !important; flex-direction: column; overflow: hidden; }
+/*
+ * Tindahan (#page-stores): must fully collapse when inactive. Inline flex + !important (legacy)
+ * or WebKit quirks could leave the store shell painted while other tabs look "selected".
+ */
+#page-stores.page:not(.active) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+#page-stores.page.active {
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+#page-stores.page:not(.active) .store-fab {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/*
+ * Manager FAB gating — MUST NOT rely on :has() (unsupported / flaky on many Android WebViews).
+ * body[data-patrol-active-page] is synced from nav() and js/nav-role-device.js renderNav().
+ */
+body.role-dsm[data-patrol-active-page="page-stores"] #fab-btn,
+body.role-rsm[data-patrol-active-page="page-stores"] #fab-btn,
+body.role-ceo[data-patrol-active-page="page-stores"] #fab-btn {
+  display: none !important;
+}
+
+body.role-dsm:not([data-patrol-active-page="page-stores"]) .store-fab,
+body.role-rsm:not([data-patrol-active-page="page-stores"]) .store-fab,
+body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 #page-store-detail.active { display: flex !important; flex-direction: column; height: 100vh; overflow: hidden; padding-bottom: 60px; }
 #page-store-new.active,
 #page-farm-new.active { display: flex !important; flex-direction: column; height: 100vh; overflow: hidden; padding-bottom: 60px; }
@@ -643,17 +690,45 @@ h1, h2, h3, .heading-display, .kpi-value, .stat-value, .hero-value {
 
 .bottom-nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
-  width: 100%; max-width: 480px;
+  width: 100%;
+  max-width: min(480px, 100vw);
   background: white; border-top: 1px solid var(--divider);
-  display: flex; z-index: 200;
+  /* Above overlays/sheets below More modal; below .more-sheet (5100) */
+  display: flex; z-index: 5000;
+  touch-action: manipulation;
   padding-bottom: 4px;
+  flex-wrap: nowrap;
+  /* If tabs still exceed width (translations, badges), pan instead of clipping */
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  box-sizing: border-box;
+}
+.bottom-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 .bottom-nav .nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  padding: 8px 4px 4px; cursor: pointer; border: none; background: none;
-  color: var(--text-muted); font-size: 10px; font-weight: 600; gap: 2px;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 2px 4px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  gap: 2px;
   transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
   position: relative;
+  /* DSM/RSM/CEO 6-tab bar: without this, min-width:auto + labels exceeds the
+     viewport and body overflow-x:hidden clips the middle tabs (Visit/Sales vanish). */
+  min-width: 0;
+  overflow: hidden;
 }
 .bottom-nav .nav-item:active { transform: scale(0.85); }
 .bottom-nav .nav-item.active { color: var(--fb-blue); }
@@ -669,8 +744,18 @@ h1, h2, h3, .heading-display, .kpi-value, .stat-value, .hero-value {
 }
 .bottom-nav .nav-item.active .nav-pip,
 .nav-item.on .nav-pip { display: block; }
-.nav-ico { font-size: 22px; }
-.nav-lbl { font-size: 10px; font-weight: 600; color: var(--text-muted); }
+.nav-ico { font-size: 22px; line-height: 1; flex-shrink: 0; }
+.nav-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  text-align: center;
+}
 .nav-item.on .nav-lbl { color: var(--fb-blue); }
 
 .card {
@@ -964,8 +1049,12 @@ h1, h2, h3, .heading-display, .kpi-value, .stat-value, .hero-value {
 
 /* ===== CROSS-SELL ===== */
 .opportunity-card {
-  background: white; border: 1px solid #eee; border-radius: var(--radius);
-  margin: 8px 16px; padding: 14px; border-left: 3px solid var(--gold);
+  background: white;
+  border: 1px solid rgba(241, 177, 29, 0.35);
+  border-radius: var(--radius);
+  margin: 8px 16px;
+  padding: 14px;
+  box-shadow: inset 0 3px 0 var(--gold);
 }
 .missing-groups {
   display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px;
@@ -1519,6 +1608,16 @@ h1, h2, h3, .heading-display, .kpi-value, .stat-value, .hero-value {
   opacity: 0.85;
   font-size: 13px;
   color: var(--text-secondary);
+}
+.visit-bubble-photo-wrap {
+  margin-top: 8px;
+}
+.visit-bubble-photo {
+  width: 100%;
+  max-width: 220px;
+  border-radius: 12px;
+  display: block;
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 .bubble.out {
   background: var(--fb-blue);
@@ -2167,6 +2266,22 @@ body:has(#page-farm-new.active)  #fab-btn {
   height: 1px; background: var(--map-border); margin: 6px 0;
 }
 
+.map-tsr-legend-host {
+  max-height: 140px;
+  overflow-y: auto;
+  margin-top: 4px;
+}
+.map-tsr-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+.map-legend-tsr-row {
+  gap: 8px;
+}
+
 /* My Location button — floating glass */
 .map-locate-btn {
   position: absolute; bottom: 90px; right: 12px; z-index: 100;
@@ -2325,7 +2440,8 @@ body:has(#page-farm-new.active)  #fab-btn {
 /* ── Attention strip (Task 1) ── */
 .dsm-panel .alert-strip {
   background: linear-gradient(90deg, rgba(250,56,62,0.08), rgba(247,185,40,0.08));
-  border-left: 4px solid var(--status-crit);
+  border: 1px solid rgba(250, 56, 62, 0.22);
+  border-top: 4px solid var(--status-crit);
   border-radius: 8px;
   padding: 12px 16px;
   margin-bottom: 16px;
@@ -2335,7 +2451,8 @@ body:has(#page-farm-new.active)  #fab-btn {
 }
 .dsm-panel .alert-strip.empty {
   background: linear-gradient(90deg, rgba(49,162,76,0.08), rgba(0,132,255,0.08));
-  border-left-color: var(--status-ok);
+  border-color: rgba(49, 162, 76, 0.22);
+  border-top-color: var(--status-ok);
 }
 .dsm-panel .alert-icon { font-size: 20px; flex-shrink: 0; }
 .dsm-panel .alert-body { flex: 1; font-size: 13px; }
@@ -2492,12 +2609,13 @@ body:has(#page-farm-new.active)  #fab-btn {
   border-radius: 12px;
   padding: 14px;
   margin-bottom: 10px;
-  border-left: 4px solid var(--fb-blue);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 4px solid var(--fb-blue);
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
-.dsm-panel .coaching-card.urgent   { border-left-color: var(--status-crit); }
-.dsm-panel .coaching-card.positive { border-left-color: var(--status-ok); }
-.dsm-panel .coaching-card.push     { border-left-color: #F59E0B; }
+.dsm-panel .coaching-card.urgent   { border-top-color: var(--status-crit); }
+.dsm-panel .coaching-card.positive { border-top-color: var(--status-ok); }
+.dsm-panel .coaching-card.push     { border-top-color: #F59E0B; }
 .dsm-panel .coaching-top {
   display: flex;
   gap: 10px;
@@ -3341,7 +3459,7 @@ body:has(#page-farm-new.active)  #fab-btn {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
   border: 1px solid #E4ECF5;
-  border-left: 4px solid #0084FF;
+  border-top: 4px solid #0084FF;
 }
 .dsm-dash .team-cta:active {
   transform: scale(0.99);

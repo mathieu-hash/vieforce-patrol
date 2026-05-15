@@ -406,7 +406,29 @@
     alert('Message — TODO Phase 5');
   };
   window.patrolPhase4MoreStub = function () {
-    alert('More actions — TODO Phase 5');
+    var settings = document.getElementById('profileSettingsOwn');
+    var active = document.querySelector('.page.active');
+    var aid = active ? active.id : '';
+    if (settings && aid === 'page-profile' && settings.offsetParent !== null) {
+      try {
+        settings.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (_e) {
+        settings.scrollIntoView(true);
+      }
+      return;
+    }
+    if (typeof window.openMoreSheet === 'function') {
+      window.openMoreSheet();
+      return;
+    }
+    var btn = document.getElementById('btn-logout');
+    if (btn && typeof btn.scrollIntoView === 'function') {
+      try {
+        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (_e2) {
+        btn.scrollIntoView(true);
+      }
+    }
   };
 
   function navToProfile(userId) {
@@ -806,17 +828,57 @@
     return rows;
   }
 
-  function renderPodium(top3) {
-    var pod = document.getElementById('podium');
-    if (!pod) return;
-    if (!top3 || top3.length === 0) {
-      pod.innerHTML =
-        '<div class="phase4-muted-hint" style="padding:28px 16px;">No team ranked yet</div>';
-      return;
+  /** HQ alignment: never rank RSM + DSM (or Exec + managers) on one mixed podium. */
+  function assignLeaderTier(row) {
+    var lr = _normRole(row.role);
+    if (lr === 'exec' || lr === 'ceo' || lr === 'director' || lr === 'evp' || lr === 'president' || lr === 'admin') {
+      return 'executive';
     }
+    if (lr === 'rsm') return 'regional';
+    if (lr === 'dsm') return 'district';
+    return 'field';
+  }
+
+  function partitionRowsByLeaderTier(rows) {
+    var buckets = { executive: [], regional: [], district: [], field: [] };
+    var i;
+    for (i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var k = assignLeaderTier(row);
+      buckets[k].push(row);
+    }
+    var keys = ['executive', 'regional', 'district', 'field'];
+    for (var ki = 0; ki < keys.length; ki++) {
+      var key = keys[ki];
+      buckets[key].sort(function (a, b) {
+        return b.bags - a.bags;
+      });
+      for (var j = 0; j < buckets[key].length; j++) {
+        buckets[key][j].tierRank = j + 1;
+      }
+    }
+    return buckets;
+  }
+
+  function countNonEmptyLeaderTiers(parts) {
+    var n = 0;
+    if (parts.executive.length) n++;
+    if (parts.regional.length) n++;
+    if (parts.district.length) n++;
+    if (parts.field.length) n++;
+    return n;
+  }
+
+  /** When ≥2 tiers have people, render separate podiums (no mixed RSM/DSM top-3). */
+  function shouldUseTieredLeaderLayout(parts) {
+    return countNonEmptyLeaderTiers(parts) >= 2;
+  }
+
+  function buildPodiumMarkup(top3) {
+    if (!top3 || top3.length === 0) return '';
     if (top3.length === 1) {
       var only = top3[0];
-      pod.innerHTML =
+      return (
         '<div style="display:flex;flex-direction:column;align-items:center;padding:16px;gap:10px;">' +
         '<div class="podium-crown">\ud83d\udc51</div>' +
         '<div class="avatar lg elite-ring" style="background:linear-gradient(135deg,#FFC72C,#FA9E1B);">' +
@@ -828,13 +890,13 @@
         '</div>' +
         '<div class="podium-stat gold">' +
         only.bags.toLocaleString('en-PH') +
-        ' bags \ud83d\udd25</div></div>';
-      return;
+        ' bags \ud83d\udd25</div></div>'
+      );
     }
     if (top3.length === 2) {
       var first = top3[0];
       var second = top3[1];
-      pod.innerHTML =
+      return (
         '<div class="podium" style="display:flex;justify-content:center;gap:20px;align-items:flex-end;padding:12px 8px;">' +
         '<div class="podium-spot" style="text-align:center;max-width:42%;">' +
         '<div class="avatar lg silver-ring">' +
@@ -858,13 +920,13 @@
         '</div>' +
         '<div class="podium-stat gold">' +
         first.bags.toLocaleString('en-PH') +
-        ' bags \ud83d\udd25</div></div></div>';
-      return;
+        ' bags \ud83d\udd25</div></div></div>'
+      );
     }
     var sec = top3[1];
     var fst = top3[0];
     var thd = top3[2];
-    pod.innerHTML =
+    return (
       '<div class="podium-spot">' +
       '<div class="avatar lg silver-ring">' +
       _escapeHtml(sec.initials) +
@@ -898,7 +960,51 @@
       '</div>' +
       '<div class="podium-stat">' +
       thd.bags.toLocaleString('en-PH') +
-      ' bags</div></div>';
+      ' bags</div></div>'
+    );
+  }
+
+  function renderPodiumStacked(parts) {
+    var pod = document.getElementById('podium');
+    if (!pod) return;
+    pod.classList.add('podium--stacked');
+    var tiers = [
+      { key: 'executive', label: 'Executive' },
+      { key: 'regional', label: 'Regional (RSM)' },
+      { key: 'district', label: 'District (DSM)' },
+      { key: 'field', label: 'Field (TSR)' }
+    ];
+    var html = '';
+    var ti;
+    for (ti = 0; ti < tiers.length; ti++) {
+      var tk = tiers[ti].key;
+      var tierRows = parts[tk] || [];
+      if (tierRows.length === 0) continue;
+      var label = tiers[ti].label;
+      html +=
+        '<div class="leaderboard-tier-block">' +
+        '<div class="section-label phase4-section leaderboard-tier-title">' +
+        _escapeHtml(label) +
+        '</div>' +
+        '<div class="podium">' +
+        buildPodiumMarkup(tierRows.slice(0, Math.min(3, tierRows.length))) +
+        '</div></div>';
+    }
+    pod.innerHTML =
+      html ||
+      '<div class="phase4-muted-hint" style="padding:28px 16px;">No team ranked yet</div>';
+  }
+
+  function renderPodium(top3) {
+    var pod = document.getElementById('podium');
+    if (!pod) return;
+    pod.classList.remove('podium--stacked');
+    if (!top3 || top3.length === 0) {
+      pod.innerHTML =
+        '<div class="phase4-muted-hint" style="padding:28px 16px;">No team ranked yet</div>';
+      return;
+    }
+    pod.innerHTML = buildPodiumMarkup(top3);
   }
 
   function renderRankingsRest(sorted) {
@@ -944,6 +1050,65 @@
       '<div class="phase4-muted-hint">Walang iba pang ranking.</div>';
   }
 
+  function renderRankingsTiered(parts) {
+    var list = document.getElementById('rankingsList');
+    if (!list) return;
+    var tiers = [
+      { key: 'executive', label: 'Executive' },
+      { key: 'regional', label: 'Regional (RSM)' },
+      { key: 'district', label: 'District (DSM)' },
+      { key: 'field', label: 'Field (TSR)' }
+    ];
+    var html = '';
+    var ti;
+    for (ti = 0; ti < tiers.length; ti++) {
+      var tierRows = parts[tiers[ti].key] || [];
+      var slice = tierRows.slice(3);
+      if (slice.length === 0) continue;
+      html +=
+        '<div class="leaderboard-tier-rank-hdr section-label phase4-section leaderboard-tier-title">' +
+        _escapeHtml(tiers[ti].label) +
+        ' · rankings</div>';
+      var i;
+      for (i = 0; i < slice.length; i++) {
+        var u = slice[i];
+        var rank = u.tierRank;
+        var deltaText = u.delta > 0 ? '+' + u.delta : String(u.delta);
+        var deltaColor = u.delta >= 0 ? 'var(--success)' : 'var(--danger)';
+        var arrow = u.delta >= 0 ? '▲' : '▼';
+        html +=
+          '<div class="row" onclick="patrolNavToProfileSafe(\'' +
+          String(u.id).replace(/'/g, "\\'") +
+          '\')" style="cursor:pointer">' +
+          '<div style="width:24px;text-align:center;font-size:14px;font-weight:800;color:var(--text-secondary);font-family:Manrope,sans-serif">' +
+          rank +
+          '</div>' +
+          '<div class="avatar">' +
+          _escapeHtml(u.initials) +
+          '</div>' +
+          '<div class="row-content">' +
+          '<div class="row-title">' +
+          _escapeHtml(u.name) +
+          '</div>' +
+          '<div class="row-subtitle">' +
+          _escapeHtml(u.role) +
+          ' · ' +
+          u.bags.toLocaleString('en-PH') +
+          ' bags</div></div>' +
+          '<div style="font-size:11px;color:' +
+          deltaColor +
+          ';font-weight:800;font-family:Manrope,sans-serif;white-space:nowrap">' +
+          arrow +
+          ' ' +
+          _escapeHtml(deltaText) +
+          '</div></div>';
+      }
+    }
+    list.innerHTML =
+      html ||
+      '<div class="phase4-muted-hint">Walang iba pang ranking.</div>';
+  }
+
   window.patrolNavToProfileSafe = function (id) {
     navToProfile(id);
   };
@@ -958,15 +1123,29 @@
     restoreLeaderboardRankedLayout();
 
     var rows = await buildLeaderboardRows(_leaderPeriod);
-    renderPodium(rows.slice(0, Math.min(3, rows.length)));
-    renderRankingsRest(rows);
-
     var sess = typeof window.getSession === 'function' ? window.getSession() : null;
+    var parts = partitionRowsByLeaderTier(rows);
+    var tiered = shouldUseTieredLeaderLayout(parts);
+    if (tiered) {
+      renderPodiumStacked(parts);
+      renderRankingsTiered(parts);
+    } else {
+      renderPodium(rows.slice(0, Math.min(3, rows.length)));
+      renderRankingsRest(rows);
+    }
+
     var me = rows.filter(function (r) {
       return sess && String(r.id) === String(sess.id);
     })[0];
     var syn = me ? _deriveSyntheticUser(me) : { bags_mtd: 0, streak_days: 0, prospects_converted: 0, avg_visits_per_day: 0, rank: 99 };
     if (me) syn.rank = me.rank;
+    if (tiered && me && sess) {
+      var tk = assignLeaderTier(me);
+      var inTier = (parts[tk] || []).filter(function (r) {
+        return String(r.id) === String(sess.id);
+      })[0];
+      if (inTier) syn.rank = inTier.tierRank;
+    }
     var unlocked = checkUnlocked(syn);
     renderBadges(document.getElementById('ownBadges'), unlocked);
   }
@@ -1281,4 +1460,15 @@
     var sess = typeof window.getSession === 'function' ? window.getSession() : null;
     if (sess && sess.id && typeof navToProfile === 'function') navToProfile(sess.id);
   };
+
+  window.addEventListener('patrol:locale-changed', function () {
+    var ap = document.querySelector('.page.active');
+    if (ap && ap.id === 'page-profile') {
+      if (typeof window.applyI18nLabels === 'function') window.applyI18nLabels(document.getElementById('page-profile') || document.body);
+      var uid = window._patrolProfileUserId;
+      var sess = typeof window.getSession === 'function' ? window.getSession() : null;
+      if (!uid && sess) uid = sess.id;
+      if (typeof window.loadPatrolProfile === 'function') window.loadPatrolProfile(uid);
+    }
+  });
 })();

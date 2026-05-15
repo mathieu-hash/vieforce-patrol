@@ -69,6 +69,15 @@ Failure modes:
 - HQ 5xx / network failure → `502` with `{ error, hq_status }`
 - HQ timeout (10s) → `504`
 
+## Troubleshooting: Sales tab stuck / zeros / “SAP unavailable”
+
+1. **Browser Network** — Open DevTools → Network → `sales?period=MTD` (or `sales/all`).
+   - **401** on `/api/sap/sales` → missing/invalid `x-session-id` or user inactive; sign in again.
+   - **502 / 504** → Patrol could not get a good response from HQ. On Vercel, confirm **`HQ_SERVICE_TOKEN`** matches **`HQ_SERVICE_TOKEN`** on the HQ Cloud Run service (same secret string). Confirm **`SUPABASE_SERVICE_ROLE_KEY`** is set (session verification).
+2. **`patrol_meta.is_empty === true`** (or UI: “No SAP territory mapped”) → HQ resolved `scope=user:<uuid>` to **no SlpCodes and no district codes**. Fix **`public.users`**: set **`sap_slpcode`** / **`sap_district_code`** from SAP, and for DSMs ensure TSRs have **`manager_id`** + **`sap_slpcode`**. See VieForce HQ `api/_scope.js`.
+3. **Scope not empty but KPIs stay 0** → mapping is narrow or wrong (e.g. SlpCode doesn’t match invoiced BPs). Validate in SAP (OSLP / OCRD) and adjust `users` rows — not a Patrol code bug.
+4. **Never** point Patrol browser at SQL Server — Vercel IPs are not on the SAP firewall; all SAP reads go **Patrol → HQ Cloud Run → MSSQL**.
+
 ## Required env vars (set in Vercel project settings)
 
 | Name | Required | Default | Purpose |

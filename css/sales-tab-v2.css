@@ -1,0 +1,490 @@
+/* Sales tab — improved shell (local mockup parity, VieForce tokens) */
+
+.page-sales-density {
+  padding: 0 0 calc(var(--density-nav-h, 56px) + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-chat, #f8fafc);
+}
+
+.sales-v2-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg, #fff);
+  border-bottom: 1px solid var(--divider, #e4e6eb);
+  color: var(--text-secondary, #64748b);
+}
+.sales-v2-status-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sales-v2-sync-ico {
+  font-size: 10px;
+  opacity: 0.75;
+}
+#salesV2SyncText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sales-v2-status-right {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  color: var(--text-secondary, #64748b);
+}
+.sales-v2-online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success, #22c55e);
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+.sales-v2-online-dot.off {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+.sales-v2-head-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg, #fff);
+  border-bottom: 1px solid var(--divider, #e4e6eb);
+}
+
+.sales-v2-header {
+  padding: 16px 16px 10px;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.sales-v2-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.sales-v2-title {
+  font-family: Manrope, Inter, system-ui, sans-serif;
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.1;
+  margin: 0;
+}
+#salesV2ScopeSubtitle {
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.sales-v2-user-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+#salesV2TerritoryPill {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent, #00a6ce), #0088aa);
+  box-shadow: 0 2px 8px rgba(0, 166, 206, 0.35);
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (min-width: 360px) {
+  #salesV2TerritoryPill {
+    display: inline-flex;
+  }
+}
+.sales-v2-user-text {
+  text-align: right;
+  min-width: 0;
+}
+#salesV2UserName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+#salesV2UserMeta {
+  font-size: 10px;
+  color: var(--text-secondary, #64748b);
+  margin-top: 1px;
+}
+#salesV2UserAv {
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent, #00a6ce), #0088aa);
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.page-sales-density .sales-head-bar.sales-v2-toggles {
+  padding: 0 16px 12px;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.sales-page-inner.sales-v2-inner {
+  padding: 12px 14px 28px;
+  max-width: 520px;
+}
+
+.sales-v2-container {
+  padding-bottom: 8px;
+}
+
+.sales-v2-hero-card {
+  background: var(--bg, #fff);
+  border-radius: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 16px 16px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+[data-theme='dark'] .sales-v2-hero-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+.sales-v2-hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sales-v2-hero-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+.sales-v2-hero-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2d7ff9, var(--accent, #00a6ce));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.sales-v2-hero-card .hero-kpi-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary, #64748b);
+}
+.sales-v2-hero-card .hero-kpi-value {
+  font-size: 2.35rem;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.sales-v2-hero-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+.sales-v2-hero-right .hero-kpi-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+.sales-v2-mom-sub {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--success, #15803d);
+  margin-top: 4px;
+}
+.sales-v2-mom-sub.mom-neg {
+  color: var(--danger, #dc2626);
+}
+
+.sales-v2-hero-card .velocity-bars {
+  height: 52px;
+  margin: 4px 0 6px;
+}
+.sales-v2-hero-card .velocity-bar {
+  border-radius: 3px 3px 1px 1px;
+}
+
+.sales-v2-vel-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  padding: 0 2px;
+}
+#velocityValue {
+  color: var(--text-primary, #0f172a);
+  font-family: Manrope, sans-serif;
+  font-size: 12px;
+}
+
+.sales-v2-hero-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider, #e4e6eb);
+  font-size: 12px;
+}
+.sales-v2-hero-foot .hero-kpi-pill {
+  font-size: 11px;
+}
+
+.sales-v2-section {
+  margin-bottom: 16px;
+}
+.sales-v2-section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary, #64748b);
+}
+.sales-v2-seeall {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--accent, #00a6ce);
+  cursor: pointer;
+}
+
+.sales-v2-insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.sales-v2-insight {
+  text-align: left;
+  background: var(--bg, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  padding: 14px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  font: inherit;
+  color: inherit;
+}
+.sales-v2-insight:active {
+  transform: scale(0.99);
+}
+[data-theme='dark'] .sales-v2-insight {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.sales-v2-insight-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.sales-v2-insight-num {
+  font-size: 1.75rem;
+  font-weight: 800;
+  font-family: Manrope, sans-serif;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.sales-v2-insight-sub {
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.sales-v2-card {
+  background: var(--bg, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  padding: 14px 14px 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+[data-theme='dark'] .sales-v2-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+.sales-v2-card-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sales-v2-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.sales-v2-card-tag {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 600;
+}
+
+.sales-v2-module {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: var(--bg, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+.sales-v2-module:active {
+  transform: scale(0.995);
+}
+.sales-v2-module:hover {
+  border-color: rgba(0, 166, 206, 0.35);
+}
+[data-theme='dark'] .sales-v2-module {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.sales-v2-mod-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.sales-v2-mod-body {
+  flex: 1;
+  min-width: 0;
+}
+.sales-v2-mod-title {
+  font-size: 14px;
+  font-weight: 700;
+}
+.sales-v2-mod-sub {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin-top: 2px;
+}
+.sales-v2-mod-chev {
+  color: var(--text-tertiary, #cbd5e1);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.sales-v2-hq-cta {
+  text-align: center;
+  margin-top: 8px;
+  padding: 0 4px 8px;
+}
+#salesV2OpenHq {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(90deg, var(--accent, #00a6ce), #0088aa);
+  box-shadow: 0 6px 20px rgba(0, 166, 206, 0.35);
+}
+#salesV2OpenHq:active {
+  filter: brightness(1.05);
+}
+.sales-v2-hq-hint {
+  font-size: 10px;
+  color: var(--text-secondary, #94a3b8);
+  margin-top: 10px;
+}
+
+/* Hero: no shimmer in v2 card (cleaner) */
+.sales-v2-hero-card .hero-kpi-content {
+  min-width: 0;
+}
+.sales-v2-container .velocity-card {
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+.sales-v2-container .velocity-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Brand / customer lists inside v2 cards */
+.sales-v2-card .brand-bar-row + .brand-bar-row {
+  margin-top: 10px;
+}
+.sales-v2-card .customer-row-p3 {
+  padding: 8px 0;
+}
+
+/* MoM pill: negative month-over-month */
+.sales-v2-hero-right .hero-kpi-pill.down {
+  color: var(--danger, #dc2626);
+  background: rgba(220, 38, 38, 0.1);
+}

@@ -1,15 +1,28 @@
 {
   "name": "vieforce-patrol",
-  "version": "1.0.0",
+  "version": "3.1.0-beta.1",
   "description": "",
   "main": "config.js",
   "scripts": {
     "test": "playwright test",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test --project=chromium-desktop",
+    "test:e2e:all": "playwright test",
+    "test:e2e:mobile": "playwright test --project=chromium-mobile",
+    "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright test --reporter=html",
-    "test:unit": "node --test tests/unit/hq-client.test.js tests/unit/scope.test.js tests/unit/role-scope.test.js tests/unit/offline-queue-payload.test.js tests/unit/patrol-duplicate-error.test.js tests/unit/sales-tab-format.test.js tests/unit/sales-queries.test.js tests/unit/stores-nav-pref.test.js tests/unit/sap-sales-all.test.js tests/unit/sap-sales.test.js tests/unit/sap-ar.test.js tests/unit/sap-customers.test.js tests/unit/sap-customer.test.js tests/unit/sap-inventory.test.js tests/unit/sap-speed.test.js",
+    "test:e2e:prod-smoke": "playwright test --project=chromium-desktop --grep @smoke",
+    "test:e2e:live": "playwright test",
+    "check:locales": "node scripts/check-locale-parity.mjs",
+    "test:unit": "npm run check:locales && node --test tests/unit/hq-client.test.js tests/unit/scope.test.js tests/unit/role-scope.test.js tests/unit/offline-queue-payload.test.js tests/unit/patrol-duplicate-error.test.js tests/unit/sales-tab-format.test.js tests/unit/sales-queries.test.js tests/unit/stores-nav-pref.test.js tests/unit/sap-sales-all.test.js tests/unit/sap-sales.test.js tests/unit/sap-ar.test.js tests/unit/sap-customers.test.js tests/unit/sap-customer.test.js tests/unit/sap-inventory.test.js tests/unit/sap-speed.test.js",
     "fix:supabase-auth-url": "node scripts/patch-supabase-auth-url.mjs",
-    "check:supabase-auth": "node scripts/check-supabase-auth-config.mjs"
+    "check:supabase-auth": "node scripts/check-supabase-auth-config.mjs",
+    "sb": "supabase",
+    "sb:login": "supabase login",
+    "sb:link": "supabase link --project-ref yolxcmeoovztuindrglk",
+    "sb:push": "supabase db push",
+    "sb:migration:list": "supabase migration list",
+    "sb:fn:deploy-verify-pin": "supabase functions deploy verify-pin",
+    "deploy:vercel": "vercel deploy --prod --yes"
   },
   "repository": {
     "type": "git",
@@ -24,6 +37,7 @@
   "homepage": "https://github.com/mathieu-hash/vieforce-patrol#readme",
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "supabase": "^2.98.0"
   }
 }

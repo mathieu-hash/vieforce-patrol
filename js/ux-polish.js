@@ -74,8 +74,15 @@ function _showActionSheet(storeId) {
   // Store reference for actions
   sheet.setAttribute('data-store-id', storeId);
   sheet.setAttribute('data-store-phone', (store && store.phone) || '');
+  sheet.setAttribute('data-owner-messenger', (store && store.owner_messenger) || '');
   sheet.setAttribute('data-store-lat', (store && store.lat) || '');
   sheet.setAttribute('data-store-lng', (store && store.lng) || '');
+
+  var msBtn = document.getElementById('action-sheet-messenger-btn');
+  if (msBtn) {
+    var hasMs = store && store.owner_messenger && String(store.owner_messenger).trim();
+    msBtn.style.display = hasMs ? '' : 'none';
+  }
 
   overlay.classList.add('visible');
 
@@ -95,6 +102,15 @@ function actionSheetCall() {
   if (phone) {
     window.location.href = 'tel:' + phone;
   }
+}
+
+function actionSheetMessenger() {
+  var sheet = document.getElementById('action-sheet');
+  var raw = sheet ? sheet.getAttribute('data-owner-messenger') : '';
+  closeActionSheet();
+  if (!raw || !String(raw).trim()) return;
+  var href = typeof patrolMessengerHref === 'function' ? patrolMessengerHref(raw) : '';
+  if (href) window.open(href, '_blank', 'noopener,noreferrer');
 }
 
 function actionSheetDirections() {

@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts"
 
 // --- CORS --- allow all origins (public login endpoint)
 const corsHeaders = {
@@ -101,31 +100,6 @@ serve(async (req) => {
   try {
     const body = await req.json()
 
-    // --- /hash-pin admin endpoint ---
-    if (body.action === 'hash' && body.pin) {
-      // Require service_role key
-      const authHeader = req.headers.get('authorization') || ''
-      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-      if (!authHeader.includes(serviceKey)) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized — service_role key required' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-      const pinToHash = validatePin(body.pin)
-      if (!pinToHash) {
-        return new Response(
-          JSON.stringify({ error: 'PIN must be 4-6 digits' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-      const hash = await bcrypt.hash(pinToHash)
-      return new Response(
-        JSON.stringify({ hash }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
     // --- Normal login flow ---
     const { phone: rawPhone, pin: rawPin } = body
 
@@ -163,7 +137,7 @@ serve(async (req) => {
 
     const { data: user, error } = await supabase
       .from('users')
-      .select('id,name,role,region,district,territory,pin_hash,is_active')
+      .select('id,name,role,region,district,territory,phone,email,is_champion,pin_hash,is_active,language')
       .eq('phone', phone)
       .eq('is_active', true)
       .single()
@@ -181,19 +155,9 @@ serve(async (req) => {
       )
     }
 
-    // PIN verification: try bcrypt first, then plain-text fallback for migration
-    let pinMatch = false
-    try {
-      pinMatch = await bcrypt.compare(pin, user.pin_hash)
-    } catch (_) {
-      // bcrypt.compare throws if pin_hash is not a valid bcrypt string
-      // Fall through to plain-text comparison for seed/migration users
-    }
-
-    // Plain-text fallback (for seed users until PINs are rehashed)
-    if (!pinMatch && user.pin_hash === pin) {
-      pinMatch = true
-    }
+    // Plaintext PIN only (pin_hash column = digits as stored by admin / seeds).
+    // Legacy bcrypt values will not match — reset PIN in Sales Admin once.
+    const pinMatch = user.pin_hash === pin
 
     if (!pinMatch) {
       recordAttempt(phone)
@@ -217,7 +181,11 @@ serve(async (req) => {
       role: user.role,
       region: user.region,
       district: user.district,
-      territory: user.territory
+      territory: user.territory,
+      phone: user.phone,
+      email: user.email,
+      is_champion: user.is_champion,
+      language: user.language ?? 'en'
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

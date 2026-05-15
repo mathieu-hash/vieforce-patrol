@@ -114,6 +114,7 @@ var LABELS = {
     contact:       'Kontak',
     owner:         'May-ari',
     phone:         'Telepono',
+    messenger:     'Messenger',
     supplyChain:   'Supply Chain',
     commercial:    'Komersyal',
     totalMonthlyVol:'Kabuuang buwanang volume',
@@ -186,6 +187,7 @@ var LABELS = {
     signOut:     'Mag-sign out',
     adminPanel:  'Admin Panel',
     account:     'Account',
+    emailLabel:  'Email',
     territory:   'Territory',
     role:        'Role',
 
@@ -200,6 +202,18 @@ var LABELS = {
     warning:     'Babala',
     ok:          'OK',
     thisWeek:    'Ngayong Linggo',
+
+    // Visits page (list)
+    visitsPageTitle: 'Mga Bisita',
+    visitsSectionRecent: 'KAMAKAILAN',
+    visitsSearchPh: 'Hanapin ang bisita...',
+    visitsChipMapping: 'Mapping',
+    visitsAriaLogVisit: 'Mag-log ng bisita',
+    visitsSubtitle: function(n, week) {
+      var s = n === 1 ? '1 bisita' : n + ' na bisita';
+      return week ? s + ' ngayong linggo' : s;
+    },
+    visitsByTsr: 'TSR',
 
     // Map page
     territoryMap: 'Mapa ng Teritoryo',
@@ -426,6 +440,7 @@ var LABELS = {
     contact:       'Kontak',
     owner:         'Tag-iya',
     phone:         'Telepono',
+    messenger:     'Messenger',
     supplyChain:   'Supply Chain',
     commercial:    'Komersyal',
     totalMonthlyVol:'Kinatibuk-ang bulanan nga volume',
@@ -498,6 +513,7 @@ var LABELS = {
     signOut:     'Mag-sign out',
     adminPanel:  'Admin Panel',
     account:     'Account',
+    emailLabel:  'Email',
     territory:   'Territory',
     role:        'Role',
 
@@ -512,6 +528,18 @@ var LABELS = {
     warning:     'Babala',
     ok:          'OK',
     thisWeek:    'Karong Semana',
+
+    // Visits page (list)
+    visitsPageTitle: 'Mga Bisita',
+    visitsSectionRecent: 'KARON',
+    visitsSearchPh: 'Pangitaa ang bisita...',
+    visitsChipMapping: 'Mapping',
+    visitsAriaLogVisit: 'I-log ang bisita',
+    visitsSubtitle: function(n, week) {
+      var s = n === 1 ? '1 ka bisita' : n + ' ka bisita';
+      return week ? s + ' karong semana' : s;
+    },
+    visitsByTsr: 'TSR',
 
     // Map page
     territoryMap: 'Mapa sa Teritoryo',
@@ -738,6 +766,7 @@ var LABELS = {
     contact:       'Contact',
     owner:         'Owner',
     phone:         'Phone',
+    messenger:     'Messenger',
     supplyChain:   'Supply Chain',
     commercial:    'Commercial',
     totalMonthlyVol:'Total monthly volume',
@@ -810,6 +839,7 @@ var LABELS = {
     signOut:     'Sign out',
     adminPanel:  'Admin Panel',
     account:     'Account',
+    emailLabel:  'Email',
     territory:   'Territory',
     role:        'Role',
 
@@ -824,6 +854,17 @@ var LABELS = {
     warning:     'Warning',
     ok:          'OK',
     thisWeek:    'This Week',
+
+    // Visits page (list)
+    visitsPageTitle: 'Visits',
+    visitsSectionRecent: 'RECENT',
+    visitsSearchPh: 'Search visits...',
+    visitsChipMapping: 'Mapping',
+    visitsAriaLogVisit: 'Log a visit',
+    visitsSubtitle: function(n, week) {
+      return n + ' visit' + (n !== 1 ? 's' : '') + (week ? ' this week' : '');
+    },
+    visitsByTsr: 'TSR',
 
     // Map page
     territoryMap: 'Territory Map',
@@ -1075,7 +1116,7 @@ function setLanguage(lang, opts) {
   try {
     window.dispatchEvent(new CustomEvent('patrol:language-changed', { detail: { lang: lang, source: source } }));
   } catch (e) {}
-  if (!silent) showLangToast();
+  if (!silent && source !== 'patrol-i18n-bridge') showLangToast();
   console.log('setLanguage COMPLETE:', window.currentLang);
 }
 
@@ -1169,6 +1210,10 @@ function rerenderCurrentPage() {
         roleEl.textContent = (session.role || '').toUpperCase() +
           (session.territory ? ' \u00B7 ' + session.territory : '');
       }
+      var pph = document.getElementById('profile-phone');
+      if (pph) pph.textContent = session.phone || '--';
+      var pem2 = document.getElementById('profile-email');
+      if (pem2) pem2.textContent = session.email || '--';
     }
     var uid = window._patrolProfileUserId;
     if (!uid && session) uid = session.id;

@@ -1,7 +1,7 @@
 -- Sprint A — Test accounts for DSM / RSM / Exec roles
 -- Run AFTER sprint-a-hierarchy.sql.
 -- Idempotent: ON CONFLICT (phone) updates role so re-running is safe.
--- PINs stored as plain text for testing (verify-pin Edge Function supports both bcrypt + plain).
+-- PINs stored as plain text for testing (verify-pin compares pin_hash to entered PIN).
 
 -- Test DSMs
 INSERT INTO public.users (phone, pin_hash, name, role, region, district, territory, is_active)

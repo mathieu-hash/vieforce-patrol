@@ -25,7 +25,7 @@ async function verifySession(req) {
 
   const url = SUPABASE_URL + '/rest/v1/users'
     + '?id=eq.' + encodeURIComponent(sessionId)
-    + '&select=id,role,region,district,territory,name,is_active,sap_slpcode,sap_district_code,district_label'
+    + '&select=id,role,region,district,territory,name,is_active,language,sap_slpcode,sap_district_code,district_label'
     + '&limit=1';
 
   try {

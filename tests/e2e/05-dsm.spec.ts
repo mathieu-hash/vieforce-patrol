@@ -1,81 +1,36 @@
 import { test, expect } from '@playwright/test';
+import { loginAsDsm } from './_helpers';
 
-async function loginAsDSM(page) {
-  await page.goto('/app.html');
-  await page.evaluate(() => {
-    localStorage.setItem('patrol_session', JSON.stringify({
-      id: 'test-dsm-001',
-      name: 'Maria Santos',
-      role: 'dsm',
-      region: 'Luzon',
-      district: 'Metro Manila',
-      territory: null,
-      is_champion: false,
-      loggedInAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    }));
-  });
-  await page.reload();
-  await page.waitForSelector('#page-dashboard.active', { timeout: 10000 });
-}
-
-test.describe('05 — DSM Dashboard', () => {
+test.describe('05 — DSM Home', () => {
   test.beforeEach(async ({ page }) => {
-    await loginAsDSM(page);
+    await loginAsDsm(page);
   });
 
-  test('DSM login shows dashboard with KPIs', async ({ page }) => {
-    // Dashboard should be the active page for DSM
-    await expect(page.locator('#page-dashboard')).toHaveClass(/active/);
-
-    // KPI cards should be present
-    await expect(page.locator('#dsm-kpi-stores')).toBeVisible();
-    await expect(page.locator('#dsm-kpi-farms')).toBeVisible();
-    await expect(page.locator('#dsm-kpi-visits')).toBeVisible();
-    await expect(page.locator('#dsm-kpi-orders')).toBeVisible();
+  test('@smoke DSM lands on squad home with KPI grid', async ({ page }) => {
+    await expect(page.locator('#page-home-dsm')).toHaveClass(/active/);
+    await expect(page.locator('#dsmKpiGrid')).toBeVisible();
+    await expect(page.locator('#dsmHdrName')).toBeVisible();
   });
 
-  test('Dashboard has segment matrix section', async ({ page }) => {
-    await expect(page.locator('#dsm-segment-matrix')).toBeVisible();
+  test('DSM TSR performance table is present', async ({ page }) => {
+    await expect(page.locator('#dsmTsrTable')).toBeVisible();
+    await expect(page.locator('#dsmTsrPerfTitle')).toBeVisible();
   });
 
-  test('Dashboard has visit trend chart', async ({ page }) => {
-    await expect(page.locator('#dsm-visit-chart')).toBeVisible();
+  test('DSM can open team from performance details', async ({ page }) => {
+    const details = page.locator('#dsmTsrPerfDetails');
+    await expect(details).toBeVisible();
+    await details.click();
+    await expect(page.locator('#page-team')).toHaveClass(/active/, { timeout: 10000 });
   });
 
-  test('Assignment page opens from dashboard', async ({ page }) => {
-    // Click "I-assign ang Stores" button
-    const assignBtn = page.locator('button:has-text("I-assign")');
-    if (await assignBtn.isVisible()) {
-      await assignBtn.click();
-      await expect(page.locator('#page-assign')).toHaveClass(/active/);
-    }
-  });
-
-  test('Export buttons are present on dashboard', async ({ page }) => {
-    const exportSection = page.locator('#dsm-export-section');
-    await exportSection.scrollIntoViewIfNeeded();
-    await expect(exportSection).toBeVisible();
-
-    // Should have 3 export buttons
-    const exportBtns = exportSection.locator('button.big-button');
-    await expect(exportBtns).toHaveCount(3);
-  });
-
-  test('Export visits triggers download', async ({ page }) => {
-    // Listen for download event
-    const downloadPromise = page.waitForEvent('download', { timeout: 10000 }).catch(() => null);
-    const exportSection = page.locator('#dsm-export-section');
-    await exportSection.scrollIntoViewIfNeeded();
-
-    // Click first export button (Visits)
-    await exportSection.locator('button.big-button').first().click();
-
-    // Either a download starts or an error appears — both are valid
-    const download = await downloadPromise;
-    if (download) {
-      expect(download.suggestedFilename()).toMatch(/\.(xlsx|csv)$/i);
-    }
-    // If no download, the export may have failed due to no data — acceptable
+  test('@smoke DSM More sheet opens (wide viewport)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const moreBtn = page.locator('#bottom-nav button[data-action="more-sheet"]');
+    await expect(moreBtn).toBeVisible();
+    await moreBtn.click();
+    await expect(page.locator('#more-sheet')).toBeVisible();
+    await page.locator('#more-sheet .more-sheet-backdrop').click();
+    await expect(page.locator('#more-sheet')).toBeHidden();
   });
 });

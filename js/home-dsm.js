@@ -138,6 +138,97 @@
     host.innerHTML = h;
   }
 
+  function _relativeVisitTime(iso) {
+    try {
+      if (typeof window.formatRelativeTime === 'function') return window.formatRelativeTime(iso);
+    } catch (e) {}
+    if (!iso) return '--';
+    try {
+      return new Date(iso).toLocaleString('en-PH', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch (e2) {
+      return '--';
+    }
+  }
+
+  function _peso(n) {
+    var v = Number(n || 0);
+    if (!v || !isFinite(v)) return '₱0';
+    try {
+      return (
+        '₱' +
+        v.toLocaleString('en-PH', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        })
+      );
+    } catch (e) {
+      return '₱' + String(Math.round(v));
+    }
+  }
+
+  function renderDsmSquadActivity(rows) {
+    var host = document.getElementById('dsmSquadFeed');
+    if (!host) return;
+    if (!rows || !rows.length) {
+      renderDsmSquadFeedEmpty(host);
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i] || {};
+      var tsrName = r.tsr_name || 'TSR';
+      var storeName = r.store_name || 'Store';
+      var body = 'Bisita sa ' + storeName;
+      if (r.order_taken) body += ' · Order: ' + _peso(r.order_amount);
+      var notes = String(r.notes || '').replace(/\s+/g, ' ').trim();
+      if (notes) {
+        if (notes.length > 120) notes = notes.slice(0, 117) + '...';
+        body += ' · ' + notes;
+      }
+      html +=
+        '<article class="post" data-dsm-visit="' +
+        _escapeHtml(String(r.id || i)) +
+        '">' +
+        '<div class="post-head">' +
+        '<div class="avatar sm">' +
+        _escapeHtml(_initials(tsrName)) +
+        '</div>' +
+        '<div class="post-author">' +
+        '<div class="post-author-name">' +
+        _escapeHtml(tsrName) +
+        '</div>' +
+        '<div class="post-author-meta">TSR · ' +
+        _escapeHtml(_relativeVisitTime(r.visited_at)) +
+        '</div>' +
+        '</div>' +
+        '</div>' +
+        '<div class="post-body">' +
+        _escapeHtml(body) +
+        '</div>' +
+        '</article>';
+    }
+    host.innerHTML = html;
+  }
+
+  function lockDsmSquadComposerReadOnly() {
+    var composer = document.querySelector('#page-home-dsm .phase4-composer-dsm');
+    if (!composer) return;
+    composer.classList.add('composer--readonly');
+    var roHint = _t('dsm.squad_read_only_hint');
+    if (!roHint || roHint === 'dsm.squad_read_only_hint') roHint = 'Squad is read-only';
+    var actions = composer.querySelectorAll('button');
+    for (var i = 0; i < actions.length; i++) {
+      actions[i].setAttribute('disabled', 'disabled');
+      actions[i].setAttribute('aria-disabled', 'true');
+      actions[i].title = roHint;
+    }
+  }
+
   /** Squad empty is one string — render as single block */
   function renderDsmSquadFeedEmpty(host) {
     var msg = _t('dsm.squad_empty');
@@ -421,6 +512,11 @@
     var session = getSessionUser();
     if (!session || !session.id) return;
 
+    var dsmSearchBtn = document.getElementById('dsmHomeSearchBtn');
+    if (dsmSearchBtn) dsmSearchBtn.setAttribute('aria-label', _t('dsm.search_aria'));
+    var dsmSearchPh = document.getElementById('dsmHomeSearchPlaceholder');
+    if (dsmSearchPh) dsmSearchPh.textContent = _t('dsm.home_search_placeholder');
+
     var av = document.getElementById('dsmHeaderAvatar');
     if (av) {
       av.textContent = _initials(session.name);
@@ -489,6 +585,7 @@
     if (cv) cv.textContent = _t('dsm.composer_visit');
     if (cp) cp.textContent = _t('dsm.composer_photo');
     if (ca) ca.textContent = _t('dsm.composer_announce');
+    lockDsmSquadComposerReadOnly();
 
     var alerts = await computeAttentionItems(session.id);
     var strip = document.getElementById('dsmAlerts');
@@ -528,12 +625,16 @@
       }
     }
 
-    var ids = null;
-    if (window.PatrolScope && typeof window.PatrolScope.getFeedUserIds === 'function') {
-      ids = await window.PatrolScope.getFeedUserIds();
+    try {
+      var rows = [];
+      if (typeof window.getRecentTeamActivity === 'function') {
+        rows = await window.getRecentTeamActivity(session.id, 15);
+      }
+      renderDsmSquadActivity(rows || []);
+    } catch (eFeed) {
+      var squadHost = document.getElementById('dsmSquadFeed');
+      if (squadHost) renderDsmSquadFeedEmpty(squadHost);
     }
-    var posts = await getFeedPostsForUserIds(ids);
-    renderDsmSquadFeed(posts);
 
     var bb = document.getElementById('bellBadgeDsm');
     if (bb && typeof window.patrolUnreadNotifCount === 'function') {
@@ -548,4 +649,9 @@
   }
 
   window.renderDsmHome = renderDsmHome;
+
+  window.addEventListener('patrol:locale-changed', function () {
+    var ap = document.querySelector('.page.active');
+    if (ap && ap.id === 'page-home-dsm' && typeof renderDsmHome === 'function') renderDsmHome();
+  });
 })();

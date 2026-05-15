@@ -261,7 +261,7 @@
             : null,
       },
       {
-        icon: '\ud83d\dc9a',
+        icon: '\u2764\ufe0f',
         pillar: 'retention',
         nameKey: 'tsr.stage_retention',
         stars: starsFromRetention(stats.retention_rate),
@@ -332,13 +332,20 @@
     }
     host.innerHTML = html;
     host.querySelectorAll('[data-route-store]').forEach(function (el) {
-      el.addEventListener('click', function () {
+      function activateRoute() {
         var id = el.getAttribute('data-route-store');
         if (id && typeof window.openStoreDetail === 'function') {
           window.openStoreDetail(id);
         } else if (id && typeof window.nav === 'function') {
           window._currentStoreId = id;
           window.nav('page-store-detail');
+        }
+      }
+      el.addEventListener('click', activateRoute);
+      el.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          activateRoute();
         }
       });
     });
@@ -473,6 +480,14 @@
     var nbaSkip = document.getElementById('tsrNbaBtnSkip');
     if (nbaSkip) nbaSkip.textContent = _t('tsr.nba_btn_skip');
 
+    var nbaTitleLoading = document.getElementById('tsrNbaTitle');
+    if (nbaTitleLoading) nbaTitleLoading.textContent = _t('tsr.nba_loading');
+
+    var searchBtn = document.getElementById('tsrHomeSearchBtn');
+    if (searchBtn) searchBtn.setAttribute('aria-label', _t('tsr.search_aria'));
+    var searchPh = document.getElementById('tsrHomeSearchPlaceholder');
+    if (searchPh) searchPh.textContent = _t('tsr.home_search_placeholder');
+
     var nba = await computeNextBestAction(session.id);
     var nbaEl = document.getElementById('tsrNbaHero');
     if (nbaEl) {
@@ -593,8 +608,8 @@
       var days = p.days_since_visit;
       var subtxt =
         days == null || days === 999
-          ? 'Never visited'
-          : days + 'd since visit';
+          ? _t('mapa.row_never_visited')
+          : _t('mapa.row_since_visit', { days: days });
       h +=
         '<div class="row" data-mapa-store="' +
         pid +
@@ -687,4 +702,11 @@
   window.getMyAssignedPos = getMyAssignedPos;
   window.getMyActivityStats = getMyActivityStats;
   window.getMyStreak = getMyStreak;
+
+  window.addEventListener('patrol:locale-changed', function () {
+    var ap = document.querySelector('.page.active');
+    if (!ap) return;
+    if (ap.id === 'page-home-tsr' && typeof renderTsrHome === 'function') renderTsrHome();
+    if (ap.id === 'page-mapa-tsr' && typeof renderMapaTsr === 'function') renderMapaTsr();
+  });
 })();

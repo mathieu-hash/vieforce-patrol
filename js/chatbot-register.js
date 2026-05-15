@@ -187,9 +187,12 @@
     // Hook send
     window.__chatbotSend = function () {
       var val = (inp.value || '').trim();
-      if (!val) return;
-      self._addUserMessage(val);
-      if (step.field) self.data[step.field] = val;
+      if (!val && !step.allowEmpty) return;
+      self._addUserMessage(val || (step.emptyUserHint || '\u2014'));
+      if (step.field) {
+        if (val) self.data[step.field] = val;
+        else if (step.allowEmpty) self.data[step.field] = '';
+      }
       ib.style.display = 'none';
       inp.value = '';
       if (step.next) self._goNext(step.next);

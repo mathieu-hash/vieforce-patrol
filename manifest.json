@@ -1,7 +1,7 @@
 {
-  "name": "VieForce Patrol",
-  "short_name": "Patrol",
-  "description": "Vienovo Philippines — Field Sales Tool",
+  "name": "VieForce Patrol (Beta)",
+  "short_name": "Patrol Beta",
+  "description": "Vienovo Philippines — Field Sales Tool (beta testing)",
   "start_url": "https://patrol.vienovo.ph/",
   "display": "standalone",
   "background_color": "#FFFFFF",

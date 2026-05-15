@@ -75,7 +75,16 @@ async function openVisitWizard(storeId, storeName) {
         _visitData.storePhone = store.phone || '';
         var parts = [];
         if (store.city) parts.push('\ud83d\udccd ' + _esc(store.city));
-        if (store.owner_name) parts.push('\ud83d\udc64 ' + _esc(store.owner_name) + (store.phone ? ' \u00b7 ' + _esc(store.phone) : ''));
+        if (store.owner_name) {
+          var oc = '\ud83d\udc64 ' + _esc(store.owner_name);
+          if (store.phone) oc += ' \u00b7 ' + _esc(store.phone);
+          else if (store.owner_messenger && String(store.owner_messenger).trim()) {
+            oc += ' \u00b7 Messenger: ' + _esc(String(store.owner_messenger).trim());
+          }
+          parts.push(oc);
+        } else if (store.owner_messenger && String(store.owner_messenger).trim()) {
+          parts.push('\ud83d\udcac Messenger: ' + _esc(String(store.owner_messenger).trim()));
+        }
         if (store.bags_per_month) parts.push('\ud83d\udce6 ' + store.bags_per_month + ' ' + T.bagsMonth);
         infoBubble.innerHTML = '<b>' + _esc(store.name) + '</b>' +
           (parts.length ? '<br>' + parts.join('<br>') : '');
@@ -217,10 +226,10 @@ function selectOutcome(outcome) {
     }
   }
 
-  // Enable submit button with spring bounce
+  // Enable submit only when both outcome + selfie are present
   var submitBtn = document.getElementById('btn-visit-submit');
   if (submitBtn) {
-    submitBtn.disabled = false;
+    _updateVisitSubmitState();
     submitBtn.style.transform = 'scale(1.03)';
     setTimeout(function() { submitBtn.style.transform = ''; }, 200);
   }
@@ -261,6 +270,14 @@ function _updateMerchScore() {
   _visitData.merch_score = count;
 }
 
+function _updateVisitSubmitState() {
+  var submitBtn = document.getElementById('btn-visit-submit');
+  if (!submitBtn) return;
+  var hasOutcome = !!_visitData.outcome;
+  var hasPhoto = !!(_visitData.photo || _visitData.photo_url);
+  submitBtn.disabled = !(hasOutcome && hasPhoto);
+}
+
 async function captureVisitPhoto() {
   var empty = document.getElementById('photo-hero-empty');
   var preview = document.getElementById('photo-hero-preview');
@@ -273,6 +290,7 @@ async function captureVisitPhoto() {
       if (img) img.src = url;
       if (empty) empty.style.display = 'none';
       if (preview) preview.style.display = 'flex';
+      _updateVisitSubmitState();
     }
   } catch (err) { console.warn('captureVisitPhoto:', err); }
 }
@@ -285,6 +303,11 @@ async function submitVisit() {
   // Must select an outcome first
   if (!_visitData.outcome) {
     errorEl.textContent = T.whatHappened;
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (!_visitData.photo && !_visitData.photo_url) {
+    errorEl.textContent = T.photoMandatory || 'Required for this visit';
     errorEl.style.display = 'block';
     return;
   }
@@ -412,9 +435,11 @@ async function submitVisit() {
         newBubble.style.animation = 'msgPop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
         var outcomeEmoji = _visitData.order_taken ? '\ud83d\uded2' : '\ud83d\udcac';
         var amountText = _visitData.order_taken ? ' \u00b7 \u20b1' + (_visitData.order_amount || 0).toLocaleString() : '';
+        var previewPhotoUrl = _visitData.photo_url || (_visitData.photo ? URL.createObjectURL(_visitData.photo) : '');
         var timeNow = new Date().toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'});
         newBubble.innerHTML = '<div><div class="bubble out gradient">' +
           outcomeEmoji + ' ' + (T.ordered || 'Na-log') + amountText +
+          (previewPhotoUrl ? '<div class="visit-bubble-photo-wrap"><img class="visit-bubble-photo" src="' + previewPhotoUrl + '" alt="Visit selfie"></div>' : '') +
           (_visitData.notes ? '<br><span style="opacity:0.85;font-size:13px">' + _visitData.notes.substring(0, 80) + '</span>' : '') +
           '</div><div class="msg-time out">' + timeNow + ' <span style="color:rgba(255,255,255,0.7)">\u2713</span></div></div>';
         msgs.appendChild(newBubble);

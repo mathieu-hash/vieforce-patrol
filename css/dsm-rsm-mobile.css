@@ -4,21 +4,33 @@
  * .role-dsm or .role-rsm and the viewport is mobile (<900px).
  * ============================================================ */
 
-/* ── 5-tab bottom nav (DSM / RSM) ──────────────────────────── */
+/* Extra guard: never let the 6-tab row paint wider than the bar (iOS/WebKit). */
 body.role-dsm #bottom-nav,
-body.role-rsm #bottom-nav {
+body.role-rsm #bottom-nav,
+body.role-ceo #bottom-nav {
+  box-sizing: border-box;
+  overscroll-behavior-x: contain;
+}
+
+/* ── 6-tab bottom nav (DSM / RSM / CEO — same shell as RSM) ─────────────── */
+body.role-dsm #bottom-nav,
+body.role-rsm #bottom-nav,
+body.role-ceo #bottom-nav {
   display: flex;
   justify-content: space-between;
+  flex-wrap: nowrap;
 }
 body.role-dsm #bottom-nav .nav-item,
-body.role-rsm #bottom-nav .nav-item {
+body.role-rsm #bottom-nav .nav-item,
+body.role-ceo #bottom-nav .nav-item {
   flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 6px 2px;
+  padding: 6px 1px;
   border: none;
   background: transparent;
   color: var(--text-secondary, #65676B);
@@ -28,18 +40,21 @@ body.role-rsm #bottom-nav .nav-item {
   line-height: 1.1;
 }
 body.role-dsm #bottom-nav .nav-item.active,
-body.role-rsm #bottom-nav .nav-item.active {
+body.role-rsm #bottom-nav .nav-item.active,
+body.role-ceo #bottom-nav .nav-item.active {
   color: var(--accent, #0084FF);
 }
 body.role-dsm #bottom-nav .nav-ico,
-body.role-rsm #bottom-nav .nav-ico {
+body.role-rsm #bottom-nav .nav-ico,
+body.role-ceo #bottom-nav .nav-ico {
   font-size: 20px;
   line-height: 1;
   margin-bottom: 2px;
 }
 body.role-dsm #bottom-nav .nav-lbl,
-body.role-rsm #bottom-nav .nav-lbl {
-  font-size: 10px;
+body.role-rsm #bottom-nav .nav-lbl,
+body.role-ceo #bottom-nav .nav-lbl {
+  font-size: 9px;
   font-weight: 700;
   text-align: center;
   max-width: 100%;
@@ -52,7 +67,7 @@ body.role-rsm #bottom-nav .nav-lbl {
 .more-sheet {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 5100;
   display: none;
 }
 .more-sheet-backdrop {
@@ -830,9 +845,17 @@ body.role-rsm #bottom-nav .nav-lbl {
   margin: 0 0 22px;
 }
 
-/* ── Desktop carveout — ensure sheet only shows on mobile ── */
+/* Desktop / tablet: More sheet must stay usable (wide Chrome, devtools, tablets).
+   Never force-hide with !important — that defeated openMoreSheet()'s inline display. */
 @media (min-width: 900px) {
-  .more-sheet { display: none !important; }
+  .more-sheet-panel {
+    max-width: min(480px, 100vw);
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
 }
 
 /* ============================================================

@@ -1,16 +1,14 @@
 // ============================================================
 // Role + Device Aware Bottom Nav (Day 1)
 //
-// TSR / Champion: we DO NOT touch the bottom-nav DOM — the existing
-//   4-tab layout (Bahay / Tindahan / Mapa / Profile) ships exactly as
-//   before. Rule 1 for this file: no regressions to the field-worker
-//   experience.
+  // TSR / Champion on mobile: emoji tab strip from NAV_CONFIGS. On desktop width (≥900px),
+  // we keep app.html’s default bar (Home / Stores / Map / Profile / More) — no regressions
+// for field workers on small phones + wide layouts for pure TSR sessions.
 //
-// DSM mobile (<900px): Home / Stores / Visit / Sales / Leaders (Phase 3)
-// RSM mobile (<900px): same — Region lives in More sheet when opened from overflow patterns
-// Exec-like roles (exec/ceo/evp) on mobile: soft prompt to open HQ.
-//   Admin is NOT redirected (they need the Patrol admin panel).
-// Desktop any role: current nav stays — this script is a no-op.
+  // DSM / RSM / CEO: Home / Stores / Sales / Map / More on all viewports
+//   (wide Chrome or "Request Desktop Site" used to skip this and keep the TSR strip — fixed.)
+// TSR / champion desktop: default 5-tab bar from app.html unchanged.
+// Exec-like roles (exec/evp): HQ splash; CEO uses RSM shell above.
 //
 // Depends on globals from auth.js (getSession, logout) and the inline
 // app.html bootstrapper (nav(pageId)). Both are loaded before this
@@ -35,38 +33,38 @@
       mobile: [
         { id: 'home',     icon: '\ud83c\udfe0', labelKey: 'nav.home',    label: 'Home',    page: 'page-home-tsr' },
         { id: 'stores',   icon: '\ud83c\udfea', labelKey: 'nav.pos',    label: 'POS',     page: 'page-stores', badge: 'stores' },
-        { id: 'visit',    icon: '\u2795',      labelKey: 'nav.visit',   label: 'Visit',   page: 'page-visits' },
         { id: 'mapa',     icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-mapa-tsr' },
         { id: 'profile',  icon: '\ud83d\udc64', labelKey: 'nav.me',      label: 'Me',      page: 'page-profile' },
+        { id: 'more',     icon: '\u22ef',      labelKey: 'nav.more',     label: 'More',    action: 'openMoreSheet' },
       ],
     },
     champion: {
       mobile: [
         { id: 'home',     icon: '\ud83c\udfe0', labelKey: 'nav.home',    label: 'Home',    page: 'page-home-tsr' },
         { id: 'stores',   icon: '\ud83c\udfea', labelKey: 'nav.pos',    label: 'POS',     page: 'page-stores', badge: 'stores' },
-        { id: 'visit',    icon: '\u2795',      labelKey: 'nav.visit',   label: 'Visit',   page: 'page-visits' },
         { id: 'mapa',     icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-mapa-tsr' },
         { id: 'profile',  icon: '\ud83d\udc64', labelKey: 'nav.me',      label: 'Me',      page: 'page-profile' },
+        { id: 'more',     icon: '\u22ef',      labelKey: 'nav.more',     label: 'More',    action: 'openMoreSheet' },
       ],
     },
 
     dsm: {
       mobile: [
-        { id: 'home',   icon: '\ud83c\udfe0', label: 'Home',    page: 'page-home-dsm' },
-        { id: 'stores', icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
-        { id: 'visit',  icon: '\ud83d\udcdd', label: 'Visit',   page: 'page-visits' },
-        { id: 'sales',  icon: '\ud83d\udcca', label: 'Sales',   page: 'pg-sales' },
-        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-leader' }
+        { id: 'home',   icon: '\ud83c\udfe0', labelKey: 'nav.home', label: 'Home',    page: 'page-home-dsm' },
+        { id: 'stores', icon: '\ud83c\udfea', labelKey: 'nav.stores', label: 'Stores',  page: 'page-stores', badge: 'stores' },
+        { id: 'sales',  icon: '\ud83d\udcca', labelKey: 'nav.sales', label: 'Sales',   page: 'pg-sales' },
+        { id: 'map',    icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-map' },
+        { id: 'more',   icon: '\u22ef',       labelKey: 'nav.more', label: 'More',    action: 'openMoreSheet' }
       ]
     },
 
     rsm: {
       mobile: [
-        { id: 'home',    icon: '\ud83c\udfe0', label: 'Home',    page: 'page-rsm-home' },
-        { id: 'stores',  icon: '\ud83c\udfea', label: 'Stores',  page: 'page-stores', badge: 'stores' },
-        { id: 'visit',   icon: '\ud83d\udcdd', label: 'Visit',   page: 'page-visits' },
-        { id: 'sales',   icon: '\ud83d\udcca', label: 'Sales',   page: 'pg-sales' },
-        { id: 'leaders', icon: '\ud83c\udfc6', label: 'Leaders', page: 'page-leader' }
+        { id: 'home',    icon: '\ud83c\udfe0', labelKey: 'nav.home', label: 'Home',    page: 'page-rsm-home' },
+        { id: 'stores',  icon: '\ud83c\udfea', labelKey: 'nav.stores', label: 'Stores',  page: 'page-stores', badge: 'stores' },
+        { id: 'sales',   icon: '\ud83d\udcca', labelKey: 'nav.sales', label: 'Sales',   page: 'pg-sales' },
+        { id: 'map',     icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-map' },
+        { id: 'more',    icon: '\u22ef',       labelKey: 'nav.more', label: 'More',    action: 'openMoreSheet' }
       ]
     }
   };
@@ -81,6 +79,13 @@
 
   function escAttr(s) {
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   }
 
   // navTo — alias for the inline nav() so new onclick handlers have a
@@ -116,13 +121,16 @@
       return; // never render field-user nav for execs
     }
 
-    // Desktop: leave everything alone.
-    if (!isMobile()) return;
-
     // CEO: RSM-style shell (Region feed + Leaders), not DSM dashboard.
     var navRole = role === 'ceo' ? 'rsm' : role;
     var config = NAV_CONFIGS[navRole];
-    if (!config || !config.mobile) return; // TSR / champion / unknown → no override
+    if (!config || !config.mobile) return; // admin / unknown → no override
+
+    // Desktop (≥900px): keep the default bottom bar from app.html for TSR + champion only.
+    // DSM / RSM / CEO must get Home · Stores · Sales · Mapa · More on every viewport —
+    // otherwise wide Chrome / "Request Desktop Site" / tablet landscape leaves the old TSR strip
+    // (Map instead of Sales/Leaders) and feels like tabs are "missing".
+    if (!isMobile() && navRole !== 'dsm' && navRole !== 'rsm') return;
 
     var navEl = document.getElementById('bottom-nav');
     if (!navEl) return;
@@ -131,13 +139,14 @@
     var html = '';
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
-      var onclickAttr;
+      var attrs = '';
+      var onclick = '';
       if (it.action === 'openMoreSheet') {
-        onclickAttr = 'openMoreSheet()';
-      } else {
-        onclickAttr = "navTo('" + escAttr(it.page) + "')";
+        attrs = ' data-action="more-sheet"';
+        onclick = " onclick=\"if(typeof window.openMoreSheet==='function')window.openMoreSheet();\"";
+      } else if (it.page) {
+        attrs = ' data-page="' + escAttr(it.page) + '"';
       }
-      var dataPage = it.page ? ' data-page="' + escAttr(it.page) + '"' : '';
       var badgePart =
         it.badge === 'stores'
           ? '<span class="nav-badge" aria-hidden="true" style="display:none">0</span>'
@@ -146,8 +155,7 @@
         typeof window.t === 'function' && it.labelKey
           ? window.t(it.labelKey)
           : it.label;
-      html += '<button type="button" class="nav-item" data-nav="' + escAttr(it.id) + '"' + dataPage +
-        ' onclick="' + onclickAttr + '">' +
+      html += '<button type="button" class="nav-item" data-nav="' + escAttr(it.id) + '"' + attrs + onclick + '>' +
         '<span class="nav-pip" aria-hidden="true"></span>' +
         '<span class="nav-ico">' + it.icon + '</span>' +
         '<span class="nav-lbl">' + String(lbl).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
@@ -159,15 +167,15 @@
     // Mark active based on currently visible page
     var activePage = document.querySelector('.page.active');
     if (activePage) updateNavActive(activePage.id);
+    try {
+      var ap = document.querySelector('.page.active');
+      document.body.setAttribute('data-patrol-active-page', ap ? ap.id : '');
+    } catch (eSync) {}
   }
 
   // ── Exec splash + observer mode ──────────────────────────────────
   function handleExecRoute() {
-    if (sessionStorage.getItem(OBSERVER_FLAG) === '1') {
-      enableObserverMode();
-    } else {
-      showExecRedirectSplash();
-    }
+    enableObserverMode();
   }
 
   function redirectToHq() {
@@ -175,7 +183,11 @@
     // re-fire during the redirect.
     var splash = document.getElementById('exec-splash');
     if (splash && splash._timerId) clearInterval(splash._timerId);
-    window.location.href = HQ_URL;
+    if (typeof window.toast === 'function') {
+      window.toast('HQ access is temporarily on hold.');
+    } else if (typeof window.alert === 'function') {
+      window.alert('HQ access is temporarily on hold.');
+    }
   }
 
   function showExecRedirectSplash() {
@@ -261,28 +273,43 @@
     }
   }
 
+  /**
+   * DSM/RSM/CEO 6-tab bar can exceed viewport width (long i18n labels, badges).
+   * overflow-x:auto lets users pan — but WebViews often start scrolled to x=0, so
+   * Visit/Sales/Leaders look "missing" until they discover horizontal scroll.
+   * After every active-tab change, center the active button in the strip so the
+   * current tab is always visible (mitigates the recurring "can't see those tabs" report).
+   */
+  function scrollActiveBottomNavTabIntoView() {
+    var bar = document.getElementById('bottom-nav');
+    if (!bar) return;
+    var activeBtn = bar.querySelector('.nav-item.active');
+    if (!activeBtn || typeof activeBtn.scrollIntoView !== 'function') return;
+    try {
+      activeBtn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'instant' });
+    } catch (_e) {}
+  }
+
   function updateNavActive(pageId) {
     var btns = document.querySelectorAll('#bottom-nav .nav-item');
     for (var i = 0; i < btns.length; i++) {
       btns[i].classList.remove('active');
-      if (btns[i].dataset && btns[i].dataset.page === pageId) {
+      var dp = btns[i].getAttribute('data-page');
+      if (dp && dp === pageId) {
         btns[i].classList.add('active');
       }
     }
+    scrollActiveBottomNavTabIntoView();
   }
 
   // ── More bottom sheet (DSM / RSM) ────────────────────────────────
   function openMoreSheet() {
     var items = [
-      { icon: '\ud83d\udc64', label: 'Profile', page: 'page-profile' },
-      { icon: '\ud83d\udcb0', label: 'AR', page: 'pg-ar' },
-      { icon: '\ud83d\udc65', label: 'Team', page: 'page-team' },
-      { icon: '\ud83d\uddfa\ufe0f', label: 'Map', page: 'page-map' },
-      { icon: '\ud83c\udf0d', label: 'Region', page: 'pg-region' },
-      { icon: '\ud83e\udde0', label: 'Customer Insights', page: 'pg-insights' },
-      { icon: '\ud83d\udce6', label: 'Inventory', page: 'pg-inventory' },
-      { icon: '\ud83d\udd17', label: 'Open HQ Desktop', action: 'openHq' },
-      { icon: '\ud83d\udeaa', label: 'Logout', action: 'logout' }
+      { icon: '\ud83d\udc64', labelKey: 'nav.sheet_profile', label: 'Profile', page: 'page-profile' },
+      { icon: '\ud83d\udcdd', labelKey: 'nav.sheet_visits', label: 'Log Visit', action: 'logVisit' },
+      { icon: '\ud83d\udc65', labelKey: 'nav.sheet_team', label: 'Team', page: 'page-team' },
+      { icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.sheet_map', label: 'Map', page: 'page-map' },
+      { icon: '\ud83d\udeaa', labelKey: 'nav.sheet_logout', label: 'Logout', action: 'logout' }
     ];
 
     var sheet = document.getElementById('more-sheet');
@@ -294,28 +321,32 @@
     }
 
     var itemHtml = '';
+    var moreTitle = typeof window.t === 'function' ? window.t('nav.more') : 'More';
     for (var i = 0; i < items.length; i++) {
       var it = items[i];
       var onclickAttr;
-      if (it.action === 'openHq') {
-        // open-in-new-tab, close sheet
-        onclickAttr = "window.open('" + HQ_URL + "','_blank');closeMoreSheet()";
+      if (it.action === 'logVisit') {
+        onclickAttr = "closeMoreSheet();if(typeof window.openVisitFlow==='function')window.openVisitFlow();else if(typeof window.nav==='function')window.nav('page-stores')";
       } else if (it.action === 'logout') {
         onclickAttr = 'closeMoreSheet();if(typeof logout===\'function\')logout()';
       } else {
         onclickAttr = "navTo('" + escAttr(it.page) + "');closeMoreSheet()";
       }
+      var lbl =
+        typeof window.t === 'function' && it.labelKey
+          ? window.t(it.labelKey)
+          : it.label;
       itemHtml += '<div class="more-sheet-item" onclick="' + onclickAttr + '">' +
         '<span class="more-sheet-ico">' + it.icon + '</span>' +
-        '<span>' + it.label + '</span>' +
+        '<span>' + escHtml(lbl) + '</span>' +
       '</div>';
     }
 
     sheet.innerHTML =
       '<div class="more-sheet-backdrop" onclick="closeMoreSheet()"></div>' +
-      '<div class="more-sheet-panel" role="dialog" aria-label="More menu">' +
+      '<div class="more-sheet-panel" role="dialog" aria-label="' + escAttr(moreTitle) + '">' +
         '<div class="more-sheet-handle"></div>' +
-        '<div class="more-sheet-title">More</div>' +
+        '<div class="more-sheet-title">' + escHtml(moreTitle) + '</div>' +
         '<div class="more-sheet-items">' + itemHtml + '</div>' +
       '</div>';
 
@@ -356,4 +387,8 @@
     kickoff();
   }
   window.addEventListener('resize', onResize);
+
+  window.addEventListener('patrol:locale-changed', function () {
+    setTimeout(renderNav, 0);
+  });
 })();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>VieForce Patrol</title>
+<title>VieForce Patrol (Beta)</title>
 <script>
 (function() {
   try {
@@ -20,15 +20,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=1">
-<link rel="stylesheet" href="css/patrol.css?v=27">
+<link rel="stylesheet" href="css/patrol.css?v=38">
 <link rel="stylesheet" href="css/rsm.css?v=1">
-<link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=8">
-<link rel="stylesheet" href="css/density-pass.css?v=8">
-<link rel="stylesheet" href="css/activity-feed.css?v=2">
-<link rel="stylesheet" href="css/phase4-social.css?v=1">
-<link rel="stylesheet" href="css/phase3-sales-stores.css?v=1">
-<link rel="stylesheet" href="css/elite-components.css?v=1">
-<link rel="stylesheet" href="css/elite-action.css?v=5">
+<link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=12">
+<link rel="stylesheet" href="css/density-pass.css?v=10">
+<link rel="stylesheet" href="css/activity-feed.css?v=3">
+<link rel="stylesheet" href="css/phase4-social.css?v=2">
+<link rel="stylesheet" href="css/phase3-sales-stores.css?v=2">
+<link rel="stylesheet" href="css/elite-components.css?v=2">
+<link rel="stylesheet" href="css/elite-action.css?v=8">
+<link rel="stylesheet" href="css/visits-page.css?v=5">
+<link rel="stylesheet" href="css/sales-tab-v2.css?v=1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -79,9 +81,8 @@ if ('serviceWorker' in navigator) {
   var dbg = document.getElementById('patrol-boot-debug');
   var btn = document.getElementById('patrol-boot-debug-close');
   var qs = (window.location.search || '').indexOf('bootlog=1') !== -1;
-  if (qs) { try { localStorage.setItem('patrol_bootlog', '1'); } catch (e) {} }
+  if (!qs) { try { localStorage.removeItem('patrol_bootlog'); } catch (e) {} }
   var verbose = qs;
-  try { verbose = verbose || localStorage.getItem('patrol_bootlog') === '1'; } catch (e) {}
   var lines = [];
   function flush() { if (dbg) dbg.textContent = lines.slice(-100).join('\n'); }
   window._patrolBootLog = function (msg, force) {
@@ -162,26 +163,26 @@ if ('serviceWorker' in navigator) {
 <!-- TSR HOME — Task list (Phase 4.5, no bags / no team feed) -->
 <!-- ========================================= -->
 <!-- Do not set display:none inline — it overrides .page.active from patrol.css and blanks TSR/DSM home. -->
-<div id="page-home-tsr" class="page phase4-page phase4-home" style="background:var(--bg-chat);">
-  <div class="app-header phase4-home-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;">
-    <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
-    <button type="button" class="phase4-inline-search-hit" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border:none;border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:left;font:inherit;"
+<div id="page-home-tsr" class="page phase4-page phase4-home elite-field-page">
+  <div class="app-header phase4-home-header elite-shell-header">
+    <div class="elite-brand-mark" aria-hidden="true">VF</div>
+    <button type="button" id="tsrHomeSearchBtn" class="phase4-inline-search-hit elite-app-search"
             onclick="nav('page-search')">
-      <span style="font-size:14px;">🔍</span> <span>Search my POS, prospects...</span>
+      <span style="font-size:14px;" aria-hidden="true">🔍</span> <span id="tsrHomeSearchPlaceholder">Search my POS, prospects...</span>
     </button>
     <button type="button" class="icon-btn patrol-icon-lg" onclick="nav('page-notifs')" aria-label="Notifications">
       🔔 <span class="patrol-bell-badge patrol-bell-hide" id="bellBadgeTsr"></span>
     </button>
     <button type="button" class="icon-btn" onclick="nav('page-profile')" aria-label="Profile">
-      <span class="avatar sm" id="tsrHeaderAvatar" style="width:32px;height:32px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;">--</span>
+      <span class="avatar sm" id="tsrHeaderAvatar" style="display:inline-flex;align-items:center;justify-content:center;">--</span>
     </button>
   </div>
-  <div class="app-content">
+  <main class="app-content" id="tsrHomeMain">
     <!-- TSR GREETING BAND -->
     <div class="tsr-greeting">
       <div class="tsr-greeting-title" id="tsrGreetingTitle">Magandang umaga, Patrol! 🌅</div>
       <div class="tsr-greeting-sub" id="tsrGreetingSub">Vienovo Philippines</div>
-      <div class="tsr-sync-pill" id="tsrSyncPill">● Naka-sync na</div>
+      <div class="tsr-sync-pill" id="tsrSyncPill" role="status" aria-live="polite">● Naka-sync na</div>
     </div>
     <!-- NBA HERO -->
     <div class="nba-hero" id="tsrNbaHero">
@@ -218,27 +219,27 @@ if ('serviceWorker' in navigator) {
         <div class="streak-sub" id="tsrStreakSub">Log a visit today to start. 5 days unlocks Hot Streak badge.</div>
       </div>
     </div>
-  </div>
+  </main>
 </div>
 
 <!-- ========================================= -->
 <!-- DSM HOME — Squad dashboard + squad feed (Phase 4.5) -->
 <!-- ========================================= -->
-<div id="page-home-dsm" class="page phase4-page phase4-home" style="background:var(--bg-chat);">
-  <div class="app-header phase4-home-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;">
-    <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
-    <button type="button" class="phase4-inline-search-hit" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border:none;border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;text-align:left;font:inherit;"
+<div id="page-home-dsm" class="page phase4-page phase4-home elite-field-page">
+  <div class="app-header phase4-home-header elite-shell-header">
+    <div class="elite-brand-mark" aria-hidden="true">VF</div>
+    <button type="button" id="dsmHomeSearchBtn" class="phase4-inline-search-hit elite-app-search"
             onclick="nav('page-search')">
-      <span style="font-size:14px;">🔍</span> <span>Search team, POS, prospects...</span>
+      <span style="font-size:14px;" aria-hidden="true">🔍</span> <span id="dsmHomeSearchPlaceholder">Search team, POS, prospects...</span>
     </button>
     <button type="button" class="icon-btn patrol-icon-lg" onclick="nav('page-notifs')" aria-label="Notifications">
       🔔 <span class="patrol-bell-badge patrol-bell-hide" id="bellBadgeDsm"></span>
     </button>
     <button type="button" class="icon-btn" onclick="nav('page-profile')" aria-label="Profile">
-      <span class="avatar sm" id="dsmHeaderAvatar" style="width:32px;height:32px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;">--</span>
+      <span class="avatar sm" id="dsmHeaderAvatar" style="display:inline-flex;align-items:center;justify-content:center;">--</span>
     </button>
   </div>
-  <div class="app-content feed-container">
+  <main class="app-content feed-container" id="dsmHomeMain">
     <div class="dsm-home-header-block">
       <div style="font-size: 24px; font-weight: 800; font-family: 'Manrope', sans-serif; letter-spacing: -0.02em; color: var(--text-primary);" id="dsmHdrName">Loading...</div>
       <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px; font-weight: 500;" id="dsmHdrMeta">DSM</div>
@@ -251,6 +252,10 @@ if ('serviceWorker' in navigator) {
       </div>
     </div>
     <div class="kpi-grid" id="dsmKpiGrid"></div>
+    <div class="dsm-home-quick-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px;">
+      <button type="button" class="dsm-home-quick-btn" onclick="typeof openVisitFlow==='function'&&openVisitFlow()" data-t="recentVisits"></button>
+      <button type="button" class="dsm-home-quick-btn" onclick="nav('page-stores')" data-t="stores"></button>
+    </div>
     <div class="table-card">
       <div class="table-card-hdr">
         <div class="table-card-title" id="dsmTsrPerfTitle"></div>
@@ -287,7 +292,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <div class="section-label phase4-section" id="dsmSquadLabel"></div>
     <div id="dsmSquadFeed"></div>
-  </div>
+  </main>
 </div>
 
 <!-- ========================================= -->
@@ -363,8 +368,9 @@ if ('serviceWorker' in navigator) {
     background: #f5f8fa;
   }
   .assign-tsr-row.selected {
-    background: rgba(0, 77, 113, 0.08);
-    border-left: 3px solid #004D71;
+    background: rgba(0, 77, 113, 0.10);
+    outline: 2px solid rgba(0, 77, 113, 0.35);
+    outline-offset: -2px;
   }
   .assign-avatar {
     width: 36px;
@@ -510,21 +516,22 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- STORES PAGE — Phase 4.7 Tindahan          -->
 <!-- ========================================= -->
-<div id="page-stores" class="page" style="background:var(--bg-chat);display:flex!important;flex-direction:column;overflow:hidden">
+<!-- Tindahan layout when active: patrol.css #page-stores.page.active; hard-hidden when :not(.active) -->
+<div id="page-stores" class="page" style="background:var(--bg-chat)">
   <div class="tindahan-header stores-head-density" style="flex-shrink:0;background:var(--bg);position:relative;z-index:10">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
       <div style="min-width:0;flex:1">
         <div class="tindahan-title" id="tindahanTitle"></div>
-        <div class="tindahan-sync-pill" id="tindahanSyncPill"></div>
+        <div class="tindahan-sync-pill" id="tindahanSyncPill" role="status" aria-live="polite"></div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px">
-        <div class="hdr-btn" id="btn-new-store" style="width:36px;height:36px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer">✏️</div>
-        <div class="hdr-btn" id="stores-avatar-btn" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer">--</div>
+        <button type="button" class="hdr-btn" id="btn-new-store" style="width:36px;height:36px;border:none;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;font:inherit;padding:0;color:inherit"><span aria-hidden="true">✏️</span></button>
+        <button type="button" class="hdr-btn" id="stores-avatar-btn" style="width:36px;height:36px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer;font:inherit;padding:0">--</button>
       </div>
     </div>
     <div id="stores-subtitle" style="display:none"></div>
     <label class="tindahan-search" for="tindahan-store-search">
-      <span style="font-size:14px;opacity:0.75">🔍</span>
+      <span style="font-size:14px;opacity:0.75" aria-hidden="true">🔍</span>
       <input type="search" id="tindahan-store-search" autocomplete="off" />
     </label>
   </div>
@@ -608,6 +615,7 @@ if ('serviceWorker' in navigator) {
     <div class="map-legend-item"><span class="map-stat-dot dot-crit"></span> Critical — Kailangan ng aksyon</div>
     <div class="map-legend-divider"></div>
     <div class="map-legend-item"><span style="font-size:14px">●</span> Vol A &nbsp; <span style="font-size:10px">●</span> Vol B &nbsp; <span style="font-size:7px">●</span> Vol C</div>
+    <div id="map-tsr-legend" class="map-tsr-legend-host" style="display:none" aria-live="polite"></div>
   </div>
 
   <!-- My Location FAB -->
@@ -621,28 +629,52 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- VISITS PAGE                               -->
 <!-- ========================================= -->
-<div id="page-visits" class="page" style="background:var(--bg-chat)">
-  <div class="top-bar">
-    <div style="flex:1">
-      <h1>Mga Bisita</h1>
-      <div class="subtitle" id="visits-subtitle">Loading...</div>
+<div id="page-visits" class="page vf-visits-page phase4-page" style="background:var(--bg-chat)">
+  <!-- Messenger / Tindahan parity: title row + status pill + compose + profile, search, 4-icon filter grid -->
+  <div class="tindahan-header stores-head-density vf-visits-head-unified" style="flex-shrink:0;background:var(--bg);position:relative;z-index:10">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+      <div style="min-width:0;flex:1">
+        <div class="tindahan-title" id="visits-page-title">Mga Bisita</div>
+        <div class="tindahan-sync-pill" id="visits-head-pill" role="status" aria-live="polite">…</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px">
+        <button type="button" class="hdr-btn" id="btn-visits-new" style="height:36px;border:none;border-radius:999px;background:linear-gradient(135deg,var(--accent,#00a6ce),var(--accent-2,#0090b3));display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:800;cursor:pointer;font:inherit;padding:0 12px;color:#fff;white-space:nowrap" aria-label="Log visit" title="Log visit">
+          <span aria-hidden="true">📝</span>
+          <span id="btn-visits-new-label">Log Visit</span>
+        </button>
+        <button type="button" class="hdr-btn" id="visits-avatar-btn" style="width:36px;height:36px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer;font:inherit;padding:0">--</button>
+      </div>
     </div>
+    <div class="vf-visits-subtitle subtitle" id="visits-subtitle" style="display:none" aria-hidden="true"></div>
+    <label class="tindahan-search vf-visits-search-label" for="visit-search">
+      <span class="vf-visits-search-ico" aria-hidden="true">&#128269;</span>
+      <input type="search" class="vf-visits-search-input" id="visit-search" placeholder="Hanapin ang bisita..." autocomplete="off" enterkeyhint="search">
+    </label>
   </div>
 
-  <div class="search-bar">
-    <input type="text" id="visit-search" placeholder="Hanapin ang bisita...">
+  <div class="tindahan-filter-grid vf-visits-filter-band" id="visits-filter-grid">
+    <button type="button" class="tindahan-filter-item active" data-visit-filter="all">
+      <div class="tindahan-filter-icon vf-visit-filter-all" aria-hidden="true">∗</div>
+      <div class="tindahan-filter-label" id="visit-fl-all">Lahat</div>
+    </button>
+    <button type="button" class="tindahan-filter-item" data-visit-filter="week">
+      <div class="tindahan-filter-icon vf-visit-filter-week" aria-hidden="true">📅</div>
+      <div class="tindahan-filter-label" id="visit-fl-week">Ngayong Linggo</div>
+    </button>
+    <button type="button" class="tindahan-filter-item" data-visit-filter="order">
+      <div class="tindahan-filter-icon vf-visit-filter-order" aria-hidden="true">🛒</div>
+      <div class="tindahan-filter-label" id="visit-fl-order">May Order</div>
+    </button>
+    <button type="button" class="tindahan-filter-item" data-visit-filter="mapping">
+      <div class="tindahan-filter-icon vf-visit-filter-mapping" aria-hidden="true">🗺</div>
+      <div class="tindahan-filter-label" id="visit-fl-mapping">Mapping</div>
+    </button>
   </div>
 
-  <div class="filter-row">
-    <button class="filter-chip active">Lahat</button>
-    <button class="filter-chip">Ngayong Linggo</button>
-    <button class="filter-chip">May Order</button>
-    <button class="filter-chip">Mapping</button>
-  </div>
-
-  <div id="visit-list">
-    <div class="card">
-      <p style="font-size:13px;color:#888;text-align:center;padding:20px 0">Loading from Supabase...</p>
+  <div class="tindahan-scroll vf-visits-scroll stores-list-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
+    <div class="tindahan-section-label vf-visits-section-label" id="visits-section-label">RECENT</div>
+    <div id="visit-list" class="vf-visits-list">
+      <div class="vf-visits-loading-hint" id="visits-loading-hint">Loading from Supabase...</div>
     </div>
   </div>
 </div>
@@ -719,20 +751,41 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
-      <!-- Language Switcher -->
-      <div class="card" style="margin:0 12px 12px">
-        <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px" data-t="language">Wika / Language</div>
-        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:12px" data-t="langHint">Pipiliin mo ang wika ng app.</div>
-        <div style="display:flex;gap:8px">
-          <button class="lang-pill login-lang-btn" data-lang="TL" onclick="window.setLanguage('TL')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
-            TL Tagalog
-          </button>
-          <button class="lang-pill login-lang-btn" data-lang="BIS" onclick="window.setLanguage('BIS')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
-            BIS Bisaya
-          </button>
-          <button class="lang-pill login-lang-btn" data-lang="EN" onclick="window.setLanguage('EN')" style="flex:1;padding:10px 0;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #004D71;background:white;color:#004D71;min-height:44px">
-            EN English
-          </button>
+      <!-- Phase 4.8 — Language (PatrolI18n en / tl / ceb) -->
+      <div class="card patrol-lang-settings-card" id="patrol-lang-settings-card" style="margin:0 12px 12px">
+        <div class="patrol-lang-section-label" data-i18n="profile.language_section_title"></div>
+        <div class="patrol-lang-section-hint" data-i18n="profile.language_section_sub"></div>
+        <button type="button" class="patrol-lang-summary-row" id="patrol-lang-summary-row" aria-haspopup="dialog">
+          <div class="patrol-lang-summary-left">
+            <span class="patrol-lang-summary-ico" aria-hidden="true">&#127760;</span>
+            <div>
+              <div class="patrol-lang-summary-title" data-i18n="profile.language_current_label"></div>
+              <div class="patrol-lang-summary-value" id="patrol-lang-summary-value">English</div>
+            </div>
+          </div>
+          <span class="patrol-lang-chevron" aria-hidden="true">&#8250;</span>
+        </button>
+      </div>
+
+      <div id="patrol-lang-sheet" class="patrol-lang-sheet" aria-hidden="true">
+        <div class="patrol-lang-sheet-backdrop"></div>
+        <div class="patrol-lang-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="patrol-lang-sheet-title">
+          <div class="patrol-lang-sheet-handle"></div>
+          <div class="patrol-lang-sheet-title" id="patrol-lang-sheet-title" data-i18n="profile.language_sheet_title"></div>
+          <div class="patrol-lang-options">
+            <button type="button" class="patrol-lang-option" data-locale-option="en">
+              <span class="patrol-lang-opt-main" data-i18n="profile.lang_native_en"></span>
+              <span class="patrol-lang-opt-sub" data-i18n="profile.lang_blurb_en"></span>
+            </button>
+            <button type="button" class="patrol-lang-option" data-locale-option="tl">
+              <span class="patrol-lang-opt-main" data-i18n="profile.lang_native_tl"></span>
+              <span class="patrol-lang-opt-sub" data-i18n="profile.lang_blurb_tl"></span>
+            </button>
+            <button type="button" class="patrol-lang-option" data-locale-option="ceb">
+              <span class="patrol-lang-opt-main" data-i18n="profile.lang_native_ceb"></span>
+              <span class="patrol-lang-opt-sub" data-i18n="profile.lang_blurb_ceb"></span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -748,8 +801,11 @@ if ('serviceWorker' in navigator) {
       <div class="card" style="margin:0 12px 12px">
         <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px" data-t="account">Account</div>
         <div style="font-size:12px">
-          <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
-            <span style="color:#888" data-t="phone">Telepono</span><b id="profile-phone">--</b>
+          <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+            <span style="color:#888;flex-shrink:0" data-t="phone">Telepono</span><b id="profile-phone" style="text-align:right;word-break:break-all">--</b>
+          </div>
+          <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+            <span style="color:#888;flex-shrink:0" data-t="emailLabel">Email</span><b id="profile-email" style="text-align:right;word-break:break-all;font-weight:600">--</b>
           </div>
           <div style="padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between">
             <span style="color:#888" data-t="territory">Teritoryo</span><b id="profile-territory">--</b>
@@ -769,13 +825,13 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- NOTIFICATIONS                             -->
 <!-- ========================================= -->
-<div id="page-notifs" class="page phase4-page" style="background:var(--bg-chat);">
-  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+<div id="page-notifs" class="page phase4-page elite-field-page">
+  <div class="app-header elite-shell-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;">
     <button type="button" class="icon-btn" onclick="navBack()" aria-label="Back">←</button>
     <div style="flex:1;font-weight:800;font-size:18px;font-family:'Manrope',sans-serif;letter-spacing:-0.02em;">Notifications</div>
     <button type="button" class="icon-btn" onclick="patrolPhase4MoreStub()" aria-label="More">⋯</button>
   </div>
-  <div class="tab-bar phase4-tab-bar">
+  <div class="tab-bar phase4-tab-bar elite-tab-bar">
     <button type="button" class="tab active" data-filter="all">All</button>
     <button type="button" class="tab" data-filter="mentions">Mentions <span style="color:var(--danger);font-weight:800;">3</span></button>
     <button type="button" class="tab" data-filter="wins">Wins</button>
@@ -792,20 +848,20 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- LEADERBOARD                               -->
 <!-- ========================================= -->
-<div id="page-leader" class="page phase4-page" style="background:var(--bg-chat);">
-  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
-    <div style="font-weight:800;color:var(--accent);font-family:'Manrope',sans-serif;margin-right:4px;">VF</div>
-    <div class="phase4-inline-search-hit" id="leaderSearchTap" style="flex:1;display:flex;align-items:center;gap:8px;background:var(--bg-hover);border-radius:100px;padding:8px 14px;font-size:14px;color:var(--text-secondary);cursor:pointer;">
+<div id="page-leader" class="page phase4-page elite-field-page">
+  <div class="app-header elite-shell-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;">
+    <div class="elite-brand-mark" aria-hidden="true">VF</div>
+    <div class="phase4-inline-search-hit elite-app-search" id="leaderSearchTap">
       <span style="font-size:14px;">🔍</span> <span>Search leaderboard</span>
     </div>
     <button type="button" class="icon-btn patrol-icon-lg" onclick="typeof navToNotifs==='function'&&navToNotifs()" aria-label="Notifications">
       🔔 <span class="patrol-bell-badge patrol-bell-hide" id="bellBadge"></span>
     </button>
     <button type="button" class="icon-btn" onclick="typeof patrolLeaderHdrProfile==='function'&&patrolLeaderHdrProfile()" aria-label="Profile">
-      <span class="avatar" id="leaderHdrAvatar" style="width:32px;height:32px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;">--</span>
+      <span class="avatar" id="leaderHdrAvatar" style="width:36px;height:36px;font-size:12px;display:inline-flex;align-items:center;justify-content:center;">--</span>
     </button>
   </div>
-  <div class="tab-bar phase4-tab-bar">
+  <div class="tab-bar phase4-tab-bar elite-tab-bar">
     <button type="button" class="tab active" data-period="month">This month</button>
     <button type="button" class="tab" data-period="ytd">YTD</button>
     <button type="button" class="tab" data-period="today">Today</button>
@@ -824,13 +880,13 @@ if ('serviceWorker' in navigator) {
 <!-- ========================================= -->
 <!-- SEARCH                                    -->
 <!-- ========================================= -->
-<div id="page-search" class="page phase4-page" style="background:var(--bg-chat);">
-  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+<div id="page-search" class="page phase4-page elite-field-page">
+  <div class="app-header elite-shell-header" style="display:flex;align-items:center;gap:10px;padding:8px 12px;">
     <button type="button" class="icon-btn" onclick="navBack()" aria-label="Back">←</button>
     <input type="search" placeholder="Search Patrol — people, stores, posts..."
            id="searchInput"
            autocomplete="off"
-           style="flex:1;background:var(--bg-hover);border:none;border-radius:100px;padding:10px 18px;font-size:14px;color:var(--text-primary);font-family:inherit;outline:none;"
+           style="flex:1;background:var(--bg-hover);border:1px solid transparent;border-radius:100px;padding:10px 18px;min-height:48px;font-size:14px;color:var(--text-primary);font-family:inherit;outline:none;"
            oninput="onSearchInput(this.value)">
   </div>
   <div class="app-content" id="searchResults"></div>
@@ -871,9 +927,34 @@ if ('serviceWorker' in navigator) {
 <!-- .page-placeholder layout from css/dsm-rsm-mobile.css. -->
 <!-- ========================================= -->
 <div class="page page-sales-density" id="pg-sales">
-  <div class="sales-page-inner">
-    <div class="sales-head-bar">
-      <span class="sales-head-title">Sales</span>
+  <div class="sales-v2-status" id="sales-v2-status" aria-live="polite">
+    <div class="sales-v2-status-left">
+      <span class="sales-v2-sync-ico" aria-hidden="true">&#10227;</span>
+      <span id="salesV2SyncText">Sales</span>
+    </div>
+    <div class="sales-v2-status-right">
+      <span class="sales-v2-online-dot" id="salesV2OnlineDot" aria-hidden="true"></span>
+      <span id="salesV2OnlineLbl">Online</span>
+    </div>
+  </div>
+  <div class="sales-v2-head-wrap">
+    <div class="sales-v2-header">
+      <div class="sales-v2-header-top">
+        <div>
+          <h1 class="sales-v2-title">Sales</h1>
+          <div id="salesV2ScopeSubtitle">Your territory</div>
+        </div>
+        <div class="sales-v2-user-block">
+          <span id="salesV2TerritoryPill" class="sales-v2-territory-pill-inner"></span>
+          <div class="sales-v2-user-text">
+            <div id="salesV2UserName">—</div>
+            <div id="salesV2UserMeta"></div>
+          </div>
+          <div id="salesV2UserAv" class="sales-v2-user-av-inner" aria-hidden="true">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="sales-head-bar sales-v2-toggles">
       <div class="sales-period-row" role="tablist" aria-label="Sales period">
         <button type="button" class="sales-period-btn active" role="tab" aria-selected="true" data-period="MTD">MTD</button>
         <button type="button" class="sales-period-btn" role="tab" aria-selected="false" data-period="YTD">YTD</button>
@@ -883,6 +964,8 @@ if ('serviceWorker' in navigator) {
         <button type="button" class="sales-unit-btn" role="tab" aria-selected="false" data-unit="MT">MT</button>
       </div>
     </div>
+  </div>
+  <div class="sales-page-inner sales-v2-inner">
     <div id="sales-sap-summary" class="sales-sap-summary-host" data-period="MTD" data-unit="BAGS"></div>
   </div>
 </div>
@@ -963,8 +1046,9 @@ if ('serviceWorker' in navigator) {
       <div class="chat-hdr-sub" id="detail-store-meta">--</div>
     </div>
     <div class="chat-hdr-btns">
-      <div class="chat-ico-btn" id="detail-call-btn" onclick="callStorePhone()">&#128222;</div>
-      <div class="chat-ico-btn" id="detail-map-btn" onclick="openStoreDirections()">&#128506;</div>
+      <div class="chat-ico-btn" id="detail-call-btn" onclick="callStorePhone()" title="Call">&#128222;</div>
+      <div class="chat-ico-btn" id="detail-messenger-btn" style="display:none" onclick="openStoreMessenger()" title="Messenger">&#128172;</div>
+      <div class="chat-ico-btn" id="detail-map-btn" onclick="openStoreDirections()" title="Map">&#128506;</div>
     </div>
   </div>
 
@@ -1079,7 +1163,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <!-- GPS warning -->
-  <div id="visit-gps-warning" style="display:none;margin:8px 0;padding:12px 16px;background:#FFF3E0;border-radius:12px;border-left:4px solid var(--status-warn);font-size:13px;color:#E65100;line-height:1.5">
+  <div id="visit-gps-warning" style="display:none;margin:8px 0;padding:12px 16px;background:#FFF3E0;border-radius:12px;border:1px solid rgba(230,81,0,0.25);border-top:4px solid var(--status-warn);font-size:13px;color:#E65100;line-height:1.5">
     <b>&#9888;&#65039; Hindi ma-locate ang GPS mo.</b><br>
     I-allow ang location sa settings.<br>
     <span style="color:var(--text-muted)">Maaari ka pa ring mag-submit.</span>
@@ -1203,10 +1287,6 @@ if ('serviceWorker' in navigator) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
     Tindahan
   </button>
-  <button class="nav-item" data-page="page-visits" data-t="visit" style="min-height:56px">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-    Bisita
-  </button>
   <button class="nav-item" data-page="page-map" data-t="map" style="min-height:56px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
     Mapa
@@ -1215,49 +1295,55 @@ if ('serviceWorker' in navigator) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Profile
   </button>
+  <button class="nav-item" data-action="more-sheet" data-t="more" style="min-height:56px" onclick="if(typeof window.openMoreSheet==='function')window.openMoreSheet();">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
+    More
+  </button>
 </div>
 
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
 <script src="js/theme-switcher.js?v=1"></script>
-<script src="js/labels-v2.js?v=15"></script>
+<script src="js/labels-v2.js?v=19"></script>
 <script src="config.js"></script>
+<script src="js/release-channel.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
 <script src="js/supabase.js?v=2"></script>
 <script src="js/validate.js"></script>
-<script src="js/auth.js?v=21"></script>
-<script src="js/db.js?v=4"></script>
-<script src="js/i18n.js?v=1"></script>
+<script src="js/auth.js?v=25"></script>
+<script src="js/db.js?v=6"></script>
+<script src="js/i18n.js?v=2"></script>
+<script src="js/lang-picker.js?v=1"></script>
 <script src="js/role-scope.js?v=1"></script>
-<script src="js/home-tsr.js?v=2"></script>
-<script src="js/home-dsm.js?v=2"></script>
+<script src="js/home-tsr.js?v=4"></script>
+<script src="js/home-dsm.js?v=5"></script>
 <script src="js/stores-nav-pref.js?v=1"></script>
-<script src="js/sales-tab.js?v=14"></script>
+<script src="js/sales-tab.js?v=16"></script>
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/offline.js?v=4"></script>
-<script src="js/stores.js?v=9"></script>
-<script src="js/visits.js"></script>
-<script src="js/visit-wizard.js?v=3"></script>
+<script src="js/stores.js?v=12"></script>
+<script src="js/visits.js?v=3"></script>
+<script src="js/visit-wizard.js?v=6"></script>
 <script src="js/map.js"></script>
-<script src="js/activity-feed.js?v=2"></script>
-<script src="js/phase4-social.js?v=2"></script>
+<script src="js/activity-feed.js?v=4"></script>
+<script src="js/phase4-social.js?v=5"></script>
 <script src="js/dashboard.js?v=7"></script>
 <script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
-<script src="js/scorecard.js?v=3"></script>
+<script src="js/scorecard.js?v=4"></script>
 <script src="js/dsm-coaching.js?v=1"></script>
 <script src="js/dsm-forecast.js?v=1"></script>
 <script src="js/dsm-audit.js?v=1"></script>
-<script src="js/team.js?v=4"></script>
+<script src="js/team.js?v=5"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
-<script src="js/nav-role-device.js?v=7"></script>
+<script src="js/nav-role-device.js?v=17"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
-<script src="js/chatbot-register.js?v=3"></script>
+<script src="js/chatbot-register.js?v=4"></script>
 
 <script>
   if (typeof warnPatrolOAuthEnvironment === 'function') warnPatrolOAuthEnvironment();
@@ -1278,34 +1364,15 @@ if ('serviceWorker' in navigator) {
     }, 200);
   }
 
-  // ===== Init language pills — mark active on load =====
-  (function() {
-    var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
-    document.querySelectorAll('.lang-pill, .login-lang-btn').forEach(function(pill) {
-      if (pill.getAttribute('data-lang') === lang) {
-        pill.classList.add('active');
-        pill.style.background = '#004D71';
-        pill.style.color = '#fff';
-      } else {
-        pill.classList.remove('active');
-        pill.style.background = 'white';
-        pill.style.color = '#004D71';
-      }
-    });
-    // Apply data-t labels on load
-    document.querySelectorAll('[data-t]').forEach(function(el) {
-      var key = el.dataset.t;
-      if (T[key] && typeof T[key] === 'string') {
-        el.textContent = T[key];
-      }
-    });
-  })();
+  // ===== Phase 4.8: Profile language UI uses PatrolI18n + lang-picker.js (legacy TL/BIS/EN pills removed). =====
   if (session) {
     try {
       const initials = session.name ? session.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2) : '--';
       document.getElementById('profileAvatar').textContent = initials;
       var storesAvBtn = document.getElementById('stores-avatar-btn');
       if (storesAvBtn) storesAvBtn.textContent = initials;
+      var visitsAvBtn = document.getElementById('visits-avatar-btn');
+      if (visitsAvBtn) visitsAvBtn.textContent = initials;
       var dsmAvBtn = document.getElementById('dsm-avatar-btn');
       if (dsmAvBtn) dsmAvBtn.textContent = initials;
       document.getElementById('profileName').textContent = session.name || 'Unknown';
@@ -1314,9 +1381,11 @@ if ('serviceWorker' in navigator) {
       document.getElementById('profile-role').textContent =
         (session.role || '').toUpperCase() + (session.territory ? ' \u00B7 ' + session.territory : '');
       document.getElementById('profile-phone').textContent = session.phone || '--';
+      var pem = document.getElementById('profile-email');
+      if (pem) pem.textContent = session.email || '--';
       document.getElementById('profile-territory').textContent = session.territory || session.district || '--';
       document.getElementById('profile-role-badge').textContent = (session.role || '--').toUpperCase();
-      if (session.role === 'admin') {
+      if (typeof canAccessUserAdmin === 'function' && canAccessUserAdmin(session)) {
         document.getElementById('admin-link').style.display = 'block';
       }
       var firstName = (session.name || '').split(' ')[0] || '';
@@ -1343,11 +1412,13 @@ if ('serviceWorker' in navigator) {
       nav_safe(pageId);
       return;
     }
-    var hq = 'https://vieforce-hq.vercel.app';
-    var ok = typeof confirm === 'function'
-      ? confirm('This module is not wired in Patrol mobile yet. Open VieForce HQ in a new tab?')
-      : true;
-    if (ok) window.open(hq, '_blank', 'noopener');
+    if (typeof toast === 'function') {
+      toast('This module is temporarily unavailable on mobile.');
+      return;
+    }
+    if (typeof alert === 'function') {
+      alert('This module is temporarily unavailable on mobile.');
+    }
   }
 
   async function _attemptImmediateSync(label) {
@@ -1416,6 +1487,21 @@ if ('serviceWorker' in navigator) {
     var phone = info ? info.getAttribute('data-phone') : '';
     if (phone) window.location.href = 'tel:' + phone;
   }
+  /** Build https://m.me/... from stored Messenger username or link. */
+  function patrolMessengerHref(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^fb\.me\//i.test(s)) return 'https://m.me/' + s.slice(5).replace(/^\/+/, '');
+    if (/^m\.me\//i.test(s)) return 'https://' + s.replace(/^\/+/, '');
+    return 'https://m.me/' + s.replace(/^@/, '').replace(/^\/+/, '');
+  }
+  function openStoreMessenger() {
+    var info = document.getElementById('detail-chat-info');
+    var m = info ? info.getAttribute('data-owner-messenger') : '';
+    var href = patrolMessengerHref(m);
+    if (href) window.open(href, '_blank', 'noopener,noreferrer');
+  }
   function openStoreDirections() {
     var info = document.getElementById('detail-chat-info');
     var lat = info ? info.getAttribute('data-lat') : '';
@@ -1452,7 +1538,24 @@ if ('serviceWorker' in navigator) {
         cluster_name: session.cluster_name || session.cluster || session.territory || session.region || session.district,
         district: session.district,
         region: session.region,
-        language: session.language || session.locale || 'en',
+        language: (function () {
+          var fromSession = session.language || session.locale || '';
+          var merged = fromSession;
+          try {
+            if (!merged) merged = localStorage.getItem('patrol_locale') || '';
+          } catch (_e) {}
+          if (!merged) {
+            try {
+              var lg = (localStorage.getItem('patrol_lang') || '').toUpperCase();
+              if (lg === 'TL') merged = 'tl';
+              else if (lg === 'BIS') merged = 'ceb';
+              else if (lg === 'EN') merged = 'en';
+            } catch (_e2) {}
+          }
+          return typeof PatrolI18n !== 'undefined' && PatrolI18n.normalizeLocale
+            ? PatrolI18n.normalizeLocale(merged || 'en')
+            : String(merged || 'en').toLowerCase();
+        })(),
       },
     };
 
@@ -1547,9 +1650,11 @@ if ('serviceWorker' in navigator) {
         patrolI18nReady
           .then(function () {
             if (typeof applyI18nLabels === 'function') applyI18nLabels(document.body);
+            if (typeof window.refreshPatrolLangSummary === 'function') window.refreshPatrolLangSummary();
             runLandingInit();
             if (typeof renderNav === 'function') renderNav();
             if (typeof applyI18nLabels === 'function') applyI18nLabels(document.body);
+            if (typeof window.refreshPatrolLangSummary === 'function') window.refreshPatrolLangSummary();
           })
           .catch(function () {
             runLandingInit();
@@ -1569,6 +1674,13 @@ if ('serviceWorker' in navigator) {
         if (actives[ai] !== keep) actives[ai].classList.remove('active');
       }
     })();
+    syncPatrolShellActiveAttr();
+    syncStoresPaneVisibility(
+      (function () {
+        var ap = document.querySelector('.page.active');
+        return ap ? ap.id : '';
+      })()
+    );
 
     if (MANAGER_ROLES.indexOf(_roleLc) !== -1) {
       (function () {
@@ -1581,9 +1693,6 @@ if ('serviceWorker' in navigator) {
         teamBtn.setAttribute('style', 'min-height:56px');
         teamBtn.innerHTML =
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span data-t="team">Team</span>';
-        teamBtn.addEventListener('click', function () {
-          nav_safe('page-team');
-        });
         if (profileBtn) navBt.insertBefore(teamBtn, profileBtn);
         else navBt.appendChild(teamBtn);
       })();
@@ -1594,6 +1703,62 @@ if ('serviceWorker' in navigator) {
   // ===== Page Navigation (slide transitions) =====
   var _navHistory = [];
 
+  /** Keeps body[data-patrol-active-page] in sync for FAB + shell CSS (no :has() needed). */
+  function syncPatrolShellActiveAttr() {
+    try {
+      var p = document.querySelector('.page.active');
+      document.body.setAttribute('data-patrol-active-page', p ? p.id : '');
+    } catch (e) {}
+  }
+
+  /** WebKit/Android: compositor sometimes keeps #page-stores painted without .active — force display off-DOM. */
+  function syncStoresPaneVisibility(pageId) {
+    var shelf = document.getElementById('page-stores');
+    if (!shelf) return;
+    if (pageId === 'page-stores') shelf.style.removeProperty('display');
+    else shelf.style.setProperty('display', 'none', 'important');
+  }
+  window.syncStoresPaneVisibility = syncStoresPaneVisibility;
+
+  /**
+   * Mobile WebView hardening:
+   * Some engines fail to resolve flex:1 scroll hosts under tab pages.
+   * Force concrete heights for Stores/Visits list hosts based on viewport minus bottom nav.
+   */
+  function syncMainTabScrollHosts() {
+    try {
+      var viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+      if (!viewportH) return;
+      var bottomNav = document.getElementById('bottom-nav');
+      var navRect = bottomNav ? bottomNav.getBoundingClientRect() : null;
+      var navH = navRect ? Math.max(0, Math.round(navRect.height || 0)) : 0;
+      var padBottom = Math.max(navH + 8, 76);
+
+      var hostIds = ['tindahan-scroll-host'];
+      for (var i = 0; i < hostIds.length; i++) {
+        var host = document.getElementById(hostIds[i]);
+        if (!host) continue;
+        var top = Math.max(0, Math.round(host.getBoundingClientRect().top || 0));
+        var avail = Math.max(180, viewportH - top - padBottom);
+        host.style.height = avail + 'px';
+        host.style.maxHeight = avail + 'px';
+        host.style.overflowY = 'auto';
+        host.style.webkitOverflowScrolling = 'touch';
+      }
+
+      var visitHost = document.querySelector('#page-visits .vf-visits-scroll');
+      if (visitHost) {
+        var vTop = Math.max(0, Math.round(visitHost.getBoundingClientRect().top || 0));
+        var vAvail = Math.max(180, viewportH - vTop - padBottom);
+        visitHost.style.height = vAvail + 'px';
+        visitHost.style.maxHeight = vAvail + 'px';
+        visitHost.style.overflowY = 'auto';
+        visitHost.style.webkitOverflowScrolling = 'touch';
+      }
+    } catch (e) {}
+  }
+  window.syncMainTabScrollHosts = syncMainTabScrollHosts;
+
   function nav(pageId) {
     var cur = document.querySelector('.page.active');
     var target = document.getElementById(pageId);
@@ -1603,10 +1768,21 @@ if ('serviceWorker' in navigator) {
     // Track history for back navigation
     if (cur) _navHistory.push(cur.id);
 
-    // Close any open overlays/sheets before navigating
+    // Close any open overlays/sheets before navigating (must include layers above #bottom-nav z-index)
     var overlays = document.querySelectorAll('.overlay, .sheet');
     for (var oi = 0; oi < overlays.length; oi++) {
       overlays[oi].classList.remove('open', 'show');
+    }
+    var actionOverlays = document.querySelectorAll('.action-sheet-overlay.visible');
+    for (var ai = 0; ai < actionOverlays.length; ai++) {
+      actionOverlays[ai].classList.remove('visible');
+    }
+    if (typeof window.closeMoreSheet === 'function') window.closeMoreSheet();
+
+    // Visit sheet forces inline display:none on the bar; clear it on any main navigation.
+    var bnRestore = document.getElementById('bottom-nav');
+    if (bnRestore && !document.body.classList.contains('observer-mode')) {
+      bnRestore.style.removeProperty('display');
     }
 
     // Remove active from all, add to target
@@ -1615,15 +1791,23 @@ if ('serviceWorker' in navigator) {
       allPages[i].classList.remove('active', 'page-behind');
     }
     target.classList.add('active');
+    syncPatrolShellActiveAttr();
+    syncStoresPaneVisibility(pageId);
+    setTimeout(syncMainTabScrollHosts, 0);
+    setTimeout(syncMainTabScrollHosts, 120);
 
-    // Update bottom-nav active state
-    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-home-tsr','page-home-dsm','page-mapa-tsr','page-assign','page-stores','page-map','page-visits','page-profile','page-team','page-leader','page-notifs','page-search','page-tsr-scorecard','pg-sales','pg-region','pg-ar','pg-budget','pg-insights','pg-inventory','pg-speed'];
+    // Update bottom-nav active state (prefer nav-role-device helper when loaded)
+    var _mainPages = ['page-home','page-dashboard','page-rsm-home','page-home-tsr','page-home-dsm','page-mapa-tsr','page-assign','page-stores','page-map','page-profile','page-team','page-notifs','page-search','page-tsr-scorecard','pg-sales','pg-region','pg-ar','pg-budget','pg-insights','pg-inventory','pg-speed'];
     if (_mainPages.indexOf(pageId) !== -1) {
-      var navBtns = document.querySelectorAll('.bottom-nav .nav-item');
-      for (var j = 0; j < navBtns.length; j++) {
-        navBtns[j].classList.remove('active');
-        if (navBtns[j].dataset.page === pageId) {
-          navBtns[j].classList.add('active');
+      if (typeof window.updateNavActive === 'function') {
+        window.updateNavActive(pageId);
+      } else {
+        var navBtns = document.querySelectorAll('#bottom-nav .nav-item');
+        for (var j = 0; j < navBtns.length; j++) {
+          navBtns[j].classList.remove('active');
+          if (navBtns[j].getAttribute('data-page') === pageId) {
+            navBtns[j].classList.add('active');
+          }
         }
       }
     }
@@ -1631,7 +1815,11 @@ if ('serviceWorker' in navigator) {
     // Scroll to top
     window.scrollTo(0, 0);
     if (typeof window.rerenderCurrentPage === 'function') {
-      window.rerenderCurrentPage();
+      try {
+        window.rerenderCurrentPage();
+      } catch (eRerender) {
+        console.error('rerenderCurrentPage:', eRerender);
+      }
     }
   }
 
@@ -1640,13 +1828,8 @@ if ('serviceWorker' in navigator) {
     nav(prevId || fallback || 'page-stores');
   }
 
-  // Bottom-nav click handlers
-  var navItems = document.querySelectorAll('.bottom-nav .nav-item');
-  navItems.forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      nav(btn.dataset.page);
-    });
-  });
+  // Bottom-nav: single delegated listener is registered after window.nav (wrapped)
+  // so taps keep working when nav-role-device renderNav() replaces innerHTML.
 
   // ===== Store Detail Page =====
   var _currentStoreId = null;
@@ -1701,8 +1884,17 @@ if ('serviceWorker' in navigator) {
       var chatInfo = document.getElementById('detail-chat-info');
       if (chatInfo) {
         chatInfo.setAttribute('data-phone', store.phone || '');
+        chatInfo.setAttribute('data-owner-messenger', store.owner_messenger || '');
         chatInfo.setAttribute('data-lat', store.lat || '');
         chatInfo.setAttribute('data-lng', store.lng || '');
+      }
+      var msBtn = document.getElementById('detail-messenger-btn');
+      if (msBtn) {
+        if (store.owner_messenger && String(store.owner_messenger).trim()) {
+          msBtn.style.display = '';
+        } else {
+          msBtn.style.display = 'none';
+        }
       }
 
       // Build chat messages
@@ -1725,6 +1917,14 @@ if ('serviceWorker' in navigator) {
             '<div class="card-lbl">\ud83c\udfea ' + T.contact + '</div>' +
             '<div class="card-row"><span class="card-key">' + T.owner + '</span><span class="card-val">' + _esc(store.owner_name || '--') + '</span></div>' +
             '<div class="card-row"><span class="card-key">' + T.phone + '</span><span class="card-val blue">' + _esc(store.phone || '--') + '</span></div>' +
+            (function () {
+              var ms = store.owner_messenger && String(store.owner_messenger).trim();
+              if (!ms) {
+                return '<div class="card-row"><span class="card-key">' + T.messenger + '</span><span class="card-val">' + _esc('--') + '</span></div>';
+              }
+              var mh = patrolMessengerHref(ms);
+              return '<div class="card-row"><span class="card-key">' + T.messenger + '</span><span class="card-val blue"><a href="' + _esc(mh) + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">' + _esc(ms.length > 42 ? ms.slice(0, 40) + '\u2026' : ms) + '</a></span></div>';
+            })() +
             '<div class="card-row"><span class="card-key">' + T.vieShare + '</span><span class="card-val green">' + sharePct + '% \u00b7 ' + totalBags + ' ' + T.bagsMonth + '</span></div>' +
             '<div class="card-row"><span class="card-key">' + T.lastVisit + '</span><span class="card-val">' + _esc(lastVisitText) + '</span></div>' +
           '</div>' +
@@ -1758,6 +1958,7 @@ if ('serviceWorker' in navigator) {
               avatarBg: grad,
               initials: initials,
               outcomeLabel: outcomeLabel,
+              photoUrl: v.photo_url || '',
               notes: v.notes ? v.notes.substring(0, 100) : '',
               timeText: vTime
             });
@@ -1767,6 +1968,7 @@ if ('serviceWorker' in navigator) {
               '<div>' +
                 '<div class="bubble in visit-bubble-msg" onclick="showVisitDetail(\'' + vId + '\')">' +
                   _esc(outcomeLabel) +
+                  (v.photo_url ? '<div class="visit-bubble-photo-wrap"><img class="visit-bubble-photo" src="' + _esc(v.photo_url) + '" alt="Visit selfie"></div>' : '') +
                   (v.notes ? '<br><span class="visit-bubble-notes">' + _esc(v.notes.substring(0, 100)) + '</span>' : '') +
                 '</div>' +
                 '<div class="msg-time">' + vTime + ' <span class="ticks gray">\u2713\u2713</span></div>' +
@@ -2105,6 +2307,19 @@ if ('serviceWorker' in navigator) {
       if (typeof nav === 'function') nav('page-profile');
     });
   }
+  var visitsAvHdr = document.getElementById('visits-avatar-btn');
+  if (visitsAvHdr) {
+    visitsAvHdr.addEventListener('click', function () {
+      if (typeof nav === 'function') nav('page-profile');
+    });
+  }
+  var btnVisitsNew = document.getElementById('btn-visits-new');
+  if (btnVisitsNew) {
+    btnVisitsNew.addEventListener('click', function () {
+      if (typeof openVisitFlow === 'function') openVisitFlow();
+      else if (typeof nav === 'function') nav('page-stores');
+    });
+  }
 
   // ===== FAB picker sheet =====
   function openFabPicker() {
@@ -2153,6 +2368,9 @@ if ('serviceWorker' in navigator) {
       store_ask_owner: 'Sino ang may-ari? 👤',
       store_owner_ph: 'hal. Ricardo Santos',
       store_ask_phone: 'Ano ang contact number? 📞',
+      store_ask_messenger: 'May Facebook Messenger ang may-ari? 💬 (o skip kung wala) — madalas ito kaysa phone.',
+      store_messenger_ph: 'hal. m.me/juan.delacruz o buong https link',
+      messenger_skipped: '(walang Messenger)',
       store_ask_status: 'Ano ang status ng tindahan? 🏪',
       store_status_active: '✅ Kliyente na (may order na)',
       store_status_prospect: '👀 Prospect (hindi pa nag-o-order)',
@@ -2213,6 +2431,9 @@ if ('serviceWorker' in navigator) {
       store_ask_owner: 'Kinsay tag-iya? 👤',
       store_owner_ph: 'pananglitan. Ricardo Santos',
       store_ask_phone: 'Unsay contact number? 📞',
+      store_ask_messenger: 'Naay Facebook Messenger ang tag-iya? 💬 (o skip) — kasagaran niini ilis sa phone.',
+      store_messenger_ph: 'pananglitan m.me/juan o tibuok https link',
+      messenger_skipped: '(walay Messenger)',
       store_ask_status: 'Unsay status sa tindahan? 🏪',
       store_status_active: '✅ Kliyente na (naa nay order)',
       store_status_prospect: '👀 Prospect (wala pa nag-order)',
@@ -2273,6 +2494,9 @@ if ('serviceWorker' in navigator) {
       store_ask_owner: 'Who’s the owner? 👤',
       store_owner_ph: 'e.g. Ricardo Santos',
       store_ask_phone: 'What’s the contact number? 📞',
+      store_ask_messenger: 'Owner’s Facebook Messenger? 💬 (optional — press Enter to skip) — many POS use this instead of phone.',
+      store_messenger_ph: 'e.g. m.me/juan.delacruz or full https link',
+      messenger_skipped: '(no Messenger)',
       store_ask_status: 'What’s the store status? 🏪',
       store_status_active: '✅ Active client (already ordering)',
       store_status_prospect: '👀 Prospect (not yet ordering)',
@@ -2339,7 +2563,8 @@ if ('serviceWorker' in navigator) {
           { text: _ct('store_type_other'),  value: 'other' }
         ] },
       { id: 'ask_owner', msg: _ct('store_ask_owner'), input: 'text', placeholder: _ct('store_owner_ph'), field: 'owner_name', next: 'ask_phone' },
-      { id: 'ask_phone', msg: _ct('store_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_status' },
+      { id: 'ask_phone', msg: _ct('store_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_messenger' },
+      { id: 'ask_messenger', msg: _ct('store_ask_messenger'), input: 'text', placeholder: _ct('store_messenger_ph'), field: 'owner_messenger', allowEmpty: true, emptyUserHint: _ct('messenger_skipped'), next: 'ask_status' },
       { id: 'ask_status', msg: _ct('store_ask_status'), field: 'store_status_raw', next: 'ask_city',
         quickReplies: [
           { text: _ct('store_status_active'),   value: 'active' },
@@ -2367,7 +2592,7 @@ if ('serviceWorker' in navigator) {
         ] },
       { id: 'do_photo', msg: _ct('photo_loading'), action: 'photo', next: 'confirm' },
       { id: 'confirm', msg: _ct('store_confirm'), summary: true,
-        fields: ['name','store_type','store_status_raw','owner_name','phone','city','vol_class','bags_per_month'],
+        fields: ['name','store_type','store_status_raw','owner_name','phone','owner_messenger','city','vol_class','bags_per_month'],
         quickReplies: [
           { text: _ct('confirm_save'),   value: 'save', next: 'done' },
           { text: _ct('confirm_cancel'), value: 'cancel' }
@@ -2437,10 +2662,12 @@ if ('serviceWorker' in navigator) {
     var prospectStage = (rawStatus === 'active') ? null :
                         (rawStatus === 'prospect' ? 'interested' : 'identified');
 
+    var msRaw = data.owner_messenger != null ? String(data.owner_messenger).trim() : '';
     var payload = {
       name: data.name,
       owner_name: data.owner_name || null,
       phone: data.phone ? String(data.phone).replace(/[\s\-()]/g, '') : null,
+      owner_messenger: msRaw ? msRaw : null,
       store_type: data.store_type || null,
       lat: data.lat || null,
       lng: data.lng || null,
@@ -2630,6 +2857,7 @@ if ('serviceWorker' in navigator) {
   function _bootstrapVisitsPage() {
     if (_visitsBootstrapped) return;
     _visitsBootstrapped = true;
+    if (typeof initVisitRowDelegation === 'function') initVisitRowDelegation();
     renderVisitList();
     initVisitSearch();
     initVisitFilters();
@@ -2672,12 +2900,14 @@ if ('serviceWorker' in navigator) {
     if (pageId === 'page-visits') {
       _bootstrapVisitsPage();
     }
-    if (pageId === 'page-map' && !_mapInitialized) {
-      _mapInitialized = true;
+    if (pageId === 'page-map') {
       setTimeout(function() {
-        initMap();
+        if (!_mapInitialized) {
+          _mapInitialized = true;
+          initMap();
+          initMapFilters();
+        }
         loadMapMarkers();
-        initMapFilters();
       }, 100);
     }
     if (pageId === 'page-assign') {
@@ -2699,6 +2929,25 @@ if ('serviceWorker' in navigator) {
 
   window.nav = nav;
   window.navBack = navBack;
+
+  (function bindBottomNavDelegation() {
+    var bar = document.getElementById('bottom-nav');
+    if (!bar || bar.getAttribute('data-nav-delegation') === '1') return;
+    bar.setAttribute('data-nav-delegation', '1');
+    function routeBottomNav(ev) {
+      var btn = ev.target.closest('.nav-item');
+      if (!btn || !bar.contains(btn)) return;
+      var action = btn.getAttribute('data-action');
+      if (action === 'more-sheet') {
+        if (typeof window.openMoreSheet === 'function') window.openMoreSheet();
+        return;
+      }
+      var pageId = btn.getAttribute('data-page');
+      if (!pageId) return;
+      if (typeof window.nav === 'function') window.nav(pageId);
+    }
+    bar.addEventListener('click', routeBottomNav);
+  })();
 
   // If we land directly on these pages for any role flow, bootstrap immediately.
   var _activeOnLoad = document.querySelector('.page.active');
@@ -2774,11 +3023,17 @@ if ('serviceWorker' in navigator) {
         try {
           if (window._patrolBootLog) window._patrolBootLog('ensurePatrolShell: active=' + any.id, !!localStorage.getItem('patrol_bootlog'));
         } catch (e) {}
+        syncPatrolShellActiveAttr();
+        syncStoresPaneVisibility(any.id);
+        setTimeout(syncMainTabScrollHosts, 0);
         return;
       }
       var home = document.getElementById('page-home');
       if (home) {
         home.classList.add('active');
+        syncPatrolShellActiveAttr();
+        syncStoresPaneVisibility('page-home');
+        setTimeout(syncMainTabScrollHosts, 0);
         console.error('Patrol: no active page after boot — recovered to Home.');
         if (window._patrolBootLog) window._patrolBootLog('RECOVERED: forced page-home active (was blank shell)', true);
       }
@@ -2787,6 +3042,23 @@ if ('serviceWorker' in navigator) {
       if (window._patrolBootLog) window._patrolBootLog('ensurePatrolShell exception: ' + (e && e.message), true);
     }
   })();
+  window.addEventListener('resize', function () {
+    setTimeout(syncMainTabScrollHosts, 0);
+  });
+  window.addEventListener('orientationchange', function () {
+    setTimeout(syncMainTabScrollHosts, 50);
+  });
+  window.addEventListener('pageshow', function () {
+    setTimeout(syncMainTabScrollHosts, 0);
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) setTimeout(syncMainTabScrollHosts, 60);
+  });
+  if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+    window.visualViewport.addEventListener('resize', function () {
+      setTimeout(syncMainTabScrollHosts, 0);
+    });
+  }
 </script>
 
 <!-- ========================================= -->
@@ -2798,6 +3070,9 @@ if ('serviceWorker' in navigator) {
     <div class="action-sheet-title" id="action-sheet-title">Store</div>
     <button class="action-sheet-btn" onclick="actionSheetCall()">
       <span class="as-icon">&#128222;</span> Tawagan ang may-ari
+    </button>
+    <button type="button" class="action-sheet-btn" id="action-sheet-messenger-btn" style="display:none" onclick="actionSheetMessenger()">
+      <span class="as-icon">&#128172;</span> Messenger
     </button>
     <button class="action-sheet-btn" onclick="actionSheetDirections()">
       <span class="as-icon">&#128506;</span> Direksyon papunta

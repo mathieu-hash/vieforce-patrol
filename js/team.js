@@ -237,7 +237,7 @@ async function _renderRsmTeam(session) {
   if (subtitle) subtitle.textContent = 'RSM \u00b7 ' + (session.region || 'Region');
 
   panel.innerHTML =
-    '<div class="alert-strip" style="background:white;border-left-color:var(--fb-blue)">' +
+    '<div class="alert-strip" style="background:white;border:1px solid rgba(8,132,255,0.22);border-top:4px solid var(--fb-blue)">' +
       '<div class="alert-icon">\u23f3</div>' +
       '<div class="alert-body"><div class="alert-title" style="color:var(--fb-blue)">Loading region\u2026</div></div>' +
     '</div>';
@@ -390,7 +390,7 @@ async function renderTeamPage() {
     (session.region ? ' \u00b7 ' + session.region : '');
 
   panel.innerHTML =
-    '<div class="alert-strip" style="background:white;border-left-color:var(--fb-blue)">' +
+    '<div class="alert-strip" style="background:white;border:1px solid rgba(8,132,255,0.22);border-top:4px solid var(--fb-blue)">' +
       '<div class="alert-icon">\u23f3</div>' +
       '<div class="alert-body"><div class="alert-title" style="color:var(--fb-blue)">Loading team data\u2026</div></div>' +
     '</div>';
@@ -550,7 +550,7 @@ async function renderTsrScorecardDetail(tsrId) {
           [T.converted || 'Converted', sc.conversion.converted],
           [T.conversionRate || 'Conversion rate', sc.conversion.rate + '%']
         ]) +
-        _stage('\ud83d\udc9a', T.retention || 'Retention', sc.retention.stars, [
+        _stage('\u2764', T.retention || 'Retention', sc.retention.stars, [
           [T.visited || 'Visited', sc.retention.visited_count + '/' + sc.retention.total_active + ' (' + sc.retention.visited_pct + '%)'],
           [T.atRisk || 'At risk', '<span style="color:#F7B928">' + sc.retention.at_risk + '</span>'],
           [T.churned || 'Churned', '<span style="color:#FA383E">' + sc.retention.churned + '</span>']

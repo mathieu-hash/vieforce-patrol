@@ -138,7 +138,41 @@ async function isGoogleProviderEnabled() {
   }
 }
 
-function createSessionFromUser(user, authSource) {
+/** Normalize app locale without relying on PatrolI18n (login page loads before i18n.js). */
+function normalizeSessionLanguage(raw) {
+  var s = String(raw || '')
+    .trim()
+    .toLowerCase();
+  if (s === 'bis' || s === 'ceb' || s === 'cebuano' || s === 'bisaya') return 'ceb';
+  if (s === 'fil' || s === 'tl' || s === 'tagalog') return 'tl';
+  if (s === 'en' || s === 'english') return 'en';
+  if (s === 'tl' || s === 'ceb') return s;
+  return 'en';
+}
+
+/**
+ * @param {object} user — row from verify-pin / Google manager lookup
+ * @param {string} [authSource] — 'pin' | 'google'
+ * @param {string} [pinLoginPhone] — normalized phone used for PIN login (fallback if API omits phone)
+ */
+function createSessionFromUser(user, authSource, pinLoginPhone) {
+  var langRaw = user.language || user.locale || '';
+  var lang = normalizeSessionLanguage(langRaw);
+  if (!langRaw) {
+    try {
+      var pl = localStorage.getItem('patrol_locale');
+      if (pl) lang = normalizeSessionLanguage(pl);
+      else {
+        var lg = (localStorage.getItem('patrol_lang') || '').toUpperCase();
+        if (lg === 'TL') lang = 'tl';
+        else if (lg === 'BIS') lang = 'ceb';
+        else if (lg === 'EN') lang = 'en';
+      }
+    } catch (_e0) {}
+  }
+  var resolvedPhone = user.phone != null && String(user.phone).trim() !== ''
+    ? String(user.phone).trim()
+    : pinLoginPhone || null;
   return {
     id: user.id,
     name: user.name,
@@ -147,12 +181,39 @@ function createSessionFromUser(user, authSource) {
     district: user.district || null,
     territory: user.territory || null,
     is_champion: user.is_champion || false,
+    phone: resolvedPhone,
     email: user.email || null,
+    language: lang,
+    locale: lang,
     auth_source: authSource || 'pin',
     loggedInAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
   };
 }
+
+/** Merge fields into patrol_session + PatrolSession.user (Phase 4.8 language, etc.). */
+function patchPatrolSession(partial) {
+  try {
+    var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    var session = JSON.parse(raw);
+    var k;
+    for (k in partial) {
+      if (Object.prototype.hasOwnProperty.call(partial, k)) session[k] = partial[k];
+    }
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    if (window.PatrolSession && window.PatrolSession.user) {
+      for (k in partial) {
+        if (Object.prototype.hasOwnProperty.call(partial, k)) window.PatrolSession.user[k] = partial[k];
+      }
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+window.patchPatrolSession = patchPatrolSession;
 
 async function getManagerUserByEmail(email) {
   if (!window.supabaseClient) return null;
@@ -161,7 +222,7 @@ async function getManagerUserByEmail(email) {
 
   var result = await supabaseClient
     .from('users')
-    .select('id,name,role,region,district,territory,is_champion,is_active,email,auth_type')
+    .select('id,name,role,region,district,territory,phone,is_champion,is_active,email,auth_type,language')
     .eq('email', cleanEmail)
     .eq('is_active', true)
     .maybeSingle();
@@ -228,7 +289,9 @@ async function login(phone, pin) {
       method: 'POST',
       headers: {
         'Content-Type': 'text/plain',
-        'apikey': CONFIG.SUPABASE_ANON_KEY
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+        // Supabase API gateway requires Bearer; without it → 401 UNAUTHORIZED_NO_AUTH_HEADER (UI showed as wrong PIN).
+        Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON_KEY
       },
       body: JSON.stringify({ phone: cleanPhone, pin: cleanPin })
     });
@@ -239,7 +302,7 @@ async function login(phone, pin) {
 
     if (res.ok && data && data.id) {
       resetLoginAttempts();
-      var session = createSessionFromUser(data, 'pin');
+      var session = createSessionFromUser(data, 'pin', cleanPhone);
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       // Verify write landed before returning success
       var verify = localStorage.getItem(SESSION_KEY);
@@ -255,7 +318,10 @@ async function login(phone, pin) {
     if (res.status === 429) {
       return { success: false, error: (data && data.error) || T.errorThrottledGeneric, throttled: true };
     }
-    return { success: false, error: (data && data.error) || T.errorWrongPin };
+    return {
+      success: false,
+      error: (data && (data.error || data.message)) || T.errorWrongPin
+    };
   } catch (e) {
     // Edge function unreachable (no internet)
     return { success: false, error: T.errorNetworkLogin };
@@ -451,15 +517,21 @@ function requireAuth() {
   return null;
 }
 
-function logout() {
-  if (window.supabaseClient && supabaseClient.auth) {
-    supabaseClient.auth.signOut().catch(function () {});
-  }
+/**
+ * Clear Patrol + Supabase sessions, then go to login.
+ * Must await Supabase signOut before navigating: index.html's maybeHandleGoogleLoginOnLoad()
+ * restores manager sessions from persisted auth if tokens are still present (race otherwise).
+ */
+async function logout() {
   try {
     localStorage.removeItem(SESSION_KEY);
   } catch (_e) {}
   resetLoginAttempts();
-  // Absolute URL — reliable navigation from /app.html for PWAs, automation (CDP), and odd base paths.
+  try {
+    if (window.supabaseClient && supabaseClient.auth) {
+      await supabaseClient.auth.signOut();
+    }
+  } catch (_e) {}
   var origin = '';
   try {
     origin = String(window.location.origin || '').replace(/\/$/, '');
@@ -471,6 +543,17 @@ function hasRole(roles) {
   var session = getSession();
   if (!session) return false;
   return roles.indexOf(session.role) !== -1;
+}
+
+/**
+ * Sales Admin + SAP user roster — EVP Sales, Sales Admin, Marketing Manager, CEO only.
+ * Role slugs in public.users: evp, admin, marketing, ceo (case-insensitive).
+ */
+function canAccessUserAdmin(session) {
+  var s = session || getSession();
+  if (!s || !s.role) return false;
+  var r = String(s.role).toLowerCase();
+  return r === 'ceo' || r === 'admin' || r === 'evp' || r === 'marketing';
 }
 
 function isLoggedIn() {

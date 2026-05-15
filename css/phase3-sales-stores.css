@@ -294,12 +294,14 @@
   background: rgba(0, 0, 0, 0.04);
 }
 .stores-rows-host .row.warn {
-  border-left: 3px solid var(--warning, #f59e0b);
-  padding-left: 9px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 10px;
 }
 .stores-rows-host .row.danger {
-  border-left: 3px solid var(--danger, #dc2626);
-  padding-left: 9px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.28);
+  border-radius: 10px;
 }
 
 .stores-rows-host .avatar {
@@ -399,11 +401,7 @@ body:not(.role-dsm):not(.role-rsm):not(.role-ceo) .store-fab {
   display: none;
 }
 
-body.role-dsm:has(#page-stores.active) #fab-btn,
-body.role-rsm:has(#page-stores.active) #fab-btn,
-body.role-ceo:has(#page-stores.active) #fab-btn {
-  display: none !important;
-}
+/* :has() fallback removed — FAB pairing uses body[data-patrol-active-page] in patrol.css */
 
 .stores-empty-hint {
   padding: 36px 28px 48px;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>VieForce Patrol — Login</title>
+<title>VieForce Patrol — Login (Beta)</title>
 <script>
 (function() {
   try {
@@ -178,10 +178,11 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
 
 <script src="js/labels-v2.js?v=10"></script>
 <script src="config.js"></script>
+<script src="js/release-channel.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js?v=2"></script>
 <script src="js/validate.js"></script>
-<script src="js/auth.js?v=21"></script>
+<script src="js/auth.js?v=24"></script>
 <script>
   // Apply saved language to login screen
   function applyLoginLang() {
@@ -314,8 +315,24 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
         history.replaceState({}, document.title, location.pathname + location.search);
       } catch (h) {}
     }
+    // OAuth callback params (?code=, error, hash access_token) MUST take precedence over
+    // any stale patrol_session in localStorage — otherwise a previous user's session can
+    // short-circuit a fresh Google sign-in and the new identity is silently dropped.
+    var hasOAuthCallback = (function () {
+      try {
+        var qs = new URLSearchParams(location.search || '');
+        if (qs.get('code') || qs.get('error') || qs.get('error_code') || qs.get('error_description')) return true;
+        if ((location.hash || '').indexOf('access_token=') !== -1) return true;
+      } catch (_e) {}
+      return false;
+    })();
+
+    if (hasOAuthCallback) {
+      try { localStorage.removeItem('patrol_session'); } catch (_eClear) {}
+    }
+
     try {
-      if (getSession()) {
+      if (!hasOAuthCallback && getSession()) {
         window.location.href = 'app.html';
         return;
       }

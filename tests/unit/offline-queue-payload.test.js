@@ -158,6 +158,7 @@ test('preserves all real DB columns through the strip', () => {
     name: 'Test Store',
     owner_name: 'Mat',
     phone: '09171234567',
+    owner_messenger: 'm.me/testowner',
     store_type: 'feeds_dealer',
     lat: 14.6, lng: 121.0,
     city: 'Quezon City',
@@ -178,13 +179,13 @@ test('preserves all real DB columns through the strip', () => {
   assert.equal('offline_id' in out, false);
   assert.equal('created_at' in out, false);
 
-  // 14 real fields preserved
+  // 15 real fields preserved
   for (const k of [
-    'name','owner_name','phone','store_type','lat','lng','city','photo_url',
+    'name','owner_name','phone','owner_messenger','store_type','lat','lng','city','photo_url',
     'vol_class','health_status','store_status','prospect_stage','bags_per_month',
     'created_by'
   ]) {
     assert.equal(k in out, true, `${k} must survive _queuePayload strip`);
   }
-  assert.equal(Object.keys(out).length, 14);
+  assert.equal(Object.keys(out).length, 15);
 });

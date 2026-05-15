@@ -30,21 +30,27 @@ body.role-dsm #bottom-nav .nav-item,
 body.role-rsm #bottom-nav .nav-item,
 body.role-ceo #bottom-nav .nav-item {
   min-height: 52px;
-  padding: 6px 2px 4px;
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 6px 1px 4px;
   gap: 0;
 }
 body.role-dsm #bottom-nav .nav-ico,
 body.role-rsm #bottom-nav .nav-ico,
 body.role-ceo #bottom-nav .nav-ico {
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
 }
 body.role-dsm #bottom-nav .nav-lbl,
 body.role-rsm #bottom-nav .nav-lbl,
 body.role-ceo #bottom-nav .nav-lbl {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 body.role-dsm #bottom-nav .nav-item.active,
 body.role-rsm #bottom-nav .nav-item.active,
@@ -190,16 +196,15 @@ body.role-ceo #bottom-nav .nav-pip {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   font: inherit;
   cursor: pointer;
-  border-left: 4px solid transparent;
 }
 .density-dash-root .queue-row-density:last-child {
   border-bottom: none;
 }
 .density-dash-root .queue-row-density.queue-sev-warn {
-  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.09);
 }
 .density-dash-root .queue-row-density.queue-sev-crit {
-  border-left-color: #e11d48;
+  background: rgba(225, 29, 72, 0.09);
 }
 .density-dash-root .queue-row-main {
   flex: 1;

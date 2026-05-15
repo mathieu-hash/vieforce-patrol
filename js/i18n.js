@@ -1,12 +1,11 @@
 /**
- * Patrol — minimal i18n
- * Single t() function. Locale loaded at boot. User language
- * preference read from PatrolSession.user.language (or default 'en').
- * Phase 4.8 adds locale switcher UI + tl/bis/ceb files.
+ * Patrol — PatrolI18n JSON locale layer (Phase 4.8)
+ * Canonical locales: en, tl, ceb. Bridges legacy labels-v2 (TL/BIS/EN) on setLocale.
  */
 (function () {
   'use strict';
   var FALLBACK_LOCALE = 'en';
+  var SUPPORTED = { en: true, tl: true, ceb: true };
   var currentLocale = FALLBACK_LOCALE;
   /** Pre-merge before fetch so nav labels resolve if fetch is slow */
   var NAV_BOOTSTRAP = {
@@ -15,37 +14,61 @@
     'nav.visit': 'Visit',
     'nav.mapa': 'Mapa',
     'nav.me': 'Me',
+    'nav.stores': 'Stores',
+    'nav.team': 'Team',
+    'nav.sales': 'Sales',
+    'nav.leaders': 'Leaders',
+    'nav.more': 'More'
   };
   var dictionary = Object.assign({}, NAV_BOOTSTRAP);
 
+  function normalizeLocale(raw) {
+    var s = String(raw || '')
+      .trim()
+      .toLowerCase();
+    if (s === 'bis' || s === 'ceb' || s === 'cebuano' || s === 'bisaya') return 'ceb';
+    if (s === 'fil' || s === 'tl' || s === 'tagalog' || s === 'tg') return 'tl';
+    if (s === 'en' || s === 'english') return 'en';
+    if (SUPPORTED[s]) return s;
+    return FALLBACK_LOCALE;
+  }
+
+  function legacyLangFromLocale(locale) {
+    if (locale === 'tl') return 'TL';
+    if (locale === 'ceb') return 'BIS';
+    return 'EN';
+  }
+
+  function mapLegacyStorageLang(upper) {
+    if (upper === 'TL') return 'tl';
+    if (upper === 'BIS') return 'ceb';
+    if (upper === 'EN') return 'en';
+    return null;
+  }
+
   /**
    * Load a locale's JSON dictionary.
-   * Default locale = 'en'. Phase 4.8 adds 'tl', 'bis', 'ceb'.
    */
   function load(locale) {
-    return fetch('/locales/' + locale + '.json', { cache: 'no-store' })
+    var code = normalizeLocale(locale);
+    return fetch('/locales/' + code + '.json', { cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('locale fetch failed');
         return r.json();
       })
       .then(function (data) {
         dictionary = Object.assign({}, NAV_BOOTSTRAP, data);
-        currentLocale = locale;
+        currentLocale = code;
       })
       .catch(function (e) {
-        if (locale !== FALLBACK_LOCALE) {
-          console.warn('[i18n] failed to load ' + locale + ', falling back to ' + FALLBACK_LOCALE);
+        if (code !== FALLBACK_LOCALE) {
+          console.warn('[i18n] failed to load ' + code + ', falling back to ' + FALLBACK_LOCALE);
           return load(FALLBACK_LOCALE);
         }
         console.error('[i18n] failed to load fallback locale', e);
       });
   }
 
-  /**
-   * Translate a key. If key not found, returns the key itself (visible
-   * to dev so missing translations are obvious).
-   * Supports simple {placeholder} interpolation.
-   */
   function t(key, vars) {
     var val = dictionary[key];
     if (val === undefined) {
@@ -63,11 +86,24 @@
   function getUserLocale() {
     try {
       var u = window.PatrolSession && window.PatrolSession.user;
-      if (u && (u.language || u.locale)) return String(u.language || u.locale).toLowerCase();
+      if (u && (u.language || u.locale)) {
+        var n = normalizeLocale(u.language || u.locale);
+        if (n) return n;
+      }
       if (typeof window.getSession === 'function') {
         var s = window.getSession();
-        if (s && (s.language || s.locale)) return String(s.language || s.locale).toLowerCase();
+        if (s && (s.language || s.locale)) {
+          return normalizeLocale(s.language || s.locale);
+        }
       }
+      try {
+        var pl = localStorage.getItem('patrol_locale');
+        if (pl) return normalizeLocale(pl);
+      } catch (e1) {}
+      try {
+        var leg = mapLegacyStorageLang((localStorage.getItem('patrol_lang') || '').toUpperCase());
+        if (leg) return leg;
+      } catch (e2) {}
       return FALLBACK_LOCALE;
     } catch (e) {
       return FALLBACK_LOCALE;
@@ -76,7 +112,15 @@
 
   /** Initialize on boot. */
   function init() {
-    return load(getUserLocale());
+    return load(getUserLocale()).then(function () {
+      if (typeof window.setLanguage === 'function') {
+        window.setLanguage(legacyLangFromLocale(currentLocale), {
+          silent: true,
+          source: 'patrol-i18n-bridge'
+        });
+      }
+      applyI18nLabels(document.body);
+    });
   }
 
   function applyI18nLabels(root) {
@@ -89,14 +133,89 @@
     }
   }
 
+  /**
+   * Switch locale, refresh JSON dictionary, data-i18n, and labels-v2 bridge. No page reload.
+   * @param {string} locale
+   * @param {{skipEvent?:boolean}} opts
+   */
+  function setLocale(locale, opts) {
+    opts = opts || {};
+    var code = normalizeLocale(locale);
+    return load(code).then(function () {
+      applyI18nLabels(document.body);
+      try {
+        localStorage.setItem('patrol_locale', code);
+      } catch (e0) {}
+      if (typeof window.setLanguage === 'function') {
+        window.setLanguage(legacyLangFromLocale(code), {
+          silent: true,
+          source: 'patrol-i18n-bridge'
+        });
+      }
+      if (!opts.skipEvent) {
+        try {
+          window.dispatchEvent(
+            new CustomEvent('patrol:locale-changed', { detail: { locale: code } })
+          );
+        } catch (e1) {}
+      }
+      return code;
+    });
+  }
+
+  /**
+   * Persist preference server-side + session, then notify listeners.
+   */
+  function saveUserLocale(localeCode) {
+    var code = normalizeLocale(localeCode);
+    return setLocale(code, { skipEvent: true }).then(function () {
+      var session = typeof window.getSession === 'function' ? window.getSession() : null;
+      if (session && session.id) {
+        return fetch('/api/user/language', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-session-id': session.id
+          },
+          body: JSON.stringify({ language: code })
+        })
+          .then(function (res) {
+            if (!res.ok) {
+              console.warn('[i18n] saveUserLocale HTTP', res.status);
+            }
+            return code;
+          })
+          .catch(function (err) {
+            console.warn('[i18n] saveUserLocale failed', err && err.message);
+            return code;
+          });
+      }
+      return Promise.resolve(code);
+    }).then(function () {
+      if (typeof window.patchPatrolSession === 'function') {
+        window.patchPatrolSession({ language: code, locale: code });
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent('patrol:locale-changed', { detail: { locale: code, saved: true } })
+        );
+      } catch (e2) {}
+      return code;
+    });
+  }
+
   window.PatrolI18n = {
     t: t,
     load: load,
     init: init,
+    setLocale: setLocale,
+    saveUserLocale: saveUserLocale,
+    normalizeLocale: normalizeLocale,
     getCurrentLocale: function () {
       return currentLocale;
     },
     applyI18nLabels: applyI18nLabels,
+    legacyLangFromLocale: legacyLangFromLocale
   };
   window.t = t;
   window.applyI18nLabels = applyI18nLabels;
