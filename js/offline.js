@@ -2,6 +2,13 @@
 
 var offlineDb = new Dexie('PatrolOffline');
 
+function _ensureOfflineDb() {
+  if (!offlineDb || !offlineDb.pendingVisits) {
+    throw new Error('Offline queue not ready. I-retry.');
+  }
+  return offlineDb;
+}
+
 offlineDb.version(1).stores({
   pendingVisits: '++id, offline_id, created_at',
   pendingStores: '++id, offline_id, created_at',
@@ -19,7 +26,7 @@ offlineDb.version(2).stores({
 async function queueVisit(visitData) {
   visitData.offline_id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   visitData.created_at = new Date().toISOString();
-  await offlineDb.pendingVisits.add(visitData);
+  await _ensureOfflineDb().pendingVisits.add(visitData);
   // Update sync UI immediately after queue write
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 }
@@ -27,7 +34,7 @@ async function queueVisit(visitData) {
 async function queueStore(storeData) {
   storeData.offline_id = 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   storeData.created_at = new Date().toISOString();
-  await offlineDb.pendingStores.add(storeData);
+  await _ensureOfflineDb().pendingStores.add(storeData);
   // Update sync UI immediately after queue write
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 }
@@ -35,7 +42,7 @@ async function queueStore(storeData) {
 async function queueFarm(farmData) {
   farmData.offline_id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   farmData.created_at = new Date().toISOString();
-  await offlineDb.pendingFarms.add(farmData);
+  await _ensureOfflineDb().pendingFarms.add(farmData);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 }
 
@@ -82,6 +89,15 @@ async function _markRetryOrEject(table, record, err, label) {
 // share its outcome. Slot is cleared in finally, so the next call (after
 // the current one resolves) starts a fresh sync — no stale lock.
 var _syncRunning = null;
+var _lastSyncSummary = { ejected: 0, errors: 0 };
+
+function _applySyncSummary(results) {
+  _lastSyncSummary = {
+    ejected: results.ejected || 0,
+    errors: (results.errors && results.errors.length) || 0
+  };
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+}
 
 async function syncPending() {
   if (_syncRunning) return _syncRunning;
@@ -122,8 +138,19 @@ async function _syncPendingImpl() {
   var pendingStores = await offlineDb.pendingStores.toArray();
   for (var i = 0; i < pendingStores.length; i++) {
     var s = pendingStores[i];
+    var sPayload = _queuePayload(s, { photo_base64: 1 });
+    var storePhotoB64 = s.photo_base64 || null;
     try {
-      await createStore(_queuePayload(s));
+      if (storePhotoB64 && !sPayload.photo_url && typeof uploadPhoto === 'function') {
+        try {
+          var storeBlob = _base64ToBlob(storePhotoB64);
+          var storeSession = getSession ? getSession() : null;
+          var storePath = (storeSession ? storeSession.id : 'unknown') + '/' +
+            new Date().toISOString().slice(0, 10) + '/' + Date.now() + '_store.jpg';
+          sPayload.photo_url = await uploadPhoto(storeBlob, storePath);
+        } catch (spe) { /* submit store without photo */ }
+      }
+      await createStore(sPayload);
       await offlineDb.pendingStores.delete(s.id);
       results.stores++;
       if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
@@ -178,6 +205,7 @@ async function _syncPendingImpl() {
     }
   }
 
+  _applySyncSummary(results);
   return results;
 }
 
@@ -205,7 +233,9 @@ async function getSyncStatus() {
   var pf = await offlineDb.pendingFarms.count();
   return {
     pending: pv + ps + pf,
-    synced: pv === 0 && ps === 0 && pf === 0
+    synced: pv === 0 && ps === 0 && pf === 0,
+    ejected: _lastSyncSummary.ejected || 0,
+    syncErrors: _lastSyncSummary.errors || 0
   };
 }
 
@@ -225,4 +255,8 @@ function _base64ToBlob(dataUrl) {
   var arr = new Uint8Array(raw.length);
   for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
   return new Blob([arr], { type: mime });
+}
+
+if (typeof window !== 'undefined') {
+  window.offlineDb = offlineDb;
 }

@@ -79,8 +79,27 @@ async function getStores(filters) {
   query = query.order('name', { ascending: true });
 
   var { data, error } = await query;
-  if (error) throw new Error('getStores: ' + error.message);
-  return data || [];
+  if (error) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine && typeof getCachedStores === 'function') {
+      var cached = await getCachedStores();
+      if (cached && cached.length) return cached;
+    }
+    throw new Error('getStores: ' + error.message);
+  }
+  var rows = data || [];
+  if (rows.length && typeof cacheStores === 'function') {
+    try {
+      var now = new Date().toISOString();
+      await cacheStores(rows.map(function (s) {
+        var c = {};
+        var key;
+        for (key in s) { if (Object.prototype.hasOwnProperty.call(s, key)) c[key] = s[key]; }
+        c.updated_at = now;
+        return c;
+      }));
+    } catch (cacheErr) { /* non-fatal */ }
+  }
+  return rows;
 }
 
 // Mirrors the chatbot's quick-reply values (app.html:1623) plus 'other'.
@@ -787,6 +806,70 @@ async function getAssignmentCounts() {
     if (tid) {
       counts[tid] = (counts[tid] || 0) + 1;
     }
+  }
+  return counts;
+}
+
+async function getUnassignedFarms(district) {
+  var query = supabaseClient
+    .from('farms')
+    .select('*')
+    .is('assigned_tsr', null)
+    .order('name', { ascending: true });
+
+  if (district) query = query.eq('region', district);
+
+  var { data, error } = await query;
+  if (error) throw new Error('getUnassignedFarms: ' + error.message);
+  return data || [];
+}
+
+async function getFarmsByTSR(tsrId) {
+  var { data, error } = await supabaseClient
+    .from('farms')
+    .select('*')
+    .eq('assigned_tsr', tsrId)
+    .order('name', { ascending: true });
+
+  if (error) throw new Error('getFarmsByTSR: ' + error.message);
+  return data || [];
+}
+
+async function assignFarms(farmIds, tsrId) {
+  if (!farmIds || farmIds.length === 0) return;
+
+  var { error } = await supabaseClient
+    .from('farms')
+    .update({ assigned_tsr: tsrId, updated_at: new Date().toISOString() })
+    .in('id', farmIds);
+
+  if (error) throw new Error('assignFarms: ' + error.message);
+}
+
+async function unassignFarms(farmIds) {
+  if (!farmIds || farmIds.length === 0) return;
+
+  var { error } = await supabaseClient
+    .from('farms')
+    .update({ assigned_tsr: null, updated_at: new Date().toISOString() })
+    .in('id', farmIds);
+
+  if (error) throw new Error('unassignFarms: ' + error.message);
+}
+
+async function getFarmAssignmentCounts() {
+  var { data, error } = await supabaseClient
+    .from('farms')
+    .select('assigned_tsr')
+    .not('assigned_tsr', 'is', null)
+    .limit(1000);
+
+  if (error) throw new Error('getFarmAssignmentCounts: ' + error.message);
+
+  var counts = {};
+  for (var i = 0; i < (data || []).length; i++) {
+    var tid = data[i].assigned_tsr;
+    if (tid) counts[tid] = (counts[tid] || 0) + 1;
   }
   return counts;
 }

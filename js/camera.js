@@ -73,7 +73,50 @@ function compressImage(file, maxWidth, maxHeight, quality) {
   });
 }
 
+function isWifiOrGoodConnection() {
+  try {
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return true;
+    if (conn.saveData) return false;
+    var t = conn.effectiveType || '';
+    if (t === '4g' || t === '5g') return true;
+    if (conn.type === 'wifi' || conn.type === 'ethernet') return true;
+    return false;
+  } catch (e) {
+    return true;
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function () { resolve(reader.result); };
+    reader.onerror = function () { reject(new Error('Failed to read photo')); };
+    reader.readAsDataURL(blob);
+  });
+}
+
+var _cellularPhotoHintShown = false;
+function _maybeWarnCellularUpload() {
+  if (_cellularPhotoHintShown || typeof isWifiOrGoodConnection !== 'function') return;
+  if (isWifiOrGoodConnection()) return;
+  _cellularPhotoHintShown = true;
+  var toast = document.createElement('div');
+  toast.className = 'data-usage-toast';
+  toast.textContent = '\uD83D\uDCF1 Gumagamit ng mobile data ang litrato — mas mabuting WiFi';
+  document.body.appendChild(toast);
+  setTimeout(function () { toast.classList.add('visible'); }, 50);
+  setTimeout(function () {
+    toast.classList.remove('visible');
+    setTimeout(function () { toast.remove(); }, 400);
+  }, 5000);
+}
+
 async function uploadPhoto(blob, path) {
+  if (blob && blob.size > 81920) {
+    console.warn('[camera] Photo exceeds 80KB target:', Math.round(blob.size / 1024) + 'KB');
+  }
+  _maybeWarnCellularUpload();
   var { data, error } = await supabaseClient.storage
     .from('patrol-photos')
     .upload(path, blob, {

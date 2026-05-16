@@ -30,10 +30,10 @@ A DSM should see only stores in their district; an RSM should see only stores un
 
 **Why not fix today**: would require a SAP-territory-aware filter on the read query, which depends on the SAP `OSLP` ↔ Supabase user mapping being well-formed for *all* mapped users (we just onboarded 9 RSMs/director with `manager_id = null` — chicken-and-egg with Joel in the same batch). Fix is meaningful only after the manager_id graph is stitched.
 
-### 2. `created_by` is the only ownership field today
-`stores.assigned_tsr` is referenced in the TSR filter (db.js:52) but no UI writes to it yet. That column is effectively unused.
+### 2. Store assignment via `assigned_tsr` (shipped)
+`stores.assigned_tsr` is written by DSM/RSM/admin via `#page-assign` (`js/assign.js`, `assignStores` in `js/db.js`). TSR reads filter on `created_by = self OR assigned_tsr = self`.
 
-**Future**: when DSMs onboard, they should be able to assign stores to their TSRs (DSM creates → DSM assigns). The DSM would then see *all stores in their district* (regardless of created_by); the assigned TSR sees their assigned set.
+**Farm assignment**: `farms.assigned_tsr` exists in schema and TSR map reads respect it, but DSM assign UI for farms is not yet wired (stores only today).
 
 ### 3. RLS on `stores` is currently open
 PostgREST anon SELECT + INSERT both succeed (verified during diagnosis). When we tighten the read scope, we should also tighten RLS so a malicious browser can't exfil the entire `stores` table by hitting `/rest/v1/stores` directly with the anon key.

@@ -5,6 +5,7 @@ import {
   selectVisitOutcome,
   attachVisitPhoto,
   countPendingVisits,
+  getLastPendingVisit,
   expectNoControllingServiceWorker,
 } from './_helpers';
 
@@ -71,6 +72,25 @@ test.describe('04 — Offline resilience (IndexedDB queue)', () => {
     );
     const pending = await countPendingVisits(page);
     expect(pending).toBeGreaterThan(0);
+    await page.context().setOffline(false);
+  });
+
+  test('Offline visit keeps photo_base64 in IndexedDB queue', async ({ page }) => {
+    await loginAsTsr(page);
+    await openVisitSheet(page, 'e2e-store-photo-queue', 'Photo Queue Store');
+    await selectVisitOutcome(page, 'no-order');
+    await attachVisitPhoto(page);
+    await page.context().setOffline(true);
+    await page.locator('#btn-visit-submit').click();
+    await expect(page.locator('#btn-visit-submit')).toContainText(
+      /Na-save|Saved|synced|saved locally|✓/i,
+      { timeout: 25000 }
+    );
+    const last = await getLastPendingVisit(page);
+    expect(last).toBeTruthy();
+    const photoB64 = last?.photo_base64;
+    expect(typeof photoB64).toBe('string');
+    expect(String(photoB64).length).toBeGreaterThan(20);
     await page.context().setOffline(false);
   });
 });

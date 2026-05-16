@@ -349,18 +349,7 @@ async function submitVisit() {
       } catch (e) { /* photo conversion failed — continue without */ }
     }
 
-    // 3. Upload photo if online (try now, retry during sync if offline)
-    if (_visitData.photo && navigator.onLine) {
-      var session = getSession();
-      var photoPath = (session ? session.id : 'unknown') + '/' +
-        new Date().toISOString().slice(0, 10) + '/' + Date.now() + '_visit.jpg';
-      try {
-        _visitData.photo_url = await uploadPhoto(_visitData.photo, photoPath);
-        photoBase64 = null; // Uploaded successfully — no need to store base64
-      } catch (e) {
-        // Upload failed — base64 will be stored for later upload during sync
-      }
-    }
+    // 3. Photos upload only in syncPending() after queue — avoids Storage orphans if insert fails
 
     // 4. Build visit payload (photo_base64 persists in IndexedDB for offline upload)
     var session = getSession();

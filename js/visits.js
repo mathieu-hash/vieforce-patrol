@@ -481,6 +481,7 @@ async function enhancedSyncStatus() {
   try {
     var status = await getSyncStatus();
     var pending = status.pending || 0;
+    var ejected = status.ejected || 0;
 
     if (homeSyncSection) homeSyncSection.style.display = pending > 0 ? 'block' : 'none';
     if (syncNowBtn && pending > 0) {
@@ -529,7 +530,9 @@ async function enhancedSyncStatus() {
         } else if (r.bar) {
           r.bar.className = 'sync-bar sync-error';
           if (r.icon) r.icon.textContent = '\u2717';
-          if (r.text) r.text.textContent = (T.syncError || 'Sync still pending') + ' (' + st.pending + ')';
+          var errMsg = (T.syncError || 'Sync still pending') + ' (' + st.pending + ')';
+          if ((st.ejected || 0) > 0) errMsg += ' \u00b7 ' + (st.ejected) + ' dropped';
+          if (r.text) r.text.textContent = errMsg;
           if (r.btn) { r.btn.style.display = 'inline-block'; r.btn.textContent = T.retry || 'Retry'; }
         }
       } catch (e) {
@@ -552,7 +555,9 @@ async function enhancedSyncStatus() {
     } else if (r.bar) {
       r.bar.className = 'sync-bar sync-error';
       if (r.icon) r.icon.textContent = '\u2717';
-      if (r.text) r.text.textContent = (T.syncError || 'Sync failed') + ' (' + after.pending + ')';
+      var failMsg = (T.syncError || 'Sync failed') + ' (' + after.pending + ')';
+      if ((after.ejected || 0) > 0) failMsg += ' \u00b7 ' + after.ejected + ' dropped';
+      if (r.text) r.text.textContent = failMsg;
       if (r.btn)  { r.btn.style.display = 'inline-block'; r.btn.textContent = T.retry || 'Retry'; }
     }
   } catch (e) {

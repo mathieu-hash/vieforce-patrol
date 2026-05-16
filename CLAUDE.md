@@ -85,12 +85,15 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 - Database: PostgreSQL on Cloud SQL (vieforce-db → patrol)
 
 ### Backlog Still To Build 🔧
-- [ ] Offline queue (Service Worker + IndexedDB via Dexie.js)
-- [ ] Photo upload to GCS (Google Cloud Storage)
-- [ ] Store/farm assignment (DSM → TSR)
+- [x] Offline queue (Dexie.js IndexedDB — `js/offline.js`; writes queue before server sync)
+- [x] Photo upload (Supabase Storage bucket `patrol-photos` via `js/camera.js` — not GCS)
+- [x] Store assignment (DSM → TSR — `js/assign.js`, `#page-assign`)
+- [ ] Farm assignment UI (column + RLS exist; DSM assign UI pending)
+- [ ] PWA service worker (shell cache-first; manifest + A2HS exist)
 - [ ] Excel/PDF export (admin only)
 - [ ] Custom domain: patrol.vienovo.ph
 - [ ] Messenger chatbot integration (daily briefing for TSRs)
+- [ ] GCS migration (optional post-pilot if merged with Cloud Run HQ)
 
 ### Future: Merge into Vienovo CRM 360°
 - Phase 1: Patrol standalone (this repo) ← current
@@ -117,11 +120,10 @@ Database:   PostgreSQL on Google Cloud SQL
 Auth:       PIN login for TSRs (custom)
             Google OAuth for DSM/EVP/RSM
 
-Storage:    Google Cloud Storage (GCS) — for photos
-            Bucket: vieforce-patrol-photos (to be created)
+Storage:    Supabase Storage — bucket `patrol-photos` (browser via `js/camera.js`)
 
-Offline:    Dexie.js (IndexedDB) — to be implemented
-PWA:        Service Worker — to be implemented
+Offline:    Dexie.js (IndexedDB) — `js/offline.js` (PatrolOffline queue)
+PWA:        manifest.json + A2HS prompt; shell service worker in progress
 ```
 
 ---

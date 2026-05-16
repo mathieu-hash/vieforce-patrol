@@ -52,3 +52,15 @@ Run before tagging a release or after risky merges.
 | Map tab + sync bar | `tests/e2e/13-map-sync.spec.ts` |
 
 Shared helpers: `tests/e2e/_helpers.ts` (session inject, boot-debug suppress, visit sheet, Dexie `PatrolOffline`).
+
+## Pilot environment checklist (before champion rollout)
+
+| Check | Where |
+|-------|--------|
+| Supabase migrations applied | `20260430120000_add_user_language.sql`, `sprint-a-phase3-rls-align.sql` |
+| Storage bucket `patrol-photos` exists + public read policy (matches `getPublicUrl` in `js/camera.js`) | Supabase Dashboard → Storage; photos queue as `photo_base64` and upload on sync only |
+| `HQ_SERVICE_TOKEN` on Vercel (matches HQ Cloud Run) | Vercel env + `/api/sap/*` smoke |
+| `SUPABASE_SERVICE_ROLE_KEY` on Vercel (API routes only) | Never in browser |
+| Test TSR PIN accounts active | `supabase/migrations/sprint-a-test-accounts.sql` |
+| `RELEASE_CHANNEL` in `config.js` matches deploy intent (`beta` vs `stable`) | Orange bar when `beta` |
+| `config.js` `VERSION` matches release tag | Footer + SW cache name |

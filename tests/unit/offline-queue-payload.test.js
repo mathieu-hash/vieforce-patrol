@@ -151,6 +151,22 @@ test('impl rejection clears the gate so next call retries cleanly', async () => 
   assert.equal(r.ok, true);
 });
 
+test('strips photo_base64 for visit and store sync payloads', () => {
+  const visitOut = _queuePayload(
+    { store_id: 'x', photo_base64: 'data:image/jpeg;base64,abc', photo_url: null },
+    { photo_base64: 1 }
+  );
+  assert.equal('photo_base64' in visitOut, false);
+  assert.equal(visitOut.store_id, 'x');
+
+  const storeOut = _queuePayload(
+    { name: 'Farm Supply', photo_base64: 'data:image/jpeg;base64,xyz' },
+    { photo_base64: 1 }
+  );
+  assert.equal('photo_base64' in storeOut, false);
+  assert.equal(storeOut.name, 'Farm Supply');
+});
+
 test('preserves all real DB columns through the strip', () => {
   // Mirror the chatbot's typical store payload — every key must survive
   // EXCEPT offline_id and created_at (queue bookkeeping).

@@ -1,7 +1,29 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Page, type Route } from '@playwright/test';
 
 export const E2E_STORE_ID = 'e2e-store-001';
 export const E2E_STORE_NAME = 'E2E Test Store';
+export const E2E_TSR_ID = 'e2e-tsr-001';
+export const E2E_FARM_ID = 'e2e-farm-001';
+
+const SAMPLE_TSR = {
+  id: E2E_TSR_ID,
+  name: 'E2E TSR',
+  role: 'tsr',
+  region: 'Visayas',
+  district: 'CEBU-SOUTH',
+  territory: 'CEBU-SOUTH',
+  is_active: true,
+};
+
+const SAMPLE_FARM = {
+  id: E2E_FARM_ID,
+  name: 'E2E Test Farm',
+  type: 'hog',
+  city: 'Cebu',
+  region: 'Visayas',
+  assigned_tsr: null,
+  created_by: E2E_TSR_ID,
+};
 
 const SAMPLE_STORE = {
   id: E2E_STORE_ID,
@@ -18,8 +40,76 @@ const SAMPLE_STORE = {
   territory: 'MM-North',
 };
 
+/** PostgREST rows for admin.html (Sales Admin user management) — GET /users only when route is layered on. */
+export const ADMIN_HTML_MOCK_USERS = [
+  {
+    id: '10000000-0000-4000-a000-000000000001',
+    name: 'Alpha TSR',
+    phone: '09170000001',
+    role: 'tsr',
+    region: 'Luzon',
+    district: 'Metro Manila',
+    territory: 'MM-North',
+    is_active: true,
+    is_champion: false,
+    created_at: '2025-01-01T00:00:00.000Z',
+    updated_at: '2025-01-01T00:00:00.000Z',
+    pin_hash: '1234',
+  },
+  {
+    id: '10000000-0000-4000-a000-000000000002',
+    name: 'Beta DSM',
+    phone: '09170000002',
+    role: 'dsm',
+    region: 'Luzon',
+    district: 'Metro Manila',
+    territory: '',
+    is_active: true,
+    is_champion: false,
+    created_at: '2025-01-02T00:00:00.000Z',
+    updated_at: '2025-01-02T00:00:00.000Z',
+    pin_hash: '2345',
+  },
+  {
+    id: '10000000-0000-4000-a000-000000000003',
+    name: 'Gamma TSR',
+    phone: '09170000003',
+    role: 'tsr',
+    region: 'Visayas',
+    district: 'Cebu',
+    territory: 'South',
+    is_active: true,
+    is_champion: false,
+    created_at: '2025-01-03T00:00:00.000Z',
+    updated_at: '2025-01-03T00:00:00.000Z',
+    pin_hash: '3456',
+  },
+];
+
 function sessionExpiry() {
   return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+}
+
+/**
+ * Supabase is cross-origin (config.js host). Browsers hide `Content-Range` unless the response
+ * lists it in `Access-Control-Expose-Headers`; postgrest-js needs that header to set `count`.
+ */
+function mockCorsHeaders(route: Route): Record<string, string> {
+  const h = route.request().headers();
+  const origin = h.origin || (h as { Origin?: string }).Origin || '*';
+  const base: Record<string, string> = {
+    'access-control-expose-headers': 'content-range',
+    'access-control-allow-methods': 'GET, HEAD, POST, PATCH, DELETE, OPTIONS',
+    'access-control-allow-headers':
+      'authorization, content-type, apikey, prefer, accept-profile, range, x-client-info, accept',
+  };
+  if (origin === '*') {
+    base['access-control-allow-origin'] = '*';
+    return base;
+  }
+  base['access-control-allow-origin'] = origin;
+  base['access-control-allow-credentials'] = 'true';
+  return base;
 }
 
 /** True when URL is the main app shell (static server may serve /app without .html). */
@@ -73,25 +163,65 @@ export async function installApiRouteMocks(page: Page) {
     const url = route.request().url();
     const method = route.request().method();
 
-    if (url.includes('/stores')) {
+    if (/\/rest\/v1\/stores(\?|$)/.test(url)) {
+      const h = route.request().headers();
+      const prefer = (h.prefer || (h as { Prefer?: string }).Prefer || '').toLowerCase();
+      const wantsCount =
+        prefer.includes('count=exact') ||
+        prefer.includes('count=planned') ||
+        /\bcount=/.test(prefer);
+      // PostgREST: Supabase `head: true` count queries use HEAD; Prefer is not always visible to route mocks.
+      const isCountRequest = wantsCount || method === 'HEAD';
+      if ((method === 'GET' || method === 'HEAD') && isCountRequest) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: {
+            ...mockCorsHeaders(route),
+            'content-range': '*/10',
+          },
+          body: method === 'HEAD' ? '' : '[]',
+        });
+      }
       if (method === 'GET') {
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
+          headers: mockCorsHeaders(route),
           body: JSON.stringify([SAMPLE_STORE]),
         });
       }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: mockCorsHeaders(route),
         body: JSON.stringify(SAMPLE_STORE),
       });
     }
 
-    if (url.includes('/visits')) {
+    if (/\/rest\/v1\/visits(\?|$)/.test(url)) {
+      const h = route.request().headers();
+      const prefer = (h.prefer || (h as { Prefer?: string }).Prefer || '').toLowerCase();
+      const wantsCount =
+        prefer.includes('count=exact') ||
+        prefer.includes('count=planned') ||
+        /\bcount=/.test(prefer);
+      const isCountRequest = wantsCount || method === 'HEAD';
+      if ((method === 'GET' || method === 'HEAD') && isCountRequest) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          headers: {
+            ...mockCorsHeaders(route),
+            'content-range': '*/4',
+          },
+          body: method === 'HEAD' ? '' : '[]',
+        });
+      }
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
+        headers: mockCorsHeaders(route),
         body: JSON.stringify([]),
       });
     }
@@ -99,6 +229,7 @@ export async function installApiRouteMocks(page: Page) {
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
+      headers: mockCorsHeaders(route),
       body: method === 'GET' ? '[]' : '{}',
     });
   });
@@ -141,6 +272,45 @@ export async function installApiRouteMocks(page: Page) {
       }),
     });
   });
+}
+
+/**
+ * Register after installApiRouteMocks so GET /users is fulfilled before the generic REST handler.
+ * Used by admin.html (Sales Admin user management) E2E.
+ */
+export async function installAdminHtmlUserListMock(page: Page) {
+  await page.route('**/rest/v1/users*', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: mockCorsHeaders(route),
+        body: JSON.stringify(ADMIN_HTML_MOCK_USERS),
+      });
+      return;
+    }
+    await route.fallback();
+  });
+}
+
+/** CEO session on admin.html with mocked PostgREST (users + stats); no live Supabase. */
+export async function loginToSalesAdminHtml(page: Page) {
+  await installApiRouteMocks(page);
+  await installAdminHtmlUserListMock(page);
+  await seedSession(page, {
+    id: 'e2e-ceo-001',
+    name: 'E2E CEO',
+    role: 'ceo',
+    region: null,
+    district: null,
+    territory: null,
+  });
+  await page.goto('/admin.html');
+  await expect(page.locator('#admin-user-tbody tr')).toHaveCount(3, { timeout: 25000 });
+  await expect(page.locator('#admin-stat-users')).toHaveText('3', { timeout: 15000 });
+  await expect(page.locator('#admin-stat-active')).toHaveText('2');
+  await expect(page.locator('#admin-stat-stores')).toHaveText('10');
+  await expect(page.locator('#admin-stat-visits')).toHaveText('4');
 }
 
 /** Suppress boot-debug overlay and stub geolocation before app scripts run. */
@@ -362,6 +532,48 @@ export async function injectSession(
   }, session);
 }
 
+/** Stubs store/farm assignment APIs for DSM assign page E2E. */
+export async function stubAssignApis(page: Page) {
+  await page.evaluate(
+    ({ tsr, store, farm }) => {
+      window.getTSRsByDistrict = async function () {
+        return [tsr];
+      };
+      window.getUnassignedStores = async function () {
+        return [store];
+      };
+      window.getAssignmentCounts = async function () {
+        return { [tsr.id]: 0 };
+      };
+      window.getStoresByTSR = async function () {
+        return [];
+      };
+      window.assignStores = async function (ids: string[]) {
+        return { count: ids.length };
+      };
+      window.unassignStores = async function () {
+        return { count: 0 };
+      };
+      window.getUnassignedFarms = async function () {
+        return [farm];
+      };
+      window.getFarmAssignmentCounts = async function () {
+        return { [tsr.id]: 0 };
+      };
+      window.getFarmsByTSR = async function () {
+        return [];
+      };
+      window.assignFarms = async function (ids: string[]) {
+        return { count: ids.length };
+      };
+      window.unassignFarms = async function () {
+        return { count: 0 };
+      };
+    },
+    { tsr: SAMPLE_TSR, store: SAMPLE_STORE, farm: SAMPLE_FARM }
+  );
+}
+
 export async function loginAsDsm(page: Page) {
   await installAppInitScripts(page);
   await seedSession(page, {
@@ -376,6 +588,7 @@ export async function loginAsDsm(page: Page) {
   await page.waitForSelector('#page-home-dsm.active', { timeout: 25000 });
   await prepareAppPage(page);
   await stubPatrolApis(page);
+  await stubAssignApis(page);
 }
 
 export async function loginAsTsr(page: Page) {
@@ -481,6 +694,55 @@ export async function countPendingVisits(page: Page): Promise<number> {
         }
       };
       req.onerror = () => resolve(0);
+    });
+  });
+}
+
+export async function getLastPendingVisit(
+  page: Page
+): Promise<Record<string, unknown> | null> {
+  return page.evaluate(async () => {
+    const win = window as Window & {
+      offlineDb?: {
+        pendingVisits: {
+          orderBy: (key: string) => {
+            reverse: () => {
+              limit: (n: number) => { toArray: () => Promise<Record<string, unknown>[]> };
+            };
+          };
+        };
+      };
+    };
+    if (win.offlineDb?.pendingVisits) {
+      try {
+        const rows = await win.offlineDb.pendingVisits
+          .orderBy('id')
+          .reverse()
+          .limit(1)
+          .toArray();
+        return rows[0] || null;
+      } catch (_e) {
+        return null;
+      }
+    }
+    return new Promise<Record<string, unknown> | null>((resolve) => {
+      const req = indexedDB.open('PatrolOffline');
+      req.onsuccess = () => {
+        const db = req.result;
+        try {
+          const tx = db.transaction('pendingVisits', 'readonly');
+          const store = tx.objectStore('pendingVisits');
+          const allReq = store.getAll();
+          allReq.onsuccess = () => {
+            const rows = (allReq.result || []) as Record<string, unknown>[];
+            resolve(rows.length ? rows[rows.length - 1] : null);
+          };
+          allReq.onerror = () => resolve(null);
+        } catch (_e2) {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
     });
   });
 }

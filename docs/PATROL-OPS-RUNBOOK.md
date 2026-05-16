@@ -94,7 +94,13 @@ nc -vz analytics.vienovo.ph 4444
 - **`TcpTestSucceeded : True`** → server is up; problem is auth/SQL/DB.
 - **Timeout / refused** → upstream issue. **Do not touch code.** Notify IT/DBA.
 
-### Common SAP failure modes
+### Patrol browser SAP reads (2026+ architecture)
+
+Patrol **Vercel** routes under `/api/sap/*` do **not** connect to MSSQL directly. Flow: browser → `x-session-id` → `verifySession()` → `callHqProxy()` (Bearer `HQ_SERVICE_TOKEN`) → HQ Cloud Run → MSSQL.
+
+For Sales tab / SAP KPI issues on the field app, troubleshoot **`HQ_SERVICE_TOKEN`**, **`SUPABASE_SERVICE_ROLE_KEY`**, and HQ scope (`patrol_meta.is_empty`) per [`api/sap/README.md`](../api/sap/README.md). Direct `SAP_DB_*` env vars apply only to legacy or local tooling — not the live Patrol sales proxy path.
+
+### Common SAP failure modes (HQ / infra)
 
 | Symptom | Likely cause | First action |
 |---|---|---|

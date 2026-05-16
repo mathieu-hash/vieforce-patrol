@@ -470,15 +470,43 @@ if ('serviceWorker' in navigator) {
     background: #f5f8fa;
     border-bottom: 1px solid #eee;
   }
+  .assign-mode-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #f5f8fa;
+    border-bottom: 1px solid #eee;
+  }
+  .assign-mode-tab {
+    flex: 1;
+    min-height: 44px;
+    border: 2px solid #004D71;
+    border-radius: 8px;
+    background: #fff;
+    color: #004D71;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .assign-mode-tab.active {
+    background: #004D71;
+    color: #fff;
+  }
 </style>
 
 <div id="page-assign" class="page">
   <div class="top-bar">
     <button onclick="nav('page-dashboard')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-right:8px">&larr;</button>
     <div style="flex:1">
-      <h1>I-assign ang Stores</h1>
+      <h1 id="assign-page-title">I-assign ang Stores</h1>
       <div class="subtitle" id="assign-selected-label">Pumili muna ng TSR</div>
     </div>
+  </div>
+
+  <div class="assign-mode-tabs" role="tablist" aria-label="Assignment type">
+    <button type="button" id="assign-mode-stores" class="assign-mode-tab active" onclick="setAssignMode('stores')">Stores</button>
+    <button type="button" id="assign-mode-farms" class="assign-mode-tab" onclick="setAssignMode('farms')">Bukid</button>
   </div>
 
   <div class="assign-stats-bar" id="assign-stats">Loading...</div>
@@ -500,10 +528,10 @@ if ('serviceWorker' in navigator) {
     <!-- Right: Unassigned Stores -->
     <div class="assign-panel">
       <div class="assign-panel-header">
-        <span>Mga Unassigned Stores</span>
+        <span id="assign-unassigned-label">Mga Unassigned Stores</span>
         <span id="assign-unassigned-count">--</span>
       </div>
-      <input type="text" class="assign-search" placeholder="Hanapin ang store..." oninput="searchAssignStores(this.value)">
+      <input type="text" id="assign-search-input" class="assign-search" placeholder="Hanapin ang store..." oninput="searchAssignStores(this.value)">
       <div class="assign-panel-body" id="assign-stores-unassigned">
         <div style="text-align:center;color:#888;padding:24px;font-size:13px">Loading...</div>
       </div>
@@ -2225,15 +2253,14 @@ if ('serviceWorker' in navigator) {
     submitBtn.textContent = T.saving;
 
     try {
-      // Upload photo if captured
-      if (newStoreData.photo) {
-        var session = getSession();
-        var photoPath = (session ? session.id : 'unknown') + '/' +
-          new Date().toISOString().slice(0, 10) + '/' + Date.now() + '_store.jpg';
-        newStoreData.photo_url = await uploadPhoto(newStoreData.photo, photoPath);
+      var storePhotoBase64 = null;
+      if (newStoreData.photo && typeof blobToBase64 === 'function') {
+        try {
+          storePhotoBase64 = await blobToBase64(newStoreData.photo);
+        } catch (pe) { /* queue without photo */ }
       }
 
-      // Build payload (exclude photo blob)
+      // Build payload — photo uploads during syncPending only
       var payload = {
         name: newStoreData.name,
         owner_name: newStoreData.owner_name || null,
@@ -2244,7 +2271,8 @@ if ('serviceWorker' in navigator) {
         province: newStoreData.province || null,
         city: newStoreData.city || null,
         address: newStoreData.address || null,
-        photo_url: newStoreData.photo_url || null,
+        photo_url: null,
+        photo_base64: storePhotoBase64,
         vol_class: newStoreData.vol_class || null,
         health_status: newStoreData.health_status,
         bags_per_month: newStoreData.bags_per_month
@@ -2679,12 +2707,10 @@ if ('serviceWorker' in navigator) {
       prospect_stage: prospectStage,
       bags_per_month: Math.max(0, Math.min(99999, parseInt(data.bags_per_month) || 0))
     };
-    if (data.photo && typeof uploadPhoto === 'function') {
+    if (data.photo && typeof blobToBase64 === 'function') {
       try {
-        var sess = getSession();
-        var p = (sess ? sess.id : 'unknown') + '/' + new Date().toISOString().slice(0, 10) + '/' + Date.now() + '_store.jpg';
-        payload.photo_url = await uploadPhoto(data.photo, p);
-      } catch (e) { /* sync later */ }
+        payload.photo_base64 = await blobToBase64(data.photo);
+      } catch (e) { /* sync later without photo */ }
     }
     await queueStore(payload);
     var result = await _attemptImmediateSync('Store');

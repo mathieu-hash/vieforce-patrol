@@ -3,7 +3,39 @@
 var _assignTSRs = [];
 var _assignStoresUnassigned = [];
 var _assignStoresAssigned = [];
+var _assignFarmsUnassigned = [];
+var _assignFarmsAssigned = [];
+var _assignMode = 'stores';
 var _selectedTSR = null;
+
+function _farmTypeLabel(type) {
+  var labels = { hog: 'Hog', poultry: 'Manok', gamefowl: 'Gamefowl', aqua: 'Aqua', dairy: 'Dairy', mixed: 'Mixed', other: 'Other' };
+  return labels[type] || type || 'Farm';
+}
+
+function setAssignMode(mode) {
+  if (mode !== 'stores' && mode !== 'farms') return;
+  if (_assignMode === mode) return;
+  _assignMode = mode;
+  _selectedTSR = null;
+  var storesBtn = document.getElementById('assign-mode-stores');
+  var farmsBtn = document.getElementById('assign-mode-farms');
+  if (storesBtn) storesBtn.classList.toggle('active', mode === 'stores');
+  if (farmsBtn) farmsBtn.classList.toggle('active', mode === 'farms');
+  var title = document.getElementById('assign-page-title');
+  if (title) title.textContent = mode === 'farms' ? 'I-assign ang Bukid' : 'I-assign ang Stores';
+  var unassignedLabel = document.getElementById('assign-unassigned-label');
+  if (unassignedLabel) {
+    unassignedLabel.textContent = mode === 'farms' ? 'Mga Unassigned Bukid' : 'Mga Unassigned Stores';
+  }
+  var search = document.getElementById('assign-search-input');
+  if (search) {
+    search.placeholder = mode === 'farms' ? 'Hanapin ang bukid...' : 'Hanapin ang store...';
+  }
+  var label = document.getElementById('assign-selected-label');
+  if (label) label.textContent = 'Pumili muna ng TSR';
+  initAssignPage();
+}
 
 // ── Escape HTML ──
 
@@ -65,25 +97,43 @@ async function initAssignPage() {
   var district = session.district || null;
 
   try {
-    // Load TSRs and unassigned stores in parallel
-    var results = await Promise.all([
-      getTSRsByDistrict(district),
-      getUnassignedStores(district),
-      getAssignmentCounts()
-    ]);
+    _assignStoresAssigned = [];
+    _assignFarmsAssigned = [];
+    var assignedContainer = document.getElementById('assign-stores-assigned');
+    if (assignedContainer) assignedContainer.innerHTML = '';
 
-    _assignTSRs = results[0];
-    _assignStoresUnassigned = results[1];
-    var counts = results[2];
-
-    // Attach counts to TSRs
-    for (var i = 0; i < _assignTSRs.length; i++) {
-      _assignTSRs[i]._assignedCount = counts[_assignTSRs[i].id] || 0;
+    if (_assignMode === 'farms') {
+      var farmResults = await Promise.all([
+        getTSRsByDistrict(district),
+        getUnassignedFarms(district),
+        getFarmAssignmentCounts()
+      ]);
+      _assignTSRs = farmResults[0];
+      _assignFarmsUnassigned = farmResults[1];
+      _assignStoresUnassigned = [];
+      var farmCounts = farmResults[2];
+      for (var fi = 0; fi < _assignTSRs.length; fi++) {
+        _assignTSRs[fi]._assignedCount = farmCounts[_assignTSRs[fi].id] || 0;
+      }
+    } else {
+      var results = await Promise.all([
+        getTSRsByDistrict(district),
+        getUnassignedStores(district),
+        getAssignmentCounts()
+      ]);
+      _assignTSRs = results[0];
+      _assignStoresUnassigned = results[1];
+      _assignFarmsUnassigned = [];
+      var counts = results[2];
+      for (var i = 0; i < _assignTSRs.length; i++) {
+        _assignTSRs[i]._assignedCount = counts[_assignTSRs[i].id] || 0;
+      }
     }
 
     renderTSRList();
     renderUnassignedStores();
     updateAssignStats();
+    updateBulkButton();
   } catch (err) {
     console.error('initAssignPage:', err);
     assignToast('Failed to load: ' + err.message, 'error');
@@ -101,10 +151,15 @@ function updateAssignStats() {
     totalAssigned += _assignTSRs[i]._assignedCount || 0;
   }
 
+  var unassignedCount = _assignMode === 'farms'
+    ? _assignFarmsUnassigned.length
+    : _assignStoresUnassigned.length;
+  var entityLabel = _assignMode === 'farms' ? 'farms' : 'stores';
+
   el.innerHTML =
     '<span style="font-weight:700;color:#004D71">' + _assignTSRs.length + '</span> TSRs' +
     ' &middot; <span style="font-weight:700;color:#95C93D">' + totalAssigned + '</span> assigned' +
-    ' &middot; <span style="font-weight:700;color:#F7B928">' + _assignStoresUnassigned.length + '</span> unassigned';
+    ' &middot; <span style="font-weight:700;color:#F7B928">' + unassignedCount + '</span> unassigned ' + entityLabel;
 }
 
 // ── Render TSR List (left column) ──
@@ -163,12 +218,19 @@ async function selectTSR(tsrId) {
     label.textContent = _selectedTSR ? 'I-assign kay: ' + _selectedTSR.name : 'Pumili muna ng TSR';
   }
 
-  // Load assigned stores for this TSR
+  // Load assigned stores/farms for this TSR
   if (_selectedTSR) {
     try {
-      _assignStoresAssigned = await getStoresByTSR(tsrId);
+      if (_assignMode === 'farms') {
+        _assignFarmsAssigned = await getFarmsByTSR(tsrId);
+        _assignStoresAssigned = [];
+      } else {
+        _assignStoresAssigned = await getStoresByTSR(tsrId);
+        _assignFarmsAssigned = [];
+      }
     } catch (err) {
       _assignStoresAssigned = [];
+      _assignFarmsAssigned = [];
     }
     renderAssignedStores();
   }
@@ -183,24 +245,44 @@ function renderUnassignedStores() {
   var container = document.getElementById('assign-stores-unassigned');
   if (!container) return;
 
-  if (_assignStoresUnassigned.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#888;padding:24px;font-size:13px">Lahat ng stores ay na-assign na</div>';
+  var isFarm = _assignMode === 'farms';
+  var list = isFarm ? _assignFarmsUnassigned : _assignStoresUnassigned;
+  var countEl = document.getElementById('assign-unassigned-count');
+  if (countEl) countEl.textContent = String(list.length);
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#888;padding:24px;font-size:13px">' +
+      (isFarm ? 'Lahat ng bukid ay na-assign na' : 'Lahat ng stores ay na-assign na') +
+      '</div>';
     return;
   }
 
   var html = '';
-  for (var i = 0; i < _assignStoresUnassigned.length; i++) {
-    var store = _assignStoresUnassigned[i];
-    var loc = store.city || store.province || store.region || '--';
-
-    html += '<div class="assign-store-row" onclick="assignSingleStore(\'' + store.id + '\')" data-store-id="' + store.id + '">' +
-      _healthDot(store.health_status) +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _assignEsc(store.name) + '</div>' +
-        '<div style="font-size:11px;color:#65676B">' + _assignEsc(loc) + '</div>' +
-      '</div>' +
-      _volBadge(store.vol_class) +
-    '</div>';
+  if (isFarm) {
+    for (var f = 0; f < list.length; f++) {
+      var farm = list[f];
+      var floc = farm.city || farm.province || farm.region || '--';
+      html += '<div class="assign-store-row" onclick="assignSingleStore(\'' + farm.id + '\')" data-store-id="' + farm.id + '">' +
+        _healthDot(farm.health_status) +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _assignEsc(farm.name) + '</div>' +
+          '<div style="font-size:11px;color:#65676B">' + _assignEsc(_farmTypeLabel(farm.type)) + ' · ' + _assignEsc(floc) + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+  } else {
+    for (var i = 0; i < list.length; i++) {
+      var store = list[i];
+      var loc = store.city || store.province || store.region || '--';
+      html += '<div class="assign-store-row" onclick="assignSingleStore(\'' + store.id + '\')" data-store-id="' + store.id + '">' +
+        _healthDot(store.health_status) +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _assignEsc(store.name) + '</div>' +
+          '<div style="font-size:11px;color:#65676B">' + _assignEsc(loc) + '</div>' +
+        '</div>' +
+        _volBadge(store.vol_class) +
+      '</div>';
+    }
   }
 
   container.innerHTML = html;
@@ -217,26 +299,44 @@ function renderAssignedStores() {
     return;
   }
 
-  if (_assignStoresAssigned.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#888;padding:12px;font-size:12px">Walang assigned stores kay ' + _assignEsc(_selectedTSR.name) + '</div>';
+  var isFarm = _assignMode === 'farms';
+  var list = isFarm ? _assignFarmsAssigned : _assignStoresAssigned;
+  var entityWord = isFarm ? 'bukid' : 'stores';
+
+  if (list.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#888;padding:12px;font-size:12px">Walang assigned ' + entityWord + ' kay ' + _assignEsc(_selectedTSR.name) + '</div>';
     return;
   }
 
   var html = '<div style="font-size:11px;font-weight:700;color:#004D71;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid #eee">' +
-    'Assigned kay ' + _assignEsc(_selectedTSR.name) + ' (' + _assignStoresAssigned.length + ')</div>';
+    'Assigned kay ' + _assignEsc(_selectedTSR.name) + ' (' + list.length + ')</div>';
 
-  for (var i = 0; i < _assignStoresAssigned.length; i++) {
-    var store = _assignStoresAssigned[i];
-    var loc = store.city || store.province || '--';
-
-    html += '<div class="assign-store-row assigned" data-store-id="' + store.id + '">' +
-      _healthDot(store.health_status) +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _assignEsc(store.name) + '</div>' +
-        '<div style="font-size:10px;color:#65676B">' + _assignEsc(loc) + '</div>' +
-      '</div>' +
-      '<button class="assign-remove-btn" onclick="event.stopPropagation();unassignSingleStore(\'' + store.id + '\')" title="I-remove">&times;</button>' +
-    '</div>';
+  if (isFarm) {
+    for (var f = 0; f < list.length; f++) {
+      var farm = list[f];
+      var floc = farm.city || farm.province || '--';
+      html += '<div class="assign-store-row assigned" data-store-id="' + farm.id + '">' +
+        _healthDot(farm.health_status) +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _assignEsc(farm.name) + '</div>' +
+          '<div style="font-size:10px;color:#65676B">' + _assignEsc(_farmTypeLabel(farm.type)) + ' · ' + _assignEsc(floc) + '</div>' +
+        '</div>' +
+        '<button class="assign-remove-btn" onclick="event.stopPropagation();unassignSingleStore(\'' + farm.id + '\')" title="I-remove">&times;</button>' +
+      '</div>';
+    }
+  } else {
+    for (var i = 0; i < list.length; i++) {
+      var store = list[i];
+      var loc = store.city || store.province || '--';
+      html += '<div class="assign-store-row assigned" data-store-id="' + store.id + '">' +
+        _healthDot(store.health_status) +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + _assignEsc(store.name) + '</div>' +
+          '<div style="font-size:10px;color:#65676B">' + _assignEsc(loc) + '</div>' +
+        '</div>' +
+        '<button class="assign-remove-btn" onclick="event.stopPropagation();unassignSingleStore(\'' + store.id + '\')" title="I-remove">&times;</button>' +
+      '</div>';
+    }
   }
 
   container.innerHTML = html;
@@ -250,37 +350,44 @@ async function assignSingleStore(storeId) {
     return;
   }
 
-  try {
-    await assignStores([storeId], _selectedTSR.id);
+  var isFarm = _assignMode === 'farms';
 
-    // Move store from unassigned to assigned
-    var store = null;
-    for (var i = 0; i < _assignStoresUnassigned.length; i++) {
-      if (_assignStoresUnassigned[i].id === storeId) {
-        store = _assignStoresUnassigned.splice(i, 1)[0];
+  try {
+    if (isFarm) {
+      await assignFarms([storeId], _selectedTSR.id);
+    } else {
+      await assignStores([storeId], _selectedTSR.id);
+    }
+
+    var item = null;
+    var unassigned = isFarm ? _assignFarmsUnassigned : _assignStoresUnassigned;
+    var assigned = isFarm ? _assignFarmsAssigned : _assignStoresAssigned;
+    for (var i = 0; i < unassigned.length; i++) {
+      if (unassigned[i].id === storeId) {
+        item = unassigned.splice(i, 1)[0];
         break;
       }
     }
-    if (store) {
-      store.assigned_tsr = _selectedTSR.id;
-      _assignStoresAssigned.push(store);
+    if (item) {
+      item.assigned_tsr = _selectedTSR.id;
+      assigned.push(item);
     }
 
-    // Update TSR count
     _selectedTSR._assignedCount = (_selectedTSR._assignedCount || 0) + 1;
 
     renderTSRList();
     renderUnassignedStores();
     renderAssignedStores();
     updateAssignStats();
+    updateBulkButton();
 
-    // Re-select the TSR row visually
     var rows = document.querySelectorAll('.assign-tsr-row');
     for (var j = 0; j < rows.length; j++) {
       rows[j].classList.toggle('selected', rows[j].dataset.tsrId === _selectedTSR.id);
     }
 
-    assignToast(_assignEsc(store ? store.name : 'Store') + ' assigned kay ' + _selectedTSR.name, 'success');
+    var label = isFarm ? 'Farm' : 'Store';
+    assignToast(_assignEsc(item ? item.name : label) + ' assigned kay ' + _selectedTSR.name, 'success');
   } catch (err) {
     assignToast('Failed: ' + err.message, 'error');
   }
@@ -289,24 +396,30 @@ async function assignSingleStore(storeId) {
 // ── Unassign Single Store ──
 
 async function unassignSingleStore(storeId) {
-  try {
-    await unassignStores([storeId]);
+  var isFarm = _assignMode === 'farms';
 
-    // Move store from assigned to unassigned
-    var store = null;
-    for (var i = 0; i < _assignStoresAssigned.length; i++) {
-      if (_assignStoresAssigned[i].id === storeId) {
-        store = _assignStoresAssigned.splice(i, 1)[0];
+  try {
+    if (isFarm) {
+      await unassignFarms([storeId]);
+    } else {
+      await unassignStores([storeId]);
+    }
+
+    var item = null;
+    var assigned = isFarm ? _assignFarmsAssigned : _assignStoresAssigned;
+    var unassigned = isFarm ? _assignFarmsUnassigned : _assignStoresUnassigned;
+    for (var i = 0; i < assigned.length; i++) {
+      if (assigned[i].id === storeId) {
+        item = assigned.splice(i, 1)[0];
         break;
       }
     }
-    if (store) {
-      store.assigned_tsr = null;
-      _assignStoresUnassigned.push(store);
-      _assignStoresUnassigned.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
+    if (item) {
+      item.assigned_tsr = null;
+      unassigned.push(item);
+      unassigned.sort(function (a, b) { return (a.name || '').localeCompare(b.name || ''); });
     }
 
-    // Update TSR count
     if (_selectedTSR) {
       _selectedTSR._assignedCount = Math.max(0, (_selectedTSR._assignedCount || 0) - 1);
     }
@@ -315,8 +428,8 @@ async function unassignSingleStore(storeId) {
     renderUnassignedStores();
     renderAssignedStores();
     updateAssignStats();
+    updateBulkButton();
 
-    // Re-select
     if (_selectedTSR) {
       var rows = document.querySelectorAll('.assign-tsr-row');
       for (var j = 0; j < rows.length; j++) {
@@ -324,7 +437,7 @@ async function unassignSingleStore(storeId) {
       }
     }
 
-    assignToast('Store na-unassign', 'success');
+    assignToast(isFarm ? 'Farm na-unassign' : 'Store na-unassign', 'success');
   } catch (err) {
     assignToast('Failed: ' + err.message, 'error');
   }
@@ -336,31 +449,46 @@ function updateBulkButton() {
   var btn = document.getElementById('assign-bulk-btn');
   if (!btn) return;
 
-  if (_selectedTSR && _assignStoresUnassigned.length > 0) {
+  var isFarm = _assignMode === 'farms';
+  var unassigned = isFarm ? _assignFarmsUnassigned : _assignStoresUnassigned;
+  var entity = isFarm ? 'bukid' : 'stores';
+
+  if (_selectedTSR && unassigned.length > 0) {
     btn.style.display = 'block';
-    btn.textContent = 'I-assign lahat (' + _assignStoresUnassigned.length + ') kay ' + _selectedTSR.name;
+    btn.textContent = 'I-assign lahat (' + unassigned.length + ' ' + entity + ') kay ' + _selectedTSR.name;
   } else {
     btn.style.display = 'none';
   }
 }
 
 async function bulkAssignAll() {
-  if (!_selectedTSR || _assignStoresUnassigned.length === 0) return;
+  var isFarm = _assignMode === 'farms';
+  var unassigned = isFarm ? _assignFarmsUnassigned : _assignStoresUnassigned;
+  if (!_selectedTSR || unassigned.length === 0) return;
 
-  var count = _assignStoresUnassigned.length;
-  if (!confirm('I-assign ang ' + count + ' stores kay ' + _selectedTSR.name + '?')) return;
+  var count = unassigned.length;
+  var entity = isFarm ? 'bukid' : 'stores';
+  if (!confirm('I-assign ang ' + count + ' ' + entity + ' kay ' + _selectedTSR.name + '?')) return;
 
   try {
-    var ids = _assignStoresUnassigned.map(function (s) { return s.id; });
-    await assignStores(ids, _selectedTSR.id);
+    var ids = unassigned.map(function (s) { return s.id; });
+    if (isFarm) {
+      await assignFarms(ids, _selectedTSR.id);
+    } else {
+      await assignStores(ids, _selectedTSR.id);
+    }
 
-    // Move all to assigned
-    for (var i = 0; i < _assignStoresUnassigned.length; i++) {
-      _assignStoresUnassigned[i].assigned_tsr = _selectedTSR.id;
-      _assignStoresAssigned.push(_assignStoresUnassigned[i]);
+    var assigned = isFarm ? _assignFarmsAssigned : _assignStoresAssigned;
+    for (var i = 0; i < unassigned.length; i++) {
+      unassigned[i].assigned_tsr = _selectedTSR.id;
+      assigned.push(unassigned[i]);
     }
     _selectedTSR._assignedCount = (_selectedTSR._assignedCount || 0) + count;
-    _assignStoresUnassigned = [];
+    if (isFarm) {
+      _assignFarmsUnassigned = [];
+    } else {
+      _assignStoresUnassigned = [];
+    }
 
     renderTSRList();
     renderUnassignedStores();
@@ -368,13 +496,12 @@ async function bulkAssignAll() {
     updateAssignStats();
     updateBulkButton();
 
-    // Re-select
     var rows = document.querySelectorAll('.assign-tsr-row');
     for (var j = 0; j < rows.length; j++) {
       rows[j].classList.toggle('selected', rows[j].dataset.tsrId === _selectedTSR.id);
     }
 
-    assignToast(count + ' stores na-assign kay ' + _selectedTSR.name, 'success');
+    assignToast(count + ' ' + entity + ' na-assign kay ' + _selectedTSR.name, 'success');
   } catch (err) {
     assignToast('Bulk assign failed: ' + err.message, 'error');
   }
