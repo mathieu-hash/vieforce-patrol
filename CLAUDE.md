@@ -88,8 +88,8 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 - [x] Offline queue (Dexie.js IndexedDB — `js/offline.js`; writes queue before server sync)
 - [x] Photo upload (Supabase Storage bucket `patrol-photos` via `js/camera.js` — not GCS)
 - [x] Store assignment (DSM → TSR — `js/assign.js`, `#page-assign`)
-- [ ] Farm assignment UI (column + RLS exist; DSM assign UI pending)
-- [ ] PWA service worker (shell cache-first; manifest + A2HS exist)
+- [x] Farm assignment UI (DSM `#page-assign` — Bukid tab; `getUnassignedFarms` / `assignFarms` in `js/db.js`)
+- [x] PWA service worker (shell cache-first `sw.js`; manifest + A2HS; opt-out: `?nosw=1` or `localStorage.patrol_nosw=1`)
 - [ ] Excel/PDF export (admin only)
 - [ ] Custom domain: patrol.vienovo.ph
 - [ ] Messenger chatbot integration (daily briefing for TSRs)
@@ -123,7 +123,7 @@ Auth:       PIN login for TSRs (custom)
 Storage:    Supabase Storage — bucket `patrol-photos` (browser via `js/camera.js`)
 
 Offline:    Dexie.js (IndexedDB) — `js/offline.js` (PatrolOffline queue)
-PWA:        manifest.json + A2HS prompt; shell service worker in progress
+PWA:        manifest.json + A2HS prompt; shell cache-first `sw.js` (registered from `app.html` / `index.html`)
 ```
 
 ---

@@ -25,18 +25,16 @@
 <meta name="theme-color" content="#0F1923">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
 <script>
-// Kill any existing service worker permanently
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations()
-    .then(function(regs) {
-      regs.forEach(function(reg) { reg.unregister(); });
-    });
-  if ('caches' in window) {
-    caches.keys().then(function(names) {
-      names.forEach(function(name) { caches.delete(name); });
-    });
-  }
-}
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    if ((window.location.search || '').indexOf('nosw=1') !== -1) return;
+    if (localStorage.getItem('patrol_nosw') === '1') return;
+  } catch (e) {}
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function () {});
+  });
+})();
 </script>
 <style>
 /* Login page dark navy + flower watermark — inlined to bypass CSS cache */
