@@ -277,17 +277,7 @@
       <div id="dsmCoachingTitle" style="font-size: 14px; font-weight: 800; font-family: 'Manrope', sans-serif; margin-bottom: 8px; color: var(--text-primary);"></div>
       <div id="dsmCoachingList"></div>
     </div>
-    <div class="composer phase4-composer-dsm">
-      <div class="composer-row">
-        <div class="elite-avatar" id="dsmComposerAvatar"></div>
-        <div class="composer-input" id="dsmComposerInput"></div>
-      </div>
-      <div class="composer-actions">
-        <button type="button" onclick="typeof openVisitFlow==='function'&&openVisitFlow()"><span style="font-size:18px;color:var(--danger)">📍</span> <span id="dsmComposerVisit"></span></button>
-        <button type="button"><span style="font-size:18px;color:var(--success)">📸</span> <span id="dsmComposerPhoto"></span></button>
-        <button type="button"><span style="font-size:18px;color:var(--brand-gold-2, #FA9E1B)">📢</span> <span id="dsmComposerAnnounce"></span></button>
-      </div>
-    </div>
+    <p class="dsm-squad-hint" id="dsmSquadHint" style="margin:0 12px 8px;font-size:13px;line-height:1.45;color:var(--text-secondary,#65676B);"></p>
     <div class="section-label phase4-section" id="dsmSquadLabel"></div>
     <div id="dsmSquadFeed"></div>
   </main>
@@ -309,6 +299,7 @@
     </div>
     <div class="section-label phase4-section" id="mapaListTitle"></div>
     <div class="list-card" id="mapaPosList"></div>
+    <div id="mapaFullMapCta" style="display:none;padding:0 16px 16px"></div>
   </div>
 </div>
 
@@ -1333,6 +1324,7 @@
 <script src="js/theme-switcher.js?v=1"></script>
 <script src="js/labels-v2.js?v=19"></script>
 <script src="config.js"></script>
+<script src="js/feature-flags.js"></script>
 <script src="js/release-channel.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
@@ -1435,6 +1427,10 @@
   function patrolOpenStubSalesModule(ev, pageId) {
     if (ev && ev.preventDefault) ev.preventDefault();
     if (window.PATROL_SALES_MODULES_LIVE === true) {
+      nav_safe(pageId);
+      return;
+    }
+    if (typeof patrolFeatureEnabled === 'function' && patrolFeatureEnabled('salesSubModules')) {
       nav_safe(pageId);
       return;
     }

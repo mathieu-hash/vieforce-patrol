@@ -30,7 +30,7 @@
     { id: 'champion', icon: '👑', name: 'Champion', desc: '#1 leaderboard' },
   ];
 
-  window.MOCK_NOTIFS = [
+  var _MOCK_NOTIFS_DATA = [
     {
       id: 'n1',
       section: 'new',
@@ -85,6 +85,11 @@
       unread: false,
     },
   ];
+
+  window.MOCK_NOTIFS =
+    typeof patrolFeatureEnabled === 'function' && !patrolFeatureEnabled('phase4Social')
+      ? []
+      : _MOCK_NOTIFS_DATA.slice();
 
   function _getReadSet() {
     try {

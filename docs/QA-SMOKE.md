@@ -50,6 +50,7 @@ Run before tagging a release or after risky merges.
 | Profile / phase4 settings | `tests/e2e/10-profile-phase4.spec.ts` |
 | Admin SAP roster page | `tests/e2e/11-admin-users-sap.spec.ts` |
 | Map tab + sync bar | `tests/e2e/13-map-sync.spec.ts` |
+| DSM assign (stores/farms) | `tests/e2e/14-assign-page.spec.ts`, `tests/e2e/15-farms.spec.ts` |
 
 Shared helpers: `tests/e2e/_helpers.ts` (session inject, boot-debug suppress, visit sheet, Dexie `PatrolOffline`).
 

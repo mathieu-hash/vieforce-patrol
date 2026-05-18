@@ -134,11 +134,16 @@
     if (direct && direct.velocity_daily && direct.velocity_daily.length) {
       series = direct.velocity_daily;
     }
-    // TODO: replace MOCK_VELOCITY with API daily bags when backend exposes it
+    var allowMockVelocity =
+      typeof patrolFeatureEnabled !== 'function' || patrolFeatureEnabled('salesVelocityChart');
     if (!series || !series.length) {
-      series = MOCK_VELOCITY.map(function (bags, idx) {
-        return { bags: bags, date: 'Day ' + (idx + 1) };
-      });
+      if (allowMockVelocity) {
+        series = MOCK_VELOCITY.map(function (bags, idx) {
+          return { bags: bags, date: 'Day ' + (idx + 1) };
+        });
+      } else {
+        series = [];
+      }
     }
     renderVelocityBars(series);
   }

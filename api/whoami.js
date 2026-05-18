@@ -5,14 +5,29 @@
 //
 // Safe to expose: returns no secrets, only public Vercel telemetry + the public
 // outbound IP (which is anyway trivially observable from any service Vercel calls).
-// Deliberately no auth so it can be hit with curl during deploys / triage.
 //
-// Remove this endpoint (or gate it behind a token) once a durable solution is in
-// place (Vercel Secure Compute, bastion VM, or Cloudflare Tunnel).
+// Production: disabled unless PATROL_WHOAMI_KEY (or WHOAMI_KEY) is set and caller passes ?key=<same>.
+// Non-production: open for local triage (curl without Origin).
 
 module.exports = async function (req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.setHeader('Content-Type', 'application/json');
+
+  const prod =
+    process.env.VERCEL_ENV === 'production' ||
+    (process.env.NODE_ENV === 'production' && process.env.VERCEL === '1');
+  const gateKey = String(process.env.PATROL_WHOAMI_KEY || process.env.WHOAMI_KEY || '').trim();
+
+  if (prod) {
+    if (!gateKey) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    const q = (req && req.query) || {};
+    const got = String(q.key == null ? '' : q.key).trim();
+    if (got !== gateKey) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+  }
 
   const meta = {
     project: process.env.VERCEL_PROJECT_PRODUCTION_URL || null,

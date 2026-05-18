@@ -135,7 +135,20 @@
     var navEl = document.getElementById('bottom-nav');
     if (!navEl) return;
 
-    var items = config.mobile;
+    var items = [];
+    for (var ic = 0; ic < config.mobile.length; ic++) {
+      items.push(Object.assign({}, config.mobile[ic]));
+    }
+    if (navRole === 'tsr' || navRole === 'champion') {
+      for (var jm = 0; jm < items.length; jm++) {
+        if (items[jm].id === 'mapa') {
+          var mapaFull =
+            typeof patrolFeatureEnabled === 'function' && patrolFeatureEnabled('mapaFullMap');
+          items[jm].page = mapaFull ? 'page-mapa-tsr' : 'page-map';
+          break;
+        }
+      }
+    }
     var html = '';
     for (var i = 0; i < items.length; i++) {
       var it = items[i];

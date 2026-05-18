@@ -1,7 +1,24 @@
 # VieForce Patrol User Manual (Field + Manager + Sales Admin)
 
-Last updated: 2026-05-08  
-Environment: Production (`https://vieforce-patrol.vercel.app`)
+Last updated: 2026-05-16  
+**Production:** `https://vieforce-patrol.vercel.app`  
+**Test / preview:** your team may share a **Vercel preview URL** — replace the host below with that link during UAT.
+
+**Tester checklist (print or share):** [`docs/PATROL-TESTER-UAT-CHECKLIST.md`](./PATROL-TESTER-UAT-CHECKLIST.md)
+
+---
+
+## 0) Pilot build notes (for team leads and IT)
+
+These affect **what testers see** on a given deploy; field users do not change these themselves.
+
+| Topic | Default behavior |
+|--------|-------------------|
+| **Feature flags** (`CONFIG.PATROL_FEATURES` in `config.js`) | All **off** in standard pilot builds. Optional flags include: `socialFeed`, `salesVelocityChart`, `salesSubModules`, `mapaFullMap`, `storeSapBadges`, `phase4Social`, `vetRoiCard`. When off, mock/demo surfaces stay hidden. |
+| **Mapa (TSR)** | With `mapaFullMap` **off**, the **Mapa** tab opens the **stub / list** view. With `mapaFullMap` **on**, navigation may use the richer map shell and a **“open full map”** style control to reach the full Leaflet map. |
+| **Offline visits** | Writes should queue locally; use **Sync** when back on data. See troubleshooting in flow **C** below. |
+| **CORS / browser origins** | Preview and custom domains must be allowed on the server (`PATROL_CORS_ORIGINS` on Vercel; Supabase edge env for PIN verify if used). If the app loads but API calls fail only on a new URL, ask IT to add the origin. |
+| **Known pilot gaps** | See [`docs/PILOT-KNOWN-ISSUES.md`](./PILOT-KNOWN-ISSUES.md). |
 
 ---
 
@@ -23,7 +40,7 @@ Primary outcomes:
 
 ## 2) Access URLs
 
-Use these direct URLs in production:
+Replace `https://vieforce-patrol.vercel.app` with your **preview host** when testing a non-production build.
 
 - Main login: `https://vieforce-patrol.vercel.app/`
 - Main app shell: `https://vieforce-patrol.vercel.app/app.html`
@@ -116,18 +133,19 @@ Expected behavior:
 
 - Visit flow opens without requiring a dedicated Visits tab.
 - Submit button provides clear state feedback.
-- Offline entries queue and sync when online.
+- **Offline:** visits and other writes should **queue** locally; when internet returns, use **Sync** (or the sync control your build shows) so pending work reaches the server. If something stays pending, note time and phone model for IT.
 
-## D. DSM Squad read-only feed
+## D. DSM Squad activity (read-only)
 
 1. Login as DSM.
 2. Open DSM Home.
-3. Scroll to Squad activity.
+3. Scroll to **Squad activity**.
 
 Expected behavior:
 
-- Squad shows latest team activity.
-- Composer is read-only (no posting actions).
+- Short hint explains that **TSR visits** appear here (not a post box for DSM).
+- Squad shows latest **synced visits** from TSRs/Champions on your team (store name, order/notes when logged).
+- DSM cannot post photos or announcements in this section (by design in current pilot).
 - Leaderboard shortcut is hidden.
 
 ---
@@ -226,12 +244,17 @@ A: Sales Admin and authorized leadership (`ceo`, `admin`, `evp`, `marketing`).
 
 ## 9) Release-ready verification checklist
 
-- Login works for TSR, DSM, RSM, Sales Admin.
+Use [`docs/PRE-RELEASE-SMOKE-CHECKLIST.md`](./PRE-RELEASE-SMOKE-CHECKLIST.md) and [`docs/QA-SMOKE.md`](./QA-SMOKE.md) for automated and deeper checks. High-level bar:
+
+- Login works for TSR, DSM, RSM, Sales Admin (and Champion if in scope).
 - Stores list loads and scrolls properly on mobile webview.
 - More menu shows only ready actions.
-- Log Visit entry works from More.
-- DSM Squad feed is read-only and visible.
-- Leaderboard is hidden.
-- HQ access is blocked/held.
-- `admin-users-sap.html` works for authorized roles.
-- CSV export works on standalone User Admin SAP page.
+- Log Visit entry works from More; **offline queue + sync** behaves as expected on a real phone.
+- **Mapa** tab opens; behavior matches pilot flags (`mapaFullMap` on vs off).
+- DSM Squad feed is read-only and visible where applicable.
+- Leaderboard is hidden for TSR-facing policy.
+- HQ access is blocked/held unless your build explicitly enables live HQ paths.
+- **Assign** (store/farm territory assignment) works for DSM test accounts if that milestone is in the build.
+- **Farms** list/detail/visit path works if farms are in the pilot.
+- `admin-users-sap.html` works for authorized roles; CSV export works.
+- **PWA:** optional “add to home screen” / service worker shell does not break first load (see team’s preview QA).

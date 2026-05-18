@@ -306,7 +306,9 @@ export async function loginToSalesAdminHtml(page: Page) {
     territory: null,
   });
   await page.goto('/admin.html');
-  await expect(page.locator('#admin-user-tbody tr')).toHaveCount(3, { timeout: 25000 });
+  await expect(page.locator('#admin-user-list .admin-user-card')).toHaveCount(3, {
+    timeout: 25000,
+  });
   await expect(page.locator('#admin-stat-users')).toHaveText('3', { timeout: 15000 });
   await expect(page.locator('#admin-stat-active')).toHaveText('2');
   await expect(page.locator('#admin-stat-stores')).toHaveText('10');

@@ -2,6 +2,8 @@
 
 Run before tagging a release or promoting Vercel production.
 
+**Field / champion testers (non-dev):** use [`docs/PATROL-TESTER-UAT-CHECKLIST.md`](./PATROL-TESTER-UAT-CHECKLIST.md) — short pass/fail sheet with `YOUR_BUILD_URL` placeholders.
+
 ## Automated (local)
 
 ```bash

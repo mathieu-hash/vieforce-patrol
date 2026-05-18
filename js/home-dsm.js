@@ -1,5 +1,5 @@
 /**
- * DSM home — Phase 4.6 v3: action dashboard + composer + scoped squad feed + i18n.
+ * DSM home — Phase 4.6 v3: action dashboard + read-only squad visit feed + i18n.
  * Action layout: docs/elite-dashboards-mockup.html · Social: PatrolElite patterns.
  */
 (function () {
@@ -213,20 +213,6 @@
         '</article>';
     }
     host.innerHTML = html;
-  }
-
-  function lockDsmSquadComposerReadOnly() {
-    var composer = document.querySelector('#page-home-dsm .phase4-composer-dsm');
-    if (!composer) return;
-    composer.classList.add('composer--readonly');
-    var roHint = _t('dsm.squad_read_only_hint');
-    if (!roHint || roHint === 'dsm.squad_read_only_hint') roHint = 'Squad is read-only';
-    var actions = composer.querySelectorAll('button');
-    for (var i = 0; i < actions.length; i++) {
-      actions[i].setAttribute('disabled', 'disabled');
-      actions[i].setAttribute('aria-disabled', 'true');
-      actions[i].title = roHint;
-    }
   }
 
   /** Squad empty is one string — render as single block */
@@ -523,12 +509,6 @@
       av.classList.add('avatar', 'sm');
     }
 
-    var cav = document.getElementById('dsmComposerAvatar');
-    if (cav) {
-      cav.textContent = _initials(session.name);
-      cav.className = 'elite-avatar';
-    }
-
     var hdrName = document.getElementById('dsmHdrName');
     if (hdrName) hdrName.textContent = session.name || 'DSM';
 
@@ -576,16 +556,8 @@
     var squadLabel = document.getElementById('dsmSquadLabel');
     if (squadLabel) squadLabel.textContent = _t('dsm.squad_label');
 
-    var ci = document.getElementById('dsmComposerInput');
-    if (ci) ci.textContent = _t('dsm.composer_placeholder');
-
-    var cv = document.getElementById('dsmComposerVisit');
-    var cp = document.getElementById('dsmComposerPhoto');
-    var ca = document.getElementById('dsmComposerAnnounce');
-    if (cv) cv.textContent = _t('dsm.composer_visit');
-    if (cp) cp.textContent = _t('dsm.composer_photo');
-    if (ca) ca.textContent = _t('dsm.composer_announce');
-    lockDsmSquadComposerReadOnly();
+    var squadHint = document.getElementById('dsmSquadHint');
+    if (squadHint) squadHint.textContent = _t('dsm.squad_hint');
 
     var alerts = await computeAttentionItems(session.id);
     var strip = document.getElementById('dsmAlerts');

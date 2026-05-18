@@ -36,6 +36,17 @@ async function callHqProxy(hqPath, session, params, opts) {
     return { status: 401, body: { error: 'NO_SESSION' } };
   }
 
+  const token = String(process.env.HQ_SERVICE_TOKEN || '').trim();
+  if (!token && process.env.VERCEL_ENV === 'production') {
+    return {
+      status: 503,
+      body: {
+        error: 'HQ_NOT_CONFIGURED',
+        message: 'HQ_SERVICE_TOKEN is not set on this deployment'
+      }
+    };
+  }
+
   const qp = new URLSearchParams();
   for (const k in params) {
     if (params[k] !== undefined && params[k] !== null && params[k] !== '') qp.append(k, params[k]);
@@ -43,7 +54,6 @@ async function callHqProxy(hqPath, session, params, opts) {
   qp.append('scope', 'user:' + session.id);
 
   const url = _hqBase() + hqPath + '?' + qp.toString();
-  const token = process.env.HQ_SERVICE_TOKEN || '';
 
   async function attempt() {
     const ctrl = new AbortController();

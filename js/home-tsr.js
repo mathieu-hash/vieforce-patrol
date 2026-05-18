@@ -638,6 +638,22 @@
         }
       });
     });
+
+    var mapaFull = typeof patrolFeatureEnabled === 'function' && patrolFeatureEnabled('mapaFullMap');
+    var ctaHost = document.getElementById('mapaFullMapCta');
+    if (ctaHost) {
+      if (mapaFull) {
+        ctaHost.style.display = '';
+        ctaHost.innerHTML =
+          '<button type="button" class="big-button" style="width:100%;margin-top:12px" onclick="if(typeof window.nav===\'function\')window.nav(\'page-map\')">' +
+          _escapeHtml(_t('mapa.open_full_map')) +
+          '</button>';
+      } else {
+        ctaHost.style.display = 'none';
+        ctaHost.innerHTML = '';
+      }
+    }
+
     if (typeof window.applyI18nLabels === 'function') {
       var pg = document.getElementById('page-mapa-tsr');
       if (pg) window.applyI18nLabels(pg);

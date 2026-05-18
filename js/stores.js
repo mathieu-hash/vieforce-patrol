@@ -663,7 +663,10 @@ async function renderTindahan(externalFilter) {
 
     _storeCache = storesScoped;
 
-    var storesMocked = _tApplyMockSapData(storesScoped);
+    var storesMocked =
+      typeof patrolFeatureEnabled === 'function' && patrolFeatureEnabled('storeSapBadges')
+        ? _tApplyMockSapData(storesScoped)
+        : storesScoped;
 
     var activeFilter = window._tindahanActiveFilter || null;
     var filtered = _tFilterStoresByCircle(storesMocked, activeFilter);

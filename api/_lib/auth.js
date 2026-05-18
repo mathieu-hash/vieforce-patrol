@@ -10,13 +10,26 @@ const SESSION_TTL_MS = 30 * 1000;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function _isAdminApiRoute(req) {
+  try {
+    const u = String(req.url || req.path || '');
+    return u.indexOf('/api/admin/') !== -1;
+  } catch (_) {
+    return false;
+  }
+}
+
 async function verifySession(req) {
   const sessionId = req.headers['x-session-id'];
   if (!sessionId || !UUID_RE.test(sessionId)) return null;
 
-  // Cache hit
-  const cached = _sessionCache.get(sessionId);
-  if (cached && (Date.now() - cached.ts) < SESSION_TTL_MS) return cached.user;
+  const bypassCache = _isAdminApiRoute(req);
+
+  // Cache hit (skip for admin routes — role changes must be visible quickly)
+  if (!bypassCache) {
+    const cached = _sessionCache.get(sessionId);
+    if (cached && (Date.now() - cached.ts) < SESSION_TTL_MS) return cached.user;
+  }
 
   if (!SERVICE_KEY) {
     console.error('[auth] SUPABASE_SERVICE_ROLE_KEY missing — cannot verify session');
@@ -43,7 +56,9 @@ async function verifySession(req) {
     const user = Array.isArray(rows) && rows[0];
     if (!user || user.is_active === false) return null;
 
-    _sessionCache.set(sessionId, { user, ts: Date.now() });
+    if (!bypassCache) {
+      _sessionCache.set(sessionId, { user, ts: Date.now() });
+    }
     return user;
   } catch (e) {
     console.error('[auth] verifySession failed:', e.message);

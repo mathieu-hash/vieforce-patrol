@@ -4,20 +4,15 @@
  * Header: x-session-id (Patrol session UUID = users.id)
  */
 const { verifySession, unauthorized } = require('../_lib/auth');
+const { applyPatrolCors } = require('../_lib/patrol-cors');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://yolxcmeoovztuindrglk.supabase.co';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 const ALLOWED = { en: true, tl: true, ceb: true };
 
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'x-session-id, content-type');
-  res.setHeader('Access-Control-Allow-Methods', 'PATCH, OPTIONS');
-}
-
 module.exports = async function handler(req, res) {
-  setCors(res);
+  applyPatrolCors(req, res, 'PATCH, POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'PATCH' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });

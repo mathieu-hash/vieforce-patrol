@@ -118,3 +118,25 @@ test('callHqProxy 401 when session has no id', async () => {
     assert.equal(r.body.error, 'NO_SESSION');
   } finally { restoreFetch(); }
 });
+
+test('callHqProxy production without HQ_SERVICE_TOKEN returns 503 (no fetch)', async () => {
+  const prevVercel = process.env.VERCEL_ENV;
+  const prevToken = process.env.HQ_SERVICE_TOKEN;
+  let fetchCalls = 0;
+  mockFetch(async () => {
+    fetchCalls++;
+    return jsonResponse(200, { should_not: true });
+  });
+  try {
+    process.env.VERCEL_ENV = 'production';
+    delete process.env.HQ_SERVICE_TOKEN;
+    const r = await callHqProxy('/api/sales', SESSION, {});
+    assert.equal(fetchCalls, 0, 'fetch must not run when HQ token missing in prod');
+    assert.equal(r.status, 503);
+    assert.equal(r.body.error, 'HQ_NOT_CONFIGURED');
+  } finally {
+    process.env.VERCEL_ENV = prevVercel;
+    process.env.HQ_SERVICE_TOKEN = prevToken;
+    restoreFetch();
+  }
+});

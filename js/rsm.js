@@ -331,6 +331,12 @@
   function renderVetRoi() {
     var wrap = document.getElementById('rsm-vet-roi');
     if (!wrap) return;
+    if (typeof patrolFeatureEnabled === 'function' && !patrolFeatureEnabled('vetRoiCard')) {
+      wrap.innerHTML = '';
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = '';
     // TODO: Replace with real vet_missions data when Sprint C ships
     wrap.innerHTML =
       '<div class="whitespace-card roi">' +

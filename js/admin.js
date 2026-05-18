@@ -191,6 +191,15 @@ function _formatCurrentPinField(u) {
   };
 }
 
+function adminOrgSummary(u) {
+  var parts = [];
+  if (u.region) parts.push('Region: ' + u.region);
+  if (u.district) parts.push('District: ' + u.district);
+  if (u.territory) parts.push('Territory: ' + u.territory);
+  if (!parts.length) return 'Region / District / Territory not set';
+  return parts.join(' · ');
+}
+
 async function loadUserTable() {
   try {
     var users =
@@ -199,29 +208,30 @@ async function loadUserTable() {
         : await getUsers();
     _adminUsers = users;
 
-    var tbody = document.getElementById('admin-user-tbody');
-    if (!tbody) return;
+    var host = document.getElementById('admin-user-list');
+    if (!host) return;
 
     if (users.length === 0) {
-      tbody.innerHTML =
-        '<tr><td colspan="9" class="admin-empty">No users found.</td></tr>';
+      host.innerHTML = '<p class="admin-empty">No users found.</p>';
       return;
     }
 
     var html = '';
     for (var i = 0; i < users.length; i++) {
       var u = users[i];
-      var uid = String(u.id || '').replace(/'/g, '');
-      html += '<tr data-user-id="' + escapeHtml(u.id) + '">';
-      html += '<td style="font-weight:700;">' + escapeHtml(u.name) + '</td>';
-      html += '<td>' + escapeHtml(u.phone || '') + '</td>';
-      html += '<td>' + getPinDisplayUser(u) + '</td>';
-      html += '<td>' + getRoleBadge(u.role) + '</td>';
-      html += '<td>' + escapeHtml(u.region || '-') + '</td>';
-      html += '<td>' + escapeHtml(u.district || '-') + '</td>';
-      html += '<td>' + escapeHtml(u.territory || '-') + '</td>';
-      html += '<td>' + getStatusBadge(u.is_active) + '</td>';
-      html += '<td>';
+      var uid = String(u.id || '').replace(/'/g, "\\'");
+      html += '<article class="admin-user-card" role="listitem" data-user-id="' + escapeHtml(u.id) + '">';
+      html += '<div class="admin-user-card-main">';
+      html += '<h3 class="admin-user-card-name">' + escapeHtml(u.name || '—') + '</h3>';
+      html += '<div class="admin-user-card-line">';
+      html += '<span>' + escapeHtml(u.phone || '—') + '</span>';
+      html += '<span>PIN ' + getPinDisplayUser(u) + '</span>';
+      html += getRoleBadge(u.role);
+      html += getStatusBadge(u.is_active);
+      html += '</div>';
+      html += '<p class="admin-user-card-org">' + escapeHtml(adminOrgSummary(u)) + '</p>';
+      html += '</div>';
+      html += '<div class="admin-user-card-actions">';
       html +=
         '<button type="button" class="tbl-btn" onclick="openEditUserModal(\'' +
         uid +
@@ -237,10 +247,10 @@ async function loadUserTable() {
           uid +
           '\',false)">Activate</button>';
       }
-      html += '</td></tr>';
+      html += '</div></article>';
     }
 
-    tbody.innerHTML = html;
+    host.innerHTML = html;
   } catch (err) {
     console.error('loadUserTable:', err);
     showToast('Failed to load users: ' + friendlyAdminErr(err), 'error');
@@ -307,30 +317,11 @@ function wireAdminOrgHintListeners() {
 
 function searchUsers(query) {
   var q = (query || '').toLowerCase().trim();
-  var rows = document.querySelectorAll('#admin-user-tbody tr');
-  for (var i = 0; i < rows.length; i++) {
-    var row = rows[i];
-    if (row.querySelector && row.querySelector('.admin-empty')) {
-      row.style.display = '';
-      continue;
-    }
-    var name = (row.children[0] ? row.children[0].textContent : '').toLowerCase();
-    var phone = (row.children[1] ? row.children[1].textContent : '').toLowerCase();
-    var region = (row.children[4] ? row.children[4].textContent : '').toLowerCase();
-    var district = (row.children[5] ? row.children[5].textContent : '').toLowerCase();
-    var territory = (row.children[6] ? row.children[6].textContent : '').toLowerCase();
-    if (
-      !q ||
-      name.indexOf(q) !== -1 ||
-      phone.indexOf(q) !== -1 ||
-      region.indexOf(q) !== -1 ||
-      district.indexOf(q) !== -1 ||
-      territory.indexOf(q) !== -1
-    ) {
-      row.style.display = '';
-    } else {
-      row.style.display = 'none';
-    }
+  var cards = document.querySelectorAll('#admin-user-list .admin-user-card');
+  for (var i = 0; i < cards.length; i++) {
+    var card = cards[i];
+    var hay = (card.textContent || '').toLowerCase();
+    card.style.display = !q || hay.indexOf(q) !== -1 ? '' : 'none';
   }
 }
 

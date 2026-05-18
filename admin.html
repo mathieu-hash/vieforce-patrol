@@ -1,22 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="admin-html">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VieForce Patrol — Admin (Beta)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/patrol.css">
+<link rel="stylesheet" href="css/admin-page.css?v=3">
 <style>
-  /* Admin overrides — wider layout for desktop */
-  body {
-    max-width: 960px;
+  /* Critical: card list (also in css/admin-page.css) */
+  html.admin-html, html.admin-html body.admin-page { width:100%!important; max-width:none!important; margin:0!important; }
+  .admin-user-list { display:flex; flex-direction:column; gap:10px; width:100%; }
+  .admin-user-card {
+    display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;
+    gap:12px; width:100%; box-sizing:border-box; padding:14px 16px;
+    background:#fff; border:1px solid #e2e8f0; border-radius:12px;
   }
-
-  .admin-body {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 16px 40px;
-  }
+  .admin-user-card-main { flex:1 1 240px; min-width:0; }
+  .admin-user-card-name { margin:0 0 6px; font-size:16px; font-weight:800; color:#004d71; }
+  .admin-user-card-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; font-size:13px; }
+  .admin-user-card-org { margin:0; font-size:12px; color:#718096; }
+  .admin-user-card-actions { display:flex; flex-direction:column; gap:8px; width:140px; max-width:100%; flex-shrink:0; }
+  .admin-user-card-actions .tbl-btn { width:100%; box-sizing:border-box; padding:10px 12px; }
 
   /* Stats row */
   .admin-stats {
@@ -193,41 +198,6 @@
     line-height: 1.45;
   }
 
-  /* Table */
-  .admin-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: var(--radius);
-    border: 1px solid #eee;
-    background: var(--white);
-  }
-  .admin-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  .admin-table th {
-    background: var(--navy);
-    color: var(--white);
-    text-transform: uppercase;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 10px 12px;
-    text-align: left;
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-  }
-  .admin-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 13px;
-    white-space: nowrap;
-  }
-  .admin-table tr:hover {
-    background: #fafafa;
-  }
-
   /* Role badge */
   .role-badge {
     display: inline-block;
@@ -297,18 +267,17 @@
   .status-badge.active   { background: rgba(149,201,61,0.15); color: #5a8a0a; }
   .status-badge.inactive { background: rgba(226,27,144,0.1);  color: var(--pink); }
 
-  /* Action buttons in table */
+  /* Action buttons in table (layout in admin-page.css) */
   .tbl-btn {
-    background: none;
+    background: var(--white);
     border: 1px solid var(--mid);
     border-radius: 6px;
-    padding: 4px 10px;
+    padding: 6px 12px;
     font-family: inherit;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     color: var(--navy);
-    margin-right: 4px;
   }
   .tbl-btn:hover {
     background: var(--navy);
@@ -471,7 +440,10 @@
   .toast.error   { background: var(--pink);  color: var(--white); }
 
   /* Responsive */
-  @media (max-width: 480px) {
+  @media (max-width: 640px) {
+    .admin-body {
+      padding: 0 12px 40px;
+    }
     .admin-stats {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -485,12 +457,6 @@
     .admin-actions .btn-action {
       flex: 1;
     }
-    .admin-table-wrap {
-      margin: 0 -16px;
-      border-radius: 0;
-      border-left: none;
-      border-right: none;
-    }
     .toast {
       left: 16px;
       right: 16px;
@@ -500,7 +466,7 @@
   }
 </style>
 </head>
-<body>
+<body class="admin-page">
 
 <!-- ===== TOP BAR ===== -->
 <div class="top-bar">
@@ -559,26 +525,10 @@
     <button class="btn-action btn-export" onclick="exportUsersCSV()">Export CSV</button>
   </div>
 
-  <!-- ===== USER TABLE ===== -->
-  <div class="admin-table-wrap">
-    <table class="admin-table" id="admin-user-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th title="PIN is stored as plain digits; legacy bcrypt rows show Hashed until reset.">PIN</th>
-          <th>Role</th>
-          <th title="RSM / regional rollups">Region</th>
-          <th title="DSM team bucket — must match between DSM and their TSRs">District</th>
-          <th title="Optional sub-area or route label">Territory</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="admin-user-tbody">
-        <!-- Populated by JS -->
-      </tbody>
-    </table>
+  <!-- ===== USER LIST (cards — no horizontal clip) ===== -->
+  <p class="admin-list-hint" id="admin-list-hint">User list · layout <strong>v3</strong> (cards). If you still see a wide cut-off table, hard-refresh <kbd>Ctrl+F5</kbd> or wait for the latest deploy.</p>
+  <div id="admin-user-list" class="admin-user-list" role="list" aria-label="Patrol users">
+    <!-- Populated by js/admin.js -->
   </div>
 
 </div>
@@ -732,13 +682,14 @@
 
 <!-- ===== SCRIPTS ===== -->
 <script src="config.js"></script>
+<script src="js/feature-flags.js"></script>
 <script src="js/release-channel.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js?v=2"></script>
 <script src="js/validate.js"></script>
 <script src="js/auth.js?v=24"></script>
 <script src="js/db.js"></script>
-<script src="js/admin.js?v=7"></script>
+<script src="js/admin.js?v=10"></script>
 <script>
   // Auth gate — User Admin (CEO, Sales Admin, EVP Sales, Marketing Manager)
   var session = getSession();

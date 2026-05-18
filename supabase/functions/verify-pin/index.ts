@@ -1,15 +1,38 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
-// --- CORS --- allow all origins (public login endpoint)
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+// --- CORS --- reflective allowlist (match api/_lib/patrol-cors.js) + PATROL_CORS_ORIGINS
+const DEFAULT_CORS_ORIGINS = [
+  'https://vieforce-patrol.vercel.app',
+  'https://patrol.vienovo.ph',
+  'http://127.0.0.1:4173',
+  'http://localhost:4173',
+  'http://127.0.0.1:3000',
+  'http://localhost:3000',
+]
+
+function buildCorsOriginSet(): Set<string> {
+  const set = new Set(DEFAULT_CORS_ORIGINS)
+  const extra = (Deno.env.get('PATROL_CORS_ORIGINS') || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  for (const o of extra) set.add(o)
+  return set
 }
 
-function getCorsHeaders(_req: Request) {
-  return corsHeaders
+function getCorsHeaders(req: Request): Record<string, string> {
+  const allowed = buildCorsOriginSet()
+  const origin = (req.headers.get('Origin') || '').trim()
+  const headers: Record<string, string> = {
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  }
+  if (origin && allowed.has(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin
+    headers['Vary'] = 'Origin'
+  }
+  return headers
 }
 
 // --- Rate Limiting (in-memory) ---

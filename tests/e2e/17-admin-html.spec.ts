@@ -11,18 +11,22 @@ test.describe('17 — Sales Admin (admin.html)', () => {
   test('@smoke CEO sees stats, user table, and search filters rows', async ({ page }) => {
     await loginToSalesAdminHtml(page);
 
-    await expect(page.locator('#admin-user-table')).toBeVisible();
-    await expect(page.locator('#admin-user-tbody tr')).toHaveCount(3);
-    await expect(page.locator('#admin-user-tbody tr').first()).toContainText('Alpha TSR');
+    await expect(page.locator('#admin-user-list')).toBeVisible();
+    await expect(page.locator('#admin-user-list .admin-user-card')).toHaveCount(3);
+    await expect(page.locator('#admin-user-list .admin-user-card').first()).toContainText(
+      'Alpha TSR'
+    );
 
     await page.locator('#admin-search').fill('Gamma');
-    const gammaRow = page.locator('#admin-user-tbody tr', { hasText: 'Gamma TSR' });
-    await expect(gammaRow).toBeVisible();
-    const alphaRowHidden = page.locator('#admin-user-tbody tr', { hasText: 'Alpha TSR' });
-    await expect(alphaRowHidden).toBeHidden();
+    const gammaCard = page.locator('#admin-user-list .admin-user-card', { hasText: 'Gamma TSR' });
+    await expect(gammaCard).toBeVisible();
+    const alphaCardHidden = page.locator('#admin-user-list .admin-user-card', {
+      hasText: 'Alpha TSR',
+    });
+    await expect(alphaCardHidden).toBeHidden();
 
     await page.locator('#admin-search').fill('');
-    await expect(page.locator('#admin-user-tbody tr')).toHaveCount(3);
+    await expect(page.locator('#admin-user-list .admin-user-card')).toHaveCount(3);
   });
 
   test('@smoke Edit modal: Cancel closes and restores focus (QA-SMOKE §10)', async ({
@@ -30,8 +34,8 @@ test.describe('17 — Sales Admin (admin.html)', () => {
   }) => {
     await loginToSalesAdminHtml(page);
 
-    const alphaRow = page.locator('#admin-user-tbody tr', { hasText: 'Alpha TSR' });
-    const editBtn = alphaRow.getByRole('button', { name: 'Edit' });
+    const alphaCard = page.locator('#admin-user-list .admin-user-card', { hasText: 'Alpha TSR' });
+    const editBtn = alphaCard.getByRole('button', { name: 'Edit' });
     await editBtn.click();
 
     const modal = page.locator('#modal-edit-user');
@@ -48,8 +52,8 @@ test.describe('17 — Sales Admin (admin.html)', () => {
   }) => {
     await loginToSalesAdminHtml(page);
 
-    const alphaRow = page.locator('#admin-user-tbody tr', { hasText: 'Alpha TSR' });
-    const editBtn = alphaRow.getByRole('button', { name: 'Edit' });
+    const alphaCard = page.locator('#admin-user-list .admin-user-card', { hasText: 'Alpha TSR' });
+    const editBtn = alphaCard.getByRole('button', { name: 'Edit' });
     await editBtn.click();
 
     const modal = page.locator('#modal-edit-user');

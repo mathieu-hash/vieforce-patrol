@@ -4,6 +4,7 @@
 
 const { verifySession, unauthorized } = require('../_lib/auth');
 const { callHqProxy } = require('../_lib/hq-client');
+const { applyPatrolCors } = require('../_lib/patrol-cors');
 
 // Matches Patrol User Admin gate: CEO, Sales Admin (admin), EVP Sales (evp), Marketing Manager (marketing).
 const USER_ADMIN_ROLES = new Set(['ceo', 'admin', 'evp', 'marketing']);
@@ -11,9 +12,7 @@ const USER_ADMIN_ROLES = new Set(['ceo', 'admin', 'evp', 'marketing']);
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'private, max-age=60');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'x-session-id, content-type');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  applyPatrolCors(req, res, 'GET, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
