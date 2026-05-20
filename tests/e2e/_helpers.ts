@@ -669,9 +669,7 @@ export async function openTsrProfile(page: Page) {
 /** TSR/Champion: Visits list moved off bottom nav → More sheet → Visits. */
 export async function openTsrVisits(page: Page) {
   await openMoreSheet(page);
-  const visitsItem = page
-    .locator('#more-sheet .more-sheet-item')
-    .filter({ hasText: /visits|bisita/i });
+  const visitsItem = page.locator('#more-sheet .more-sheet-item[onclick*="page-visits"]');
   await expect(visitsItem.first()).toBeVisible({ timeout: 10000 });
   await visitsItem.first().click();
   await expect(page.locator('#page-visits.active')).toBeVisible({ timeout: 10000 });
