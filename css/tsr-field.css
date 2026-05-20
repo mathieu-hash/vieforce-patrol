@@ -1,0 +1,80 @@
+/**
+ * TSR / Champion field UX — Phase B
+ * 64px minimum touch targets (CLAUDE.md Rule 3), Messenger-blue visit CTA.
+ */
+body.role-tsr,
+body.role-champion {
+  --tsr-touch-min: 64px;
+}
+
+body.role-tsr #bottom-nav .nav-item,
+body.role-champion #bottom-nav .nav-item {
+  min-height: 64px !important;
+}
+
+body.role-tsr .hdr-btn,
+body.role-champion .hdr-btn {
+  min-width: 64px !important;
+  min-height: 64px !important;
+  width: 64px !important;
+  height: 64px !important;
+}
+
+body.role-tsr #btn-visits-new.hdr-btn,
+body.role-champion #btn-visits-new.hdr-btn {
+  min-width: auto !important;
+  width: auto !important;
+  padding: 0 18px !important;
+}
+
+body.role-tsr .fab,
+body.role-champion .fab {
+  width: 64px;
+  height: 64px;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+body.role-tsr .store-fab,
+body.role-champion .store-fab {
+  width: 64px;
+  height: 64px;
+}
+
+body.role-tsr .outcome-chip,
+body.role-champion .outcome-chip {
+  min-height: 64px;
+}
+
+body.role-tsr .outcome,
+body.role-champion .outcome {
+  min-height: 64px;
+  padding: 16px 14px;
+}
+
+body.role-tsr #visit-sheet .sub-btn,
+body.role-champion #visit-sheet .sub-btn,
+body.role-tsr #btn-visit-submit,
+body.role-champion #btn-visit-submit {
+  min-height: 64px;
+  font-size: 17px;
+  font-weight: 700;
+  background: #00a6ce !important;
+  box-shadow: 0 4px 20px rgba(0, 166, 206, 0.35);
+}
+
+body.role-tsr #btn-visit-submit:disabled,
+body.role-champion #btn-visit-submit:disabled {
+  background: var(--bg-chat) !important;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+body.role-tsr .more-sheet-item,
+body.role-champion .more-sheet-item {
+  min-height: 64px;
+}
+
+body.role-tsr .fab-pick-btn,
+body.role-champion .fab-pick-btn {
+  min-height: 64px;
+}

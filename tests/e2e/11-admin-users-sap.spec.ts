@@ -1,5 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { installAppInitScripts, seedSession, waitForAppShell } from './_helpers';
+import {
+  expectSapRosterLoaded,
+  installAppInitScripts,
+  seedSession,
+  waitForAppShell,
+} from './_helpers';
 
 const MOCK_SAP = {
   reps: [
@@ -39,8 +44,7 @@ test.describe('11 — Admin SAP roster page', () => {
       territory: null,
     });
     await page.goto('/admin-users-sap.html');
-    await expect(page.locator('#sap-table-wrap')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('#sap-stat-total')).toHaveText('1');
+    await expectSapRosterLoaded(page, '1');
   });
 
   test('TSR without admin access redirects to app shell', async ({ page }) => {

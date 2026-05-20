@@ -2,469 +2,11 @@
 <html lang="en" class="admin-html">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VieForce Patrol — Admin (Beta)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/patrol.css">
-<link rel="stylesheet" href="css/admin-page.css?v=3">
-<style>
-  /* Critical: card list (also in css/admin-page.css) */
-  html.admin-html, html.admin-html body.admin-page { width:100%!important; max-width:none!important; margin:0!important; }
-  .admin-user-list { display:flex; flex-direction:column; gap:10px; width:100%; }
-  .admin-user-card {
-    display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;
-    gap:12px; width:100%; box-sizing:border-box; padding:14px 16px;
-    background:#fff; border:1px solid #e2e8f0; border-radius:12px;
-  }
-  .admin-user-card-main { flex:1 1 240px; min-width:0; }
-  .admin-user-card-name { margin:0 0 6px; font-size:16px; font-weight:800; color:#004d71; }
-  .admin-user-card-line { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; font-size:13px; }
-  .admin-user-card-org { margin:0; font-size:12px; color:#718096; }
-  .admin-user-card-actions { display:flex; flex-direction:column; gap:8px; width:140px; max-width:100%; flex-shrink:0; }
-  .admin-user-card-actions .tbl-btn { width:100%; box-sizing:border-box; padding:10px 12px; }
-
-  /* Stats row */
-  .admin-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin: 16px 0;
-  }
-  .admin-stat-card {
-    background: var(--white);
-    border-radius: var(--radius);
-    padding: 14px;
-    border: 1px solid #eee;
-    animation: fadeIn 0.3s ease;
-  }
-  .admin-stat-card .label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #888;
-  }
-  .admin-stat-card .value {
-    font-size: 26px;
-    font-weight: 800;
-    color: var(--navy);
-    margin-top: 2px;
-  }
-
-  /* Action bar */
-  .admin-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 16px 0 12px;
-  }
-  .admin-actions input {
-    flex: 1;
-    padding: 10px 14px;
-    border: 1px solid var(--mid);
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-  }
-  .admin-actions input:focus {
-    outline: none;
-    border-color: var(--blue);
-  }
-  .admin-actions .btn-action {
-    flex-shrink: 0;
-    padding: 10px 18px;
-    border: none;
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .btn-add {
-    background: var(--green);
-    color: var(--white);
-  }
-  .btn-export {
-    background: var(--white);
-    color: var(--navy);
-    border: 1px solid var(--navy) !important;
-  }
-
-  .admin-pin-mask {
-    font-weight: 800;
-    letter-spacing: 0.15em;
-    color: var(--navy);
-    font-size: 12px;
-  }
-  .admin-pin-none {
-    color: #bbb;
-    font-size: 13px;
-  }
-
-  .admin-pin-plain {
-    font-family: ui-monospace, monospace;
-    font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 0.08em;
-    color: var(--navy);
-  }
-
-  .admin-pin-hashed {
-    font-size: 11px;
-    font-weight: 700;
-    color: #4a5568;
-    line-height: 1.3;
-    display: inline-block;
-    max-width: 140px;
-  }
-
-  .admin-pin-suffix {
-    font-weight: 600;
-    opacity: 0.75;
-    margin-left: 2px;
-  }
-
-  .admin-pin-readonly {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    font-family: ui-monospace, monospace;
-    font-size: 14px;
-    font-weight: 700;
-    background: #f7fafc;
-    color: var(--navy);
-    box-sizing: border-box;
-  }
-
-  .form-hint {
-    display: block;
-    margin-top: 6px;
-    font-size: 11px;
-    color: #718096;
-    line-height: 1.35;
-  }
-
-  .admin-hierarchy-guide {
-    font-size: 13px;
-    line-height: 1.5;
-    color: #2d3748;
-    background: linear-gradient(135deg, #f0f9ff 0%, #f7fafc 100%);
-    border: 1px solid #bee3f8;
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    margin: 0 0 16px;
-  }
-  .admin-hierarchy-guide h2 {
-    margin: 0 0 10px;
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--navy);
-  }
-  .admin-hierarchy-guide .admin-hier-flow {
-    font-family: ui-monospace, 'Cascadia Code', monospace;
-    font-size: 12px;
-    background: var(--white);
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    padding: 10px 12px;
-    margin: 10px 0;
-    color: #1a365d;
-  }
-  .admin-hierarchy-guide ul {
-    margin: 8px 0 0 18px;
-    padding: 0;
-  }
-  .admin-hierarchy-guide li {
-    margin-bottom: 6px;
-  }
-  .admin-form-section {
-    margin-top: 4px;
-    padding-top: 12px;
-    border-top: 1px solid #edf2f7;
-  }
-  .admin-form-section-title {
-    margin: 0 0 6px;
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--navy);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .admin-form-section-lead {
-    margin: 0 0 8px;
-    font-size: 12px;
-    color: #4a5568;
-    line-height: 1.45;
-  }
-
-  /* Role badge */
-  .role-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .role-badge.tsr { background: rgba(0,77,113,0.12); color: var(--navy); }
-  .role-badge.champion { background: rgba(74,85,104,0.15); color: #4a5568; }
-  .role-badge.dsm { background: rgba(0,166,206,0.15); color: #0088a8; }
-  .role-badge.rsm { background: rgba(241,177,29,0.2); color: #9a7209; }
-  .role-badge.exec { background: rgba(44,82,130,0.15); color: #2c5282; }
-  .role-badge.director { background: rgba(40,94,97,0.15); color: #285e61; }
-  .role-badge.admin { background: rgba(149,201,61,0.18); color: #4a7a0c; }
-  .role-badge.ceo { background: rgba(26,54,93,0.15); color: #1a365d; }
-  .role-badge.evp { background: rgba(85,60,154,0.12); color: #553c9a; }
-  .role-badge.president { background: rgba(116,42,42,0.12); color: #742a2a; }
-  .role-badge.marketing { background: rgba(221,107,32,0.12); color: #c05621; }
-  .role-badge.unknown { background: rgba(136,136,136,0.15); color: #4a5568; }
-
-  .admin-empty {
-    text-align: center;
-    color: #718096;
-    padding: 32px 16px;
-    font-size: 14px;
-  }
-
-  .admin-toast {
-    position: fixed;
-    top: 24px;
-    right: 24px;
-    z-index: 9999;
-    padding: 14px 24px;
-    border-radius: var(--radius);
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
-    transition: opacity 0.4s;
-    opacity: 1;
-    max-width: 360px;
-    color: var(--white);
-  }
-  .admin-toast--success { background: #38a169; }
-  .admin-toast--error { background: #e53e3e; }
-
-  .tbl-btn-activate {
-    border-color: #38a169;
-    color: #2f855a;
-  }
-  .tbl-btn-activate:hover {
-    background: #38a169;
-    color: var(--white);
-    border-color: #38a169;
-  }
-
-  /* Status badge */
-  .status-badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .status-badge.active   { background: rgba(149,201,61,0.15); color: #5a8a0a; }
-  .status-badge.inactive { background: rgba(226,27,144,0.1);  color: var(--pink); }
-
-  /* Action buttons in table (layout in admin-page.css) */
-  .tbl-btn {
-    background: var(--white);
-    border: 1px solid var(--mid);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--navy);
-  }
-  .tbl-btn:hover {
-    background: var(--navy);
-    color: var(--white);
-    border-color: var(--navy);
-  }
-  .tbl-btn.danger {
-    color: var(--pink);
-    border-color: var(--pink);
-  }
-  .tbl-btn.danger:hover {
-    background: var(--pink);
-    color: var(--white);
-  }
-
-  /* Modal overlay */
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.45);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 500;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-overlay.visible {
-    display: flex;
-  }
-
-  /* Modal card */
-  .modal-card {
-    background: var(--white);
-    max-width: 480px;
-    width: 90%;
-    border-radius: 12px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.2);
-    overflow: hidden;
-    animation: fadeIn 0.25s ease;
-  }
-  .modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 2px solid var(--navy);
-  }
-  .modal-header h2 {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--navy);
-    margin: 0;
-  }
-  .modal-close {
-    background: none;
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    color: #999;
-    padding: 0 4px;
-    line-height: 1;
-  }
-  .modal-close:hover { color: var(--navy); }
-
-  .modal-body {
-    padding: 20px;
-    max-height: 60vh;
-    overflow-y: auto;
-  }
-  .modal-body .form-group {
-    margin-bottom: 14px;
-  }
-  .modal-body .form-group label {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #888;
-    display: block;
-    margin-bottom: 6px;
-  }
-  .modal-body .form-group input,
-  .modal-body .form-group select {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--mid);
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-  }
-  .modal-body .form-group input:focus,
-  .modal-body .form-group select:focus {
-    outline: none;
-    border-color: var(--blue);
-  }
-
-  .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 16px 20px;
-    border-top: 1px solid #eee;
-  }
-  .modal-footer .btn-cancel {
-    padding: 10px 20px;
-    background: var(--white);
-    color: var(--dark);
-    border: 1px solid var(--mid);
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .modal-footer .btn-save {
-    padding: 10px 20px;
-    background: var(--navy);
-    color: var(--white);
-    border: none;
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .modal-footer .btn-reset-pin {
-    padding: 10px 20px;
-    background: var(--gold);
-    color: var(--white);
-    border: none;
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-right: auto;
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--navy);
-    color: var(--white);
-    padding: 12px 20px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    z-index: 600;
-    transform: translateX(120%);
-    transition: transform 0.3s ease;
-    max-width: 320px;
-  }
-  .toast.visible {
-    transform: translateX(0);
-  }
-  .toast.success { background: var(--green); color: var(--white); }
-  .toast.error   { background: var(--pink);  color: var(--white); }
-
-  /* Responsive */
-  @media (max-width: 640px) {
-    .admin-body {
-      padding: 0 12px 40px;
-    }
-    .admin-stats {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .admin-actions {
-      flex-wrap: wrap;
-    }
-    .admin-actions input {
-      width: 100%;
-      flex: unset;
-    }
-    .admin-actions .btn-action {
-      flex: 1;
-    }
-    .toast {
-      left: 16px;
-      right: 16px;
-      bottom: 16px;
-      max-width: none;
-    }
-  }
-</style>
+<link rel="stylesheet" href="css/admin-page.css?v=4">
 </head>
 <body class="admin-page">
 
@@ -480,15 +22,19 @@
 
 <div class="admin-body">
 
-  <p style="margin:0 0 14px;font-size:13px;line-height:1.45;">
-    <a href="admin-users-sap.html" style="color:var(--blue);font-weight:700;text-decoration:none;">User admin — SAP roster (desktop)</a>
-    <span style="color:#888;display:block;margin-top:6px;">Executive, Admin, CEO, RSM, DSM, and Marketing follow SAP (OSLP). <strong>Every TSR</strong> is added manually below — not from this roster.</span>
-    <span style="color:#4a5568;display:block;margin-top:10px;padding:10px 12px;background:#f7fafc;border-radius:8px;border:1px solid #e2e8f0;"><strong>PINs</strong> are stored as plain 4–6 digits in the database (Sales Admin can view them here). If a row still shows <strong>Hashed (legacy)</strong>, that user cannot log in until you <strong>Edit</strong> → <strong>Reset PIN</strong> once. Deploy the updated <code>verify-pin</code> Edge Function after pulling this change. Hard-refresh (<kbd>Ctrl</kbd>+<kbd>F5</kbd>).</span>
+  <nav class="admin-subnav" aria-label="Admin sections">
+    <a href="admin.html" class="admin-subnav-link" aria-current="page">Sales Admin</a>
+    <a href="admin-users-sap.html" class="admin-subnav-link">SAP roster</a>
+    <a href="admin-org.html" class="admin-subnav-link">Org master</a>
+  </nav>
+  <p class="admin-intro">
+    Executive, Admin, CEO, RSM, DSM, and Marketing follow SAP (OSLP). <strong>Every TSR</strong> is added manually below — not from the SAP roster.
+    <span style="display:block;margin-top:10px;padding:10px 12px;background:#f7fafc;border-radius:8px;border:1px solid #e2e8f0;color:#4a5568;"><strong>PINs</strong> are stored as plain 4–6 digits in the database (Sales Admin can view them here). If a row still shows <strong>Hashed (legacy)</strong>, that user cannot log in until you <strong>Edit</strong> → <strong>Reset PIN</strong> once. Hard-refresh (<kbd>Ctrl</kbd>+<kbd>F5</kbd>) after deploy.</span>
   </p>
 
   <aside class="admin-hierarchy-guide" aria-label="How Patrol grouping works">
     <h2>Who belongs to what (fill this carefully)</h2>
-    <p style="margin:0 0 6px;">Patrol uses the fields <strong>Region</strong>, <strong>District</strong>, and <strong>Territory</strong> on each user to decide dashboards, maps, and team lists. Use one consistent spelling everywhere (e.g. always <code>Metro Manila</code>, not mixed with <code>MM</code>).</p>
+    <p style="margin:0 0 6px;">Patrol uses the fields <strong>Region</strong>, <strong>District</strong>, and <strong>Territory</strong> on each user to decide dashboards, maps, and team lists. Maintain the master list on <a href="admin-org.html" style="color:var(--blue);font-weight:700">Region / District / Territory</a> (SAP sync for regions &amp; districts), then pick from the dropdowns below.</p>
     <div class="admin-hier-flow" aria-hidden="true">Region (RSM scope) → District (DSM + TSR team) → Territory (optional sub-area / route label)</div>
     <ul>
       <li><strong>TSR / Champion</strong> — Set <strong>Region</strong> and <strong>District</strong> to the district team they belong to. Must match their DSM’s <strong>District</strong> exactly. <strong>Territory</strong> is optional (e.g. route name).</li>
@@ -550,6 +96,11 @@
         <input type="tel" id="add-phone" required placeholder="09XXXXXXXXX">
       </div>
       <div class="form-group">
+        <label for="add-email">Email <span style="font-weight:400;color:#718096">(for Google sign-in)</span></label>
+        <input type="email" id="add-email" autocomplete="email" placeholder="name@vienovo.ph" aria-describedby="add-email-hint">
+        <small class="form-hint" id="add-email-hint">Required for DSM, RSM, Exec, Sales Admin, and CEO. Must match their Google account (@vienovo.ph).</small>
+      </div>
+      <div class="form-group">
         <label>PIN</label>
         <input type="password" id="add-pin" required maxlength="6" placeholder="4-6 digit PIN">
       </div>
@@ -575,17 +126,17 @@
         <p class="form-hint" id="add-org-hint" role="status"></p>
         <div class="form-group">
           <label for="add-region">Region</label>
-          <input type="text" id="add-region" placeholder="e.g. Luzon — RSM / regional scope" autocomplete="organization">
+          <select id="add-region" aria-describedby="add-org-hint"></select>
           <small class="form-hint">Wider area. RSM and CEO-style views filter by this.</small>
         </div>
         <div class="form-group">
           <label for="add-district">District</label>
-          <input type="text" id="add-district" placeholder="e.g. Metro Manila — must match DSM + TSRs in that team" autocomplete="off">
+          <select id="add-district"></select>
           <small class="form-hint"><strong>TSR &amp; DSM:</strong> required for correct team grouping. Use identical text on every person in the same district.</small>
         </div>
         <div class="form-group">
           <label for="add-territory">Territory <span style="font-weight:600;color:#718096">(optional)</span></label>
-          <input type="text" id="add-territory" placeholder="e.g. MM-North — sub-route or label" autocomplete="off">
+          <select id="add-territory"></select>
           <small class="form-hint">Does not replace District; optional detail for reports or display.</small>
         </div>
       </div>
@@ -613,6 +164,11 @@
       <div class="form-group">
         <label>Phone</label>
         <input type="tel" id="edit-phone" required placeholder="09XXXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label for="edit-email">Email <span style="font-weight:400;color:#718096">(for Google sign-in)</span></label>
+        <input type="email" id="edit-email" autocomplete="email" placeholder="name@vienovo.ph" aria-describedby="edit-email-hint">
+        <small class="form-hint" id="edit-email-hint">Required for DSM, RSM, Exec, Sales Admin, and CEO. Must match their Google account (@vienovo.ph).</small>
       </div>
       <div class="form-group">
         <label>Current login PIN</label>
@@ -647,17 +203,17 @@
         <p class="form-hint" id="edit-org-hint" role="status"></p>
         <div class="form-group">
           <label for="edit-region">Region</label>
-          <input type="text" id="edit-region" placeholder="e.g. Luzon — RSM / regional scope" autocomplete="organization">
+          <select id="edit-region" aria-describedby="edit-org-hint"></select>
           <small class="form-hint">Wider area for RSM / CEO-style scope.</small>
         </div>
         <div class="form-group">
           <label for="edit-district">District</label>
-          <input type="text" id="edit-district" placeholder="e.g. Metro Manila — DSM team bucket" autocomplete="off">
+          <select id="edit-district"></select>
           <small class="form-hint"><strong>TSR &amp; DSM:</strong> must match across the whole district team.</small>
         </div>
         <div class="form-group">
           <label for="edit-territory">Territory <span style="font-weight:600;color:#718096">(optional)</span></label>
-          <input type="text" id="edit-territory" placeholder="e.g. MM-North" autocomplete="off">
+          <select id="edit-territory"></select>
           <small class="form-hint">Optional sub-route; District is what ties people to their DSM.</small>
         </div>
       </div>
@@ -689,7 +245,8 @@
 <script src="js/validate.js"></script>
 <script src="js/auth.js?v=24"></script>
 <script src="js/db.js"></script>
-<script src="js/admin.js?v=10"></script>
+<script src="js/admin-org.js?v=1"></script>
+<script src="js/admin.js?v=12"></script>
 <script>
   // Auth gate — User Admin (CEO, Sales Admin, EVP Sales, Marketing Manager)
   var session = getSession();

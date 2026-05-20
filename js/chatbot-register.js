@@ -203,7 +203,12 @@
     var self = this;
     if (step.action === 'gps') {
       if (typeof getCurrentPosition === 'function') {
-        getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 }).then(function (pos) {
+        getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 10000,
+          allowCached: true,
+          cacheMaxAge: 10 * 60 * 1000
+        }).then(function (pos) {
           if (pos) {
             self.data.lat = pos.lat;
             self.data.lng = pos.lng;

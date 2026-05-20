@@ -111,6 +111,21 @@ function applyVisitPageLabels() {
   }
 }
 
+function _buildVisitSkeleton(count) {
+  var html = '';
+  for (var si = 0; si < count; si++) {
+    html +=
+      '<div class="skeleton-row">' +
+      '<div class="skeleton skeleton-circle"></div>' +
+      '<div style="flex:1;display:flex;flex-direction:column;gap:6px">' +
+      '<div class="skeleton skeleton-line w60"></div>' +
+      '<div class="skeleton skeleton-line w80"></div>' +
+      '<div class="skeleton skeleton-line w40"></div>' +
+      '</div></div>';
+  }
+  return html;
+}
+
 async function renderVisitList(filter) {
   var listEl = document.getElementById('visit-list');
   if (!listEl) return;
@@ -119,6 +134,10 @@ async function renderVisitList(filter) {
   if (!session) return;
 
   applyVisitPageLabels();
+
+  if (!window.__patrolVisitsHydratedOnce) {
+    listEl.innerHTML = _buildVisitSkeleton(5);
+  }
 
   var base = _getActiveVisitFilter();
   var f = base;
@@ -292,6 +311,8 @@ async function renderVisitList(filter) {
       '<div class="vf-visits-error">' +
       _esc((T.loadError || 'Error') + ': ' + err.message) +
       '</div>';
+  } finally {
+    window.__patrolVisitsHydratedOnce = true;
   }
 }
 

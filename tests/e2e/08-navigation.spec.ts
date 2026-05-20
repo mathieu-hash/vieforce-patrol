@@ -2,19 +2,20 @@ import { test, expect } from '@playwright/test';
 import { loginAsDsm, loginAsTsr } from './_helpers';
 
 test.describe('08 — Role-aware navigation', () => {
-  test('TSR wide viewport keeps default 5-tab bar with More', async ({ page }) => {
+  test('TSR wide viewport keeps 4-tab bar with More (Profile in sheet)', async ({ page }) => {
     await page.setViewportSize({ width: 1200, height: 800 });
     await loginAsTsr(page);
     await expect(page.locator('#bottom-nav button[data-action="more-sheet"]')).toBeVisible();
     await expect(page.locator('#bottom-nav .nav-item[data-page="page-stores"]')).toBeVisible();
+    await expect(page.locator('#bottom-nav .nav-item[data-page="page-profile"]')).toHaveCount(0);
   });
 
-  test('TSR mobile uses emoji nav strip', async ({ page }) => {
+  test('TSR mobile uses 4-tab emoji nav strip', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginAsTsr(page);
     const nav = page.locator('#bottom-nav');
     await expect(nav).toBeVisible();
-    await expect(nav.locator('.nav-item, button')).toHaveCount(5, { timeout: 10000 });
+    await expect(nav.locator('.nav-item, button')).toHaveCount(4, { timeout: 10000 });
   });
 
   test('DSM mobile nav includes Sales tab', async ({ page }) => {

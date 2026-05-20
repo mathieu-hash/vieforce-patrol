@@ -21,12 +21,13 @@
   function loadReps() {
     var loading = $('sap-loading');
     var errBox = $('sap-error');
-    var errMsg = $('sap-error-msg');
     var table = $('sap-table-wrap');
+    var cards = $('sap-cards');
 
     loading.classList.remove('hidden');
     errBox.classList.add('hidden');
     table.classList.add('hidden');
+    if (cards) cards.classList.add('hidden');
 
     fetch('/api/admin/sap-reps', { headers: apiHeaders(), cache: 'no-store' })
       .then(function (res) {
@@ -55,10 +56,12 @@
         renderRows();
         loading.classList.add('hidden');
         table.classList.remove('hidden');
+        if (cards) cards.classList.remove('hidden');
       })
       .catch(function (err) {
         console.error('[admin-users-sap]', err);
         loading.classList.add('hidden');
+        var errMsg = $('sap-error-msg');
         errMsg.textContent = err.message || String(err);
         errBox.classList.remove('hidden');
       });
@@ -115,14 +118,20 @@
 
   function renderRows() {
     var tbody = $('sap-tbody');
+    var cardsEl = $('sap-cards');
     var rows = state.reps.filter(matchesFilter);
     if (rows.length === 0) {
       tbody.innerHTML =
         '<tr><td colspan="12" style="text-align:center;padding:28px;color:#888;">No rows match your search.</td></tr>';
+      if (cardsEl) {
+        cardsEl.innerHTML =
+          '<p style="text-align:center;padding:28px 16px;color:#888;margin:0;">No rows match your search.</p>';
+      }
       return;
     }
 
     var html = '';
+    var cardsHtml = '';
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i];
       var linked = r.linked_supabase_user;
@@ -149,8 +158,46 @@
       html += '<td>' + escapeHtml(managerName(r.u_rsm)) + '</td>';
       html += '<td class="sap-memo">' + escapeHtml(r.memo || '') + '</td>';
       html += '</tr>';
+
+      var cardClass = 'sap-card' + (r.is_vacant ? ' sap-card-vacant' : '');
+      cardsHtml += '<article class="' + cardClass + '">';
+      cardsHtml += '<div class="sap-card-head">';
+      cardsHtml += '<div><h3 class="sap-card-title">' + escapeHtml(r.slp_name || '') + '</h3>';
+      cardsHtml += '<div class="sap-card-code">Code ' + escapeHtml(r.slp_code) + '</div></div>';
+      cardsHtml += '<div>' + vacant + ' ' + status + '</div></div>';
+      if (linked) {
+        cardsHtml +=
+          '<div class="sap-card-row"><strong>Patrol:</strong> ' +
+          escapeHtml(linked.name || '') +
+          ' · ' +
+          escapeHtml(linked.role || '') +
+          '</div>';
+        cardsHtml +=
+          '<div class="sap-card-row"><strong>Phone:</strong> ' +
+          escapeHtml(linked.phone || r.provisional_phone || '—') +
+          '</div>';
+        cardsHtml +=
+          '<div class="sap-card-row"><strong>Region:</strong> ' +
+          plc.region +
+          ' · <strong>District:</strong> ' +
+          plc.district +
+          '</div>';
+        cardsHtml += '<div class="sap-card-row"><strong>Territory:</strong> ' + plc.territory + '</div>';
+      } else {
+        cardsHtml +=
+          '<div class="sap-card-row"><strong>Phone:</strong> ' +
+          escapeHtml(r.provisional_phone || '—') +
+          '</div>';
+      }
+      cardsHtml +=
+        '<div class="sap-card-row"><strong>Reports to:</strong> ' + escapeHtml(managerName(r.u_rsm)) + '</div>';
+      if (r.memo) {
+        cardsHtml += '<div class="sap-card-memo">' + escapeHtml(r.memo) + '</div>';
+      }
+      cardsHtml += '</article>';
     }
     tbody.innerHTML = html;
+    if (cardsEl) cardsEl.innerHTML = cardsHtml;
   }
 
   function exportCsv() {

@@ -18,7 +18,11 @@
     'nav.team': 'Team',
     'nav.sales': 'Sales',
     'nav.leaders': 'Leaders',
-    'nav.more': 'More'
+    'nav.more': 'More',
+    'tsr.nba_loading': 'Loading next action…',
+    'profile.loading': '…',
+    'tindahan.empty_cta_hdr': 'Tap ✏️ above to register a new POS',
+    'tindahan.empty_cta_fab': 'Tap the + button to register a new POS'
   };
   var dictionary = Object.assign({}, NAV_BOOTSTRAP);
 

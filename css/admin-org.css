@@ -1,0 +1,202 @@
+/**
+ * Region / District / Territory admin (admin-org.html)
+ */
+html.admin-html,
+html.admin-html body.admin-page {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+body.admin-page .admin-body {
+  max-width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 0 20px 56px;
+}
+
+.org-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.org-toolbar .org-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.org-btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--navy, #004d71);
+  color: #fff;
+}
+
+.org-btn.secondary {
+  background: #fff;
+  color: var(--navy, #004d71);
+  border: 1px solid var(--navy, #004d71);
+}
+
+.org-btn.danger {
+  background: #fff;
+  color: #c53030;
+  border: 1px solid #fc8181;
+}
+
+.org-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .org-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.org-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 280px;
+}
+
+.org-panel-hd {
+  padding: 12px 14px;
+  background: #f7fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4a5568;
+}
+
+.org-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.org-list-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid #edf2f7;
+  background: #fff;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.org-list-item:hover {
+  background: #f7fafc;
+}
+
+.org-list-item.is-selected {
+  background: #e6f7fb;
+  box-shadow: inset 3px 0 0 #00a6ce;
+}
+
+.org-item-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #004d71;
+}
+
+.org-item-meta {
+  font-size: 11px;
+  color: #718096;
+  margin-top: 4px;
+}
+
+.org-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.org-badge.sap {
+  background: #bee3f8;
+  color: #2c5282;
+}
+
+.org-badge.patrol {
+  background: #c6f6d5;
+  color: #276749;
+}
+
+.org-territory-form {
+  padding: 12px 14px;
+  border-top: 1px solid #edf2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.org-territory-form input {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.org-empty {
+  padding: 24px 14px;
+  color: #718096;
+  font-size: 13px;
+  text-align: center;
+}
+
+.org-policy {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #3d4f5f;
+  background: #f0f7fb;
+  border: 1px solid #c5dff0;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 0 0 12px;
+}
+
+.org-loading,
+.org-error {
+  text-align: center;
+  padding: 32px 16px;
+  color: #718096;
+}
+
+.org-error {
+  color: #c53030;
+  font-weight: 600;
+}
+
+.hidden {
+  display: none !important;
+}

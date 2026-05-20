@@ -147,7 +147,12 @@ async function _preCheckGPS() {
     gpsStatus.textContent = T.gpsAcquiring;
   }
 
-  var gps = await getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+  var gps = await getCurrentPosition({
+    enableHighAccuracy: true,
+    timeout: 10000,
+    allowCached: true,
+    cacheMaxAge: 10 * 60 * 1000
+  });
 
   if (gps) {
     _visitData.lat = gps.lat;
@@ -331,7 +336,12 @@ async function submitVisit() {
   try {
     // 1. Get GPS — try again if pre-check failed, but don't block
     if (!_visitData.lat && !_visitData.lng) {
-      var gps = await getCurrentPosition({ enableHighAccuracy: true, timeout: 10000 });
+      var gps = await getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        allowCached: true,
+        cacheMaxAge: 10 * 60 * 1000
+      });
       if (gps) {
         _visitData.lat = gps.lat;
         _visitData.lng = gps.lng;

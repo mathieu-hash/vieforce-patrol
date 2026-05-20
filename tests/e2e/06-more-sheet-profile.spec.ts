@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsDsm, loginAsTsr, safeClick } from './_helpers';
+import { loginAsDsm, loginAsTsr, openTsrProfile, safeClick } from './_helpers';
 
 test.describe('06 — More sheet, profile menu, scorecard retention', () => {
   test('DSM: More sheet opens at wide viewport (no display:none !important regression)', async ({
@@ -70,8 +70,7 @@ test.describe('06 — More sheet, profile menu, scorecard retention', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await loginAsTsr(page);
 
-    await safeClick(page, '#bottom-nav .nav-item[data-page="page-profile"]');
-    await expect(page.locator('#page-profile.active')).toBeVisible({ timeout: 10000 });
+    await openTsrProfile(page);
 
     const settings = page.locator('#profileSettingsOwn');
     await expect(settings).toBeVisible();

@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>VieForce Patrol (Beta)</title>
 <script>
 (function() {
@@ -30,7 +30,8 @@
 <link rel="stylesheet" href="css/elite-components.css?v=2">
 <link rel="stylesheet" href="css/elite-action.css?v=8">
 <link rel="stylesheet" href="css/visits-page.css?v=5">
-<link rel="stylesheet" href="css/sales-tab-v2.css?v=1">
+<link rel="stylesheet" href="css/tsr-field.css?v=1">
+<!-- sales-tab-v2.css injected for manager roles only (see role-check block) -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -64,8 +65,7 @@
 </script>
 <link href="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
-<!-- xlsx loaded on-demand for manager roles only (see js role-check block) — saves ~240 KB gz on every TSR load -->
+<!-- chart.js + xlsx loaded on-demand for manager roles only — saves TSR data budget -->
 </head>
 <body>
 
@@ -185,7 +185,7 @@
     <!-- NBA HERO -->
     <div class="nba-hero" id="tsrNbaHero">
       <div class="nba-label" id="tsrNbaLabel"></div>
-      <div class="nba-title" id="tsrNbaTitle">Loading...</div>
+      <div class="nba-title" id="tsrNbaTitle" data-i18n="tsr.nba_loading">Nilo-load ang susunod na aksyon…</div>
       <div class="nba-meta" id="tsrNbaMeta"></div>
       <div class="nba-reason" id="tsrNbaReason"></div>
       <div class="nba-actions">
@@ -542,8 +542,8 @@
         <div class="tindahan-sync-pill" id="tindahanSyncPill" role="status" aria-live="polite"></div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px">
-        <button type="button" class="hdr-btn" id="btn-new-store" style="width:36px;height:36px;border:none;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;font:inherit;padding:0;color:inherit"><span aria-hidden="true">✏️</span></button>
-        <button type="button" class="hdr-btn" id="stores-avatar-btn" style="width:36px;height:36px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer;font:inherit;padding:0">--</button>
+        <button type="button" class="hdr-btn" id="btn-new-store" style="border:none;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;font:inherit;padding:0;color:inherit"><span aria-hidden="true">✏️</span></button>
+        <button type="button" class="hdr-btn" id="stores-avatar-btn" style="border:none;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer;font:inherit;padding:0">--</button>
       </div>
     </div>
     <div id="stores-subtitle" style="display:none"></div>
@@ -584,7 +584,7 @@
     <div id="tindahanAllList"></div>
     <div class="stores-empty-hint" id="stores-empty-hint" style="display:none">
       <div style="font-size:36px;margin-bottom:8px;opacity:0.6;">🎯</div>
-      <div style="font-weight:600;">Tap the + button to register a new POS</div>
+      <div style="font-weight:600;" id="stores-empty-hint-text" data-i18n="tindahan.empty_cta_hdr">I-tap ang ✏️ sa taas para mag-register ng bagong POS</div>
     </div>
   </div>
 
@@ -655,11 +655,11 @@
         <div class="tindahan-sync-pill" id="visits-head-pill" role="status" aria-live="polite">…</div>
       </div>
       <div style="display:flex;gap:8px;flex-shrink:0;padding-top:2px">
-        <button type="button" class="hdr-btn" id="btn-visits-new" style="height:36px;border:none;border-radius:999px;background:linear-gradient(135deg,var(--accent,#00a6ce),var(--accent-2,#0090b3));display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:12px;font-weight:800;cursor:pointer;font:inherit;padding:0 12px;color:#fff;white-space:nowrap" aria-label="Log visit" title="Log visit">
+        <button type="button" class="hdr-btn" id="btn-visits-new" style="border:none;border-radius:999px;background:linear-gradient(135deg,var(--accent,#00a6ce),var(--accent-2,#0090b3));display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:800;cursor:pointer;font:inherit;padding:0 16px;color:#fff;white-space:nowrap" aria-label="Log visit" title="Log visit">
           <span aria-hidden="true">📝</span>
           <span id="btn-visits-new-label">Log Visit</span>
         </button>
-        <button type="button" class="hdr-btn" id="visits-avatar-btn" style="width:36px;height:36px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer;font:inherit;padding:0">--</button>
+        <button type="button" class="hdr-btn" id="visits-avatar-btn" style="border:none;border-radius:50%;background:linear-gradient(135deg,var(--fb-blue),var(--fb-purple));display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;cursor:pointer;font:inherit;padding:0">--</button>
       </div>
     </div>
     <div class="vf-visits-subtitle subtitle" id="visits-subtitle" style="display:none" aria-hidden="true"></div>
@@ -690,9 +690,7 @@
 
   <div class="tindahan-scroll vf-visits-scroll stores-list-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
     <div class="tindahan-section-label vf-visits-section-label" id="visits-section-label">RECENT</div>
-    <div id="visit-list" class="vf-visits-list">
-      <div class="vf-visits-loading-hint" id="visits-loading-hint">Loading from Supabase...</div>
-    </div>
+    <div id="visit-list" class="vf-visits-list"></div>
   </div>
 </div>
 
@@ -713,8 +711,8 @@
           <div class="avatar xl" id="profileAvatar"></div>
           <div style="margin-bottom:8px;" id="profileEliteBadge"></div>
         </div>
-        <div class="profile-name" id="profileName">Loading...</div>
-        <p id="profile-role" style="display:none">Loading...</p>
+        <div class="profile-name" id="profileName" data-i18n="profile.loading">…</div>
+        <p id="profile-role" style="display:none" data-i18n="profile.loading">…</p>
         <div class="profile-title" id="profileTitle"></div>
         <div class="profile-actions" id="profileActions"></div>
       </div>
@@ -1059,7 +1057,7 @@
     <div class="back" onclick="navBack('page-stores')">&#8249;</div>
     <div class="chat-av" id="detail-chat-av" style="background:linear-gradient(135deg,#0084FF,#A855F7)">--</div>
     <div class="chat-hdr-info" id="detail-chat-info">
-      <div class="chat-hdr-name" id="detail-store-name">Loading...</div>
+      <div class="chat-hdr-name" id="detail-store-name" data-i18n="tsr.nba_loading">Nilo-load…</div>
       <div class="chat-hdr-sub" id="detail-store-meta">--</div>
     </div>
     <div class="chat-hdr-btns">
@@ -1250,8 +1248,8 @@
   <div id="visit-submit-error" class="error-msg" style="display:none"></div>
 
   <!-- Gradient submit button -->
-  <button class="sub-btn" id="btn-visit-submit" disabled onclick="submitVisit()">
-    &#128228; I-submit ang bisita
+  <button class="sub-btn" id="btn-visit-submit" disabled onclick="submitVisit()" data-t="submitVisit">
+    &#128228; I-SUBMIT ANG VISIT
   </button>
 </div>
 
@@ -1296,25 +1294,21 @@
 <!-- BOTTOM NAVIGATION                         -->
 <!-- ========================================= -->
 <div class="bottom-nav" id="bottom-nav">
-  <button class="nav-item active" data-page="page-home" data-t="home" style="min-height:56px">
+  <button class="nav-item active" data-page="page-home" data-i18n="nav.home" style="min-height:64px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
     Bahay
   </button>
-  <button class="nav-item" data-page="page-stores" data-t="stores" style="min-height:56px">
+  <button class="nav-item" data-page="page-stores" data-i18n="nav.pos" style="min-height:64px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
-    Tindahan
+    POS
   </button>
-  <button class="nav-item" data-page="page-map" data-t="map" style="min-height:56px">
+  <button class="nav-item" data-page="page-map" data-i18n="nav.mapa" style="min-height:64px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
     Mapa
   </button>
-  <button class="nav-item" data-page="page-profile" data-t="profile" style="min-height:56px">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    Profile
-  </button>
-  <button class="nav-item" data-action="more-sheet" data-t="more" style="min-height:56px" onclick="if(typeof window.openMoreSheet==='function')window.openMoreSheet();">
+  <button class="nav-item" data-action="more-sheet" data-i18n="nav.more" style="min-height:64px" onclick="if(typeof window.openMoreSheet==='function')window.openMoreSheet();">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
-    More
+    Higit pa
   </button>
 </div>
 
@@ -1342,8 +1336,8 @@
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/offline.js?v=4"></script>
-<script src="js/stores.js?v=12"></script>
-<script src="js/visits.js?v=3"></script>
+<script src="js/stores.js?v=13"></script>
+<script src="js/visits.js?v=4"></script>
 <script src="js/visit-wizard.js?v=6"></script>
 <script src="js/map.js"></script>
 <script src="js/activity-feed.js?v=4"></script>
@@ -1358,9 +1352,10 @@
 <script src="js/team.js?v=5"></script>
 <script src="js/home-extras.js?v=1"></script>
 <script src="js/rsm.js?v=1"></script>
-<script src="js/nav-role-device.js?v=17"></script>
+<script src="js/nav-role-device.js?v=18"></script>
 <script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
+<script src="js/pilot-readiness.js?v=1"></script>
 <script src="js/chatbot-register.js?v=4"></script>
 
 <script>
@@ -1547,6 +1542,18 @@
       s.async = true;
       document.head.appendChild(s);
     })();
+    (function () {
+      var s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1';
+      s.async = true;
+      document.head.appendChild(s);
+    })();
+    (function () {
+      var l = document.createElement('link');
+      l.rel = 'stylesheet';
+      l.href = 'css/sales-tab-v2.css?v=1';
+      document.head.appendChild(l);
+    })();
   }
 
   if (session && typeof PatrolScope !== 'undefined') {
@@ -1708,14 +1715,16 @@
       (function () {
         var navBt = document.getElementById('bottom-nav');
         if (!navBt || navBt.querySelector('.nav-item[data-page="page-team"]')) return;
-        var profileBtn = navBt.querySelector('.nav-item[data-page="page-profile"]');
+        var anchorBtn =
+          navBt.querySelector('.nav-item[data-page="page-profile"]') ||
+          navBt.querySelector('.nav-item[data-action="more-sheet"]');
         var teamBtn = document.createElement('button');
         teamBtn.className = 'nav-item';
         teamBtn.setAttribute('data-page', 'page-team');
-        teamBtn.setAttribute('style', 'min-height:56px');
+        teamBtn.setAttribute('style', 'min-height:64px');
         teamBtn.innerHTML =
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span data-t="team">Team</span>';
-        if (profileBtn) navBt.insertBefore(teamBtn, profileBtn);
+        if (anchorBtn) navBt.insertBefore(teamBtn, anchorBtn);
         else navBt.appendChild(teamBtn);
       })();
     }
@@ -2148,7 +2157,12 @@
     statusEl.textContent = T.gpsCapturing;
     document.getElementById('btn-gps-capture').disabled = true;
 
-    var pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 15000 });
+    var pos = await getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 15000,
+      allowCached: true,
+      cacheMaxAge: 10 * 60 * 1000
+    });
 
     document.getElementById('btn-gps-capture').disabled = false;
 
@@ -2921,6 +2935,7 @@
       _bootstrapVisitsPage();
     }
     if (pageId === 'page-map') {
+      if (typeof initMapFilters === 'function') initMapFilters();
       setTimeout(function() {
         if (!_mapInitialized) {
           _mapInitialized = true;

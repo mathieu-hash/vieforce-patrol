@@ -200,6 +200,56 @@ function adminOrgSummary(u) {
   return parts.join(' · ');
 }
 
+/** Align with js/auth.js GOOGLE_MANAGER_ROLES — managers need email for Google OAuth. */
+var ADMIN_GOOGLE_LOGIN_ROLES = ['dsm', 'rsm', 'exec', 'admin', 'ceo'];
+
+function normalizeAdminEmail(raw) {
+  var e = String(raw || '').trim().toLowerCase();
+  return e || null;
+}
+
+function validateAdminEmailForRole(emailRaw, role) {
+  var r = String(role || '').toLowerCase();
+  var normalized = normalizeAdminEmail(emailRaw);
+  if (!normalized) {
+    if (ADMIN_GOOGLE_LOGIN_ROLES.indexOf(r) !== -1) {
+      return {
+        ok: false,
+        msg: 'Email is required for roles that sign in with Google (DSM, RSM, Exec, Sales Admin, CEO). Use their @vienovo.ph address.'
+      };
+    }
+    return { ok: true, value: null };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+    return { ok: false, msg: 'Enter a valid email address.' };
+  }
+  if (normalized.length > 254) {
+    return { ok: false, msg: 'Email must be under 254 characters.' };
+  }
+  if (ADMIN_GOOGLE_LOGIN_ROLES.indexOf(r) !== -1 && normalized.slice(-12) !== '@vienovo.ph') {
+    return {
+      ok: false,
+      msg: 'Manager Google login requires an @vienovo.ph email that matches their Google account.'
+    };
+  }
+  return { ok: true, value: normalized };
+}
+
+function adminEmailLine(u) {
+  var email = u && u.email ? String(u.email).trim() : '';
+  if (email) {
+    return '<span title="Google sign-in email">' + escapeHtml(email) + '</span>';
+  }
+  var r = String((u && u.role) || '').toLowerCase();
+  if (ADMIN_GOOGLE_LOGIN_ROLES.indexOf(r) !== -1) {
+    return (
+      '<span class="admin-email-missing" title="Add @vienovo.ph email in Edit — required for Google sign-in">' +
+      'No email — Google login blocked</span>'
+    );
+  }
+  return '<span class="admin-email-none">No email</span>';
+}
+
 async function loadUserTable() {
   try {
     var users =
@@ -225,6 +275,7 @@ async function loadUserTable() {
       html += '<h3 class="admin-user-card-name">' + escapeHtml(u.name || '—') + '</h3>';
       html += '<div class="admin-user-card-line">';
       html += '<span>' + escapeHtml(u.phone || '—') + '</span>';
+      html += adminEmailLine(u);
       html += '<span>PIN ' + getPinDisplayUser(u) + '</span>';
       html += getRoleBadge(u.role);
       html += getStatusBadge(u.is_active);
@@ -430,6 +481,9 @@ function openAddUserModal() {
 
   openAdminModal(modal);
   syncAdminOrgHint('add');
+  if (window.PatrolAdminOrgPicklists) {
+    PatrolAdminOrgPicklists.applyValues('add-region', 'add-district', 'add-territory', '', '', '');
+  }
 }
 
 function closeAddUserModal() {
@@ -439,6 +493,7 @@ function closeAddUserModal() {
 async function submitAddUser() {
   var name = (document.getElementById('add-name') || {}).value || '';
   var phone = (document.getElementById('add-phone') || {}).value || '';
+  var emailRaw = (document.getElementById('add-email') || {}).value || '';
   var pin = (document.getElementById('add-pin') || {}).value || '';
   var role = (document.getElementById('add-role') || {}).value || 'tsr';
   var region = (document.getElementById('add-region') || {}).value || '';
@@ -479,10 +534,17 @@ async function submitAddUser() {
     return;
   }
 
+  var emailCheck = validateAdminEmailForRole(emailRaw, role);
+  if (!emailCheck.ok) {
+    showToast(emailCheck.msg, 'error');
+    return;
+  }
+
   try {
     await createUser({
       name: name.trim(),
       phone: phoneClean,
+      email: emailCheck.value,
       pin_hash: pin,
       role: role,
       region: region.trim() || null,
@@ -522,6 +584,7 @@ function openEditUserModal(userId) {
   var elId = document.getElementById('edit-user-id');
   var elName = document.getElementById('edit-name');
   var elPhone = document.getElementById('edit-phone');
+  var elEmail = document.getElementById('edit-email');
   var elRole = document.getElementById('edit-role');
   var elRegion = document.getElementById('edit-region');
   var elDistrict = document.getElementById('edit-district');
@@ -531,6 +594,7 @@ function openEditUserModal(userId) {
   if (elId) elId.value = user.id;
   if (elName) elName.value = user.name || '';
   if (elPhone) elPhone.value = user.phone || '';
+  if (elEmail) elEmail.value = user.email || '';
   if (elRole) elRole.value = user.role || 'tsr';
   if (elRegion) elRegion.value = user.region || '';
   if (elDistrict) elDistrict.value = user.district || '';
@@ -550,6 +614,16 @@ function openEditUserModal(userId) {
 
   openAdminModal(modal);
   syncAdminOrgHint('edit');
+  if (window.PatrolAdminOrgPicklists) {
+    PatrolAdminOrgPicklists.applyValues(
+      'edit-region',
+      'edit-district',
+      'edit-territory',
+      user.region || '',
+      user.district || '',
+      user.territory || ''
+    );
+  }
 }
 
 function closeEditUserModal() {
@@ -560,6 +634,7 @@ async function submitEditUser() {
   var userId = (document.getElementById('edit-user-id') || {}).value || '';
   var name = (document.getElementById('edit-name') || {}).value || '';
   var phone = (document.getElementById('edit-phone') || {}).value || '';
+  var emailRaw = (document.getElementById('edit-email') || {}).value || '';
   var role = (document.getElementById('edit-role') || {}).value || 'tsr';
   var region = (document.getElementById('edit-region') || {}).value || '';
   var district = (document.getElementById('edit-district') || {}).value || '';
@@ -599,6 +674,12 @@ async function submitEditUser() {
     return;
   }
 
+  var emailCheck = validateAdminEmailForRole(emailRaw, role);
+  if (!emailCheck.ok) {
+    showToast(emailCheck.msg, 'error');
+    return;
+  }
+
   if (newPin || confirmPin) {
     if (newPin !== confirmPin) {
       showToast('New PIN and confirmation do not match.', 'error');
@@ -614,6 +695,7 @@ async function submitEditUser() {
     var payload = {
       name: name.trim(),
       phone: phoneClean,
+      email: emailCheck.value,
       role: role,
       region: region.trim() || null,
       district: district.trim() || null,
@@ -717,6 +799,7 @@ function exportUsersCSV() {
   var headers = [
     'Name',
     'Phone',
+    'Email',
     'PIN (plain if stored)',
     'PIN is hashed',
     'Role',
@@ -736,6 +819,7 @@ function exportUsersCSV() {
     var row = [
       csvEscape(u.name || ''),
       csvEscape(u.phone || ''),
+      csvEscape(u.email || ''),
       csvEscape(plain),
       hashed,
       csvEscape((u.role || '').toUpperCase()),
@@ -784,6 +868,11 @@ async function initAdmin() {
 
   initAdminModalA11y();
   wireAdminOrgHintListeners();
+
+  if (window.PatrolAdminOrgPicklists) {
+    PatrolAdminOrgPicklists.wireSelects('add-region', 'add-district', 'add-territory');
+    PatrolAdminOrgPicklists.wireSelects('edit-region', 'edit-district', 'edit-territory');
+  }
 
   await loadAdminStats();
   await loadUserTable();

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsTsr, safeClick } from './_helpers';
+import { loginAsTsr, openTsrProfile } from './_helpers';
 
 test.describe('09 — Language picker', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,13 +8,12 @@ test.describe('09 — Language picker', () => {
   });
 
   test('Language settings card is visible on profile', async ({ page }) => {
-    await safeClick(page, '#bottom-nav .nav-item[data-page="page-profile"]');
-    await expect(page.locator('#page-profile.active')).toBeVisible();
+    await openTsrProfile(page);
     await expect(page.locator('#patrol-lang-settings-card')).toBeVisible();
   });
 
   test('Can open language sheet and select Tagalog', async ({ page }) => {
-    await safeClick(page, '#bottom-nav .nav-item[data-page="page-profile"]');
+    await openTsrProfile(page);
     await page.locator('#patrol-lang-summary-row').click();
     const sheet = page.locator('#patrol-lang-sheet');
     await expect(sheet).toHaveClass(/open/, { timeout: 10000 });

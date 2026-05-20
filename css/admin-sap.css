@@ -1,0 +1,282 @@
+/**
+ * SAP roster admin (admin-users-sap.html) — desktop table + mobile cards.
+ */
+body.sap-page {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.sap-body {
+  padding: 0 20px 48px;
+}
+
+.sap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 12px;
+}
+
+.sap-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 14px;
+  border: 1px solid var(--mid);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.sap-toolbar input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.sap-btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--navy);
+  color: var(--white);
+}
+
+.sap-btn.secondary {
+  background: var(--white);
+  color: var(--navy);
+  border: 1px solid var(--navy);
+}
+
+.sap-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 12px 0 20px;
+}
+
+.sap-stat {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border: 1px solid #eee;
+}
+
+.sap-stat .label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.sap-stat .value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--navy);
+  margin-top: 4px;
+}
+
+.sap-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+  border: 1px solid #eee;
+  background: var(--white);
+}
+
+.sap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sap-table th {
+  background: var(--navy);
+  color: var(--white);
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 11px 12px;
+  text-align: left;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.sap-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+}
+
+.sap-table tr:hover td {
+  background: #fafafa;
+}
+
+.sap-row-vacant td {
+  background: #fffbf0;
+}
+
+.sap-sub {
+  font-size: 11px;
+  color: #888;
+  word-break: break-all;
+  max-width: 220px;
+}
+
+.sap-memo {
+  max-width: 280px;
+  white-space: normal;
+  font-size: 12px;
+  color: #555;
+}
+
+.sap-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sap-badge-ok {
+  background: #c6f6d5;
+  color: #276749;
+}
+
+.sap-badge-muted {
+  background: #edf2f7;
+  color: #4a5568;
+}
+
+.sap-badge-warn {
+  background: #feebc8;
+  color: #c05621;
+}
+
+.sap-error {
+  text-align: center;
+  padding: 40px 16px;
+  color: #c53030;
+  font-weight: 600;
+}
+
+.subtitle-note {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+  font-weight: 500;
+  line-height: 1.45;
+  max-width: 720px;
+}
+
+.sap-policy {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #3d4f5f;
+  background: #f0f7fb;
+  border: 1px solid #c5dff0;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin: 0 0 20px;
+  max-width: 920px;
+}
+
+.sap-policy strong {
+  color: var(--navy);
+}
+
+/* Mobile card stack */
+.sap-cards {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sap-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.sap-card-vacant {
+  background: #fffbf0;
+  border-color: #fbd38d;
+}
+
+.sap-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sap-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--navy);
+  line-height: 1.25;
+}
+
+.sap-card-code {
+  font-size: 12px;
+  color: #718096;
+  font-weight: 600;
+}
+
+.sap-card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #4a5568;
+}
+
+.sap-card-row strong {
+  color: #2d3748;
+  font-weight: 700;
+}
+
+.sap-card-memo {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #718096;
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .sap-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 639px) {
+  .sap-table-wrap:not(.hidden) {
+    display: none !important;
+  }
+
+  .sap-cards:not(.hidden) {
+    display: flex;
+  }
+
+  .sap-btn {
+    min-height: 48px;
+  }
+}
+
+@media (min-width: 640px) {
+  .sap-cards {
+    display: none !important;
+  }
+}

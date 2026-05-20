@@ -1,13 +1,12 @@
 // ============================================================
 // Role + Device Aware Bottom Nav (Day 1)
 //
-  // TSR / Champion on mobile: emoji tab strip from NAV_CONFIGS. On desktop width (≥900px),
-  // we keep app.html’s default bar (Home / Stores / Map / Profile / More) — no regressions
-// for field workers on small phones + wide layouts for pure TSR sessions.
+  // TSR / Champion: 4-tab emoji strip (Home · POS · Mapa · Higit pa) on all viewports.
+  // Profile lives inside the Higit pa sheet — max 4 bottom tabs per field UX rules.
 //
   // DSM / RSM / CEO: Home / Stores / Sales / Map / More on all viewports
 //   (wide Chrome or "Request Desktop Site" used to skip this and keep the TSR strip — fixed.)
-// TSR / champion desktop: default 5-tab bar from app.html unchanged.
+// TSR / champion desktop: same 4-tab strip as mobile (no separate 5-tab fallback).
 // Exec-like roles (exec/evp): HQ splash; CEO uses RSM shell above.
 //
 // Depends on globals from auth.js (getSession, logout) and the inline
@@ -34,7 +33,6 @@
         { id: 'home',     icon: '\ud83c\udfe0', labelKey: 'nav.home',    label: 'Home',    page: 'page-home-tsr' },
         { id: 'stores',   icon: '\ud83c\udfea', labelKey: 'nav.pos',    label: 'POS',     page: 'page-stores', badge: 'stores' },
         { id: 'mapa',     icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-mapa-tsr' },
-        { id: 'profile',  icon: '\ud83d\udc64', labelKey: 'nav.me',      label: 'Me',      page: 'page-profile' },
         { id: 'more',     icon: '\u22ef',      labelKey: 'nav.more',     label: 'More',    action: 'openMoreSheet' },
       ],
     },
@@ -43,7 +41,6 @@
         { id: 'home',     icon: '\ud83c\udfe0', labelKey: 'nav.home',    label: 'Home',    page: 'page-home-tsr' },
         { id: 'stores',   icon: '\ud83c\udfea', labelKey: 'nav.pos',    label: 'POS',     page: 'page-stores', badge: 'stores' },
         { id: 'mapa',     icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.mapa', label: 'Mapa', page: 'page-mapa-tsr' },
-        { id: 'profile',  icon: '\ud83d\udc64', labelKey: 'nav.me',      label: 'Me',      page: 'page-profile' },
         { id: 'more',     icon: '\u22ef',      labelKey: 'nav.more',     label: 'More',    action: 'openMoreSheet' },
       ],
     },
@@ -126,11 +123,8 @@
     var config = NAV_CONFIGS[navRole];
     if (!config || !config.mobile) return; // admin / unknown → no override
 
-    // Desktop (≥900px): keep the default bottom bar from app.html for TSR + champion only.
-    // DSM / RSM / CEO must get Home · Stores · Sales · Mapa · More on every viewport —
-    // otherwise wide Chrome / "Request Desktop Site" / tablet landscape leaves the old TSR strip
-    // (Map instead of Sales/Leaders) and feels like tabs are "missing".
-    if (!isMobile() && navRole !== 'dsm' && navRole !== 'rsm') return;
+    // Desktop (≥900px): managers must get Sales/Leaders tabs; TSR/champion always use NAV_CONFIGS.
+    if (!isMobile() && navRole !== 'dsm' && navRole !== 'rsm' && navRole !== 'tsr' && navRole !== 'champion') return;
 
     var navEl = document.getElementById('bottom-nav');
     if (!navEl) return;
@@ -317,13 +311,23 @@
 
   // ── More bottom sheet (DSM / RSM) ────────────────────────────────
   function openMoreSheet() {
-    var items = [
-      { icon: '\ud83d\udc64', labelKey: 'nav.sheet_profile', label: 'Profile', page: 'page-profile' },
-      { icon: '\ud83d\udcdd', labelKey: 'nav.sheet_visits', label: 'Log Visit', action: 'logVisit' },
-      { icon: '\ud83d\udc65', labelKey: 'nav.sheet_team', label: 'Team', page: 'page-team' },
-      { icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.sheet_map', label: 'Map', page: 'page-map' },
-      { icon: '\ud83d\udeaa', labelKey: 'nav.sheet_logout', label: 'Logout', action: 'logout' }
-    ];
+    var session = typeof window.getSession === 'function' ? window.getSession() : null;
+    var roleLc = (session && session.role ? session.role : 'tsr').toLowerCase();
+    var isField = roleLc === 'tsr' || roleLc === 'champion';
+    var items = isField
+      ? [
+          { icon: '\ud83d\udc64', labelKey: 'nav.sheet_profile', label: 'Profile', page: 'page-profile' },
+          { icon: '\ud83d\udcdd', labelKey: 'nav.sheet_visits', label: 'Log Visit', action: 'logVisit' },
+          { icon: '\ud83d\udccb', labelKey: 'nav.visit', label: 'Visits', page: 'page-visits' },
+          { icon: '\ud83d\udeaa', labelKey: 'nav.sheet_logout', label: 'Logout', action: 'logout' }
+        ]
+      : [
+          { icon: '\ud83d\udc64', labelKey: 'nav.sheet_profile', label: 'Profile', page: 'page-profile' },
+          { icon: '\ud83d\udcdd', labelKey: 'nav.sheet_visits', label: 'Log Visit', action: 'logVisit' },
+          { icon: '\ud83d\udc65', labelKey: 'nav.sheet_team', label: 'Team', page: 'page-team' },
+          { icon: '\ud83d\uddfa\ufe0f', labelKey: 'nav.sheet_map', label: 'Map', page: 'page-map' },
+          { icon: '\ud83d\udeaa', labelKey: 'nav.sheet_logout', label: 'Logout', action: 'logout' }
+        ];
 
     var sheet = document.getElementById('more-sheet');
     if (!sheet) {

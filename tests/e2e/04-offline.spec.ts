@@ -13,6 +13,9 @@ test.describe('04 — Offline resilience (IndexedDB queue)', () => {
   test('App shell stays usable offline after initial load (no SW cache required)', async ({
     page,
   }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('patrol_nosw', '1');
+    });
     await loginAsTsr(page);
     await expectNoControllingServiceWorker(page);
     await page.context().setOffline(true);

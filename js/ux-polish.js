@@ -186,6 +186,9 @@ function onboardingDone() {
     overlay.style.opacity = '0';
     setTimeout(function() { overlay.style.display = 'none'; overlay.style.opacity = '1'; }, 300);
   }
+  if (typeof window.patrolMaybeShowReadiness === 'function') {
+    setTimeout(window.patrolMaybeShowReadiness, 450);
+  }
 }
 
 // ============================================================

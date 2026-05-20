@@ -9,7 +9,7 @@ const CONFIG = {
   DOMAIN: 'patrol.vienovo.ph',
   // Google OAuth return URL must be allowed in Supabase → Authentication → URL Configuration (Redirect URLs).
   // If Supabase "Site URL" is still http://localhost:3000, Auth falls back there and you get ERR_CONNECTION_REFUSED.
-  OAUTH_PUBLIC_ORIGIN: 'https://vieforce-patrol.vercel.app',
+  OAUTH_PUBLIC_ORIGIN: 'https://patrol.vienovo.ph',
   /** Pilot / demo surfaces — default false (see js/feature-flags.js). */
   PATROL_FEATURES: {
     socialFeed: false,

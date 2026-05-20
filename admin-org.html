@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" class="admin-html">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VieForce Patrol — Region / District / Territory</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/patrol.css">
+<link rel="stylesheet" href="css/admin-page.css?v=4">
+<link rel="stylesheet" href="css/admin-org.css?v=1">
+</head>
+<body class="admin-page">
+
+<div class="top-bar">
+  <a href="admin.html" class="back-btn" style="text-decoration:none;">&#8592;</a>
+  <div style="flex:1;">
+    <h1>Region / District / Territory</h1>
+    <div class="subtitle" id="admin-org-name">Admin</div>
+  </div>
+  <button class="action-btn" type="button" onclick="logout()">Logout</button>
+</div>
+
+<div class="admin-body">
+
+  <nav class="admin-subnav" aria-label="Admin sections">
+    <a href="admin.html" class="admin-subnav-link">Sales Admin</a>
+    <a href="admin-users-sap.html" class="admin-subnav-link">SAP roster</a>
+    <a href="admin-org.html" class="admin-subnav-link" aria-current="page">Org master</a>
+  </nav>
+
+  <p class="org-policy">
+    <strong>Regions</strong> and <strong>districts</strong> are synced from SAP (HQ / OSLP). Do not invent new district names here — run
+    <strong>Sync from SAP</strong> after SAP master data changes. <strong>Territories</strong> are Patrol-only sub-routes under a district (e.g. MM-North).
+    User records on Sales Admin still store the text you pick; keep spelling identical to this list.
+  </p>
+
+  <div class="org-toolbar">
+    <input type="search" id="org-search" class="org-search" placeholder="Filter regions, districts, territories…" autocomplete="off">
+    <button type="button" class="org-btn secondary" id="org-retry">Reload</button>
+    <button type="button" class="org-btn" id="org-sync-sap">Sync from SAP</button>
+  </div>
+
+  <div id="org-loading" class="admin-skeleton-wrap" aria-busy="true" aria-live="polite">
+    <div class="admin-skeleton-grid">
+      <div class="admin-skeleton-block tall"></div>
+      <div class="admin-skeleton-block tall"></div>
+      <div class="admin-skeleton-block tall"></div>
+    </div>
+    <p class="admin-skeleton-label">Loading org master…</p>
+  </div>
+  <div id="org-error" class="org-error hidden">
+    <p id="org-error-msg">Could not load org data.</p>
+    <button type="button" class="org-btn secondary" style="margin-top:12px" id="org-error-retry">Try again</button>
+  </div>
+
+  <div id="org-layout" class="org-layout hidden">
+    <section class="org-panel" aria-label="Regions">
+      <div class="org-panel-hd">Regions <span class="org-badge sap">SAP</span></div>
+      <ul id="org-region-list" class="org-list"></ul>
+    </section>
+    <section class="org-panel" aria-label="Districts">
+      <div class="org-panel-hd">Districts <span class="org-badge sap">SAP</span></div>
+      <ul id="org-district-list" class="org-list"></ul>
+    </section>
+    <section class="org-panel" aria-label="Territories">
+      <div class="org-panel-hd">Territories <span class="org-badge patrol">Patrol</span></div>
+      <ul id="org-territory-list" class="org-list"></ul>
+      <div class="org-territory-form">
+        <label for="org-new-territory" style="font-size:12px;font-weight:700;color:#4a5568">Add territory (selected district)</label>
+        <input type="text" id="org-new-territory" placeholder="e.g. MM-North" maxlength="80" autocomplete="off">
+        <button type="button" class="org-btn" id="org-add-territory" style="width:100%">Add territory</button>
+      </div>
+    </section>
+  </div>
+
+</div>
+
+<script src="config.js"></script>
+<script src="js/auth.js?v=24"></script>
+<script src="js/admin-org.js?v=2"></script>
+<script>
+  var session = getSession();
+  if (!session || !canAccessUserAdmin(session)) {
+    window.location.href = 'app.html';
+  } else {
+    var nameEl = document.getElementById('admin-org-name');
+    if (nameEl) nameEl.textContent = session.name || 'Admin';
+    var errRetry = document.getElementById('org-error-retry');
+    if (errRetry) errRetry.addEventListener('click', function () {
+      var r = document.getElementById('org-retry');
+      if (r) r.click();
+    });
+    if (typeof initAdminOrg === 'function') initAdminOrg();
+  }
+</script>
+
+</body>
+</html>

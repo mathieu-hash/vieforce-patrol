@@ -417,7 +417,7 @@ async function getUsersForAdmin() {
   var { data, error } = await supabaseClient
     .from('users')
     .select(
-      'id,name,phone,role,region,district,territory,is_active,is_champion,created_at,updated_at,pin_hash'
+      'id,name,phone,email,role,region,district,territory,is_active,is_champion,created_at,updated_at,pin_hash'
     )
     .order('name', { ascending: true });
 

@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VieForce Patrol — Login (Beta)</title>
 <script>
 (function() {
@@ -151,7 +151,7 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   <p>Vienovo Philippines Inc.</p>
 
   <div class="login-box">
-    <p class="login-option-title">TSR Login (Phone + PIN)</p>
+    <p class="login-option-title" id="lbl-tsr-section">TSR Login (Phone + PIN)</p>
     <label id="lbl-phone">Phone Number</label>
     <input type="tel" id="login-phone" placeholder="09XX XXX XXXX">
 
@@ -161,7 +161,7 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
     <button class="login-btn" id="login-btn">Mag-sign in</button>
 
     <div class="login-divider"></div>
-    <p class="login-option-title">Manager Login (Google)</p>
+    <p class="login-option-title" id="lbl-manager-section">Manager Login (Google)</p>
     <button class="login-btn secondary" id="google-login-btn">Open with your Vienovo Google email</button>
     <p class="login-localhost-hint" id="login-localhost-hint" style="display:none;color:rgba(255,200,120,0.95);font-size:11px;line-height:1.45;margin:10px 0 0;text-align:center">
       You are on <strong>localhost</strong> — Google returns here, so this port must be running. For production login use
@@ -174,7 +174,7 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   <div class="login-footer">v1.0 — Vienovo Philippines Inc.</div>
 </div>
 
-<script src="js/labels-v2.js?v=10"></script>
+<script src="js/labels-v2.js?v=11"></script>
 <script src="config.js"></script>
 <script src="js/feature-flags.js"></script>
 <script src="js/release-channel.js?v=1"></script>
@@ -190,6 +190,12 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
     document.getElementById('lbl-phone').textContent = L.phoneLabel;
     document.getElementById('lbl-pin').textContent = L.pinLabel;
     document.getElementById('login-btn').textContent = L.signIn;
+    var tsrSec = document.getElementById('lbl-tsr-section');
+    var mgrSec = document.getElementById('lbl-manager-section');
+    var googleBtn = document.getElementById('google-login-btn');
+    if (tsrSec && L.tsrLoginSection) tsrSec.textContent = L.tsrLoginSection;
+    if (mgrSec && L.managerLoginSection) mgrSec.textContent = L.managerLoginSection;
+    if (googleBtn && L.googleSignIn) googleBtn.textContent = L.googleSignIn;
     document.querySelectorAll('.lang-pill').forEach(function(btn) {
       if (btn.dataset.lang === lang) btn.classList.add('active');
       else btn.classList.remove('active');
@@ -271,6 +277,8 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   });
 
   document.getElementById('google-login-btn').addEventListener('click', async function() {
+    var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
+    var L = LABELS[lang] || LABELS['TL'];
     var hostLc = '';
     try {
       hostLc = String(location.hostname || '').toLowerCase();
@@ -290,15 +298,15 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
 
     btn.disabled = true;
     const prevText = btn.textContent;
-    btn.textContent = 'Opening Google...';
+    btn.textContent = L.openingGoogle || 'Opening Google...';
     try {
       const result = await loginWithGoogle();
       if (!result || !result.success) {
-        errorEl.textContent = (result && result.error) || 'Google login failed.';
+        errorEl.textContent = (result && result.error) || L.googleLoginFailed || L.loginFailed;
         errorEl.classList.add('visible');
       }
     } catch (err) {
-      errorEl.textContent = err.message || 'Google login failed.';
+      errorEl.textContent = err.message || L.googleLoginFailed || L.loginFailed;
       errorEl.classList.add('visible');
     } finally {
       btn.disabled = false;
@@ -360,11 +368,13 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
           h2 = String(location.hostname || '').toLowerCase();
         } catch (e2) {}
         if (h2 !== 'localhost' && h2 !== '127.0.0.1' && typeof loginWithGoogle === 'function') {
+          var langG = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
+          var LG = LABELS[langG] || LABELS['TL'];
           var gr = await loginWithGoogle();
           if (!gr || !gr.success) {
             var errG = document.getElementById('login-error');
             if (errG) {
-              errG.textContent = (gr && gr.error) ? gr.error : 'Google login failed.';
+              errG.textContent = (gr && gr.error) ? gr.error : (LG.googleLoginFailed || LG.loginFailed);
               errG.classList.add('visible');
             }
           }

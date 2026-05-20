@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import {
   installAppInitScripts,
   loginAsTsr,
-  safeClick,
+  logoutViaMoreSheet,
   seedSession,
   waitForAppShell,
 } from './_helpers';
@@ -51,16 +51,7 @@ test.describe('01 — Authentication', () => {
       });
     });
     await loginAsTsr(page);
-    await safeClick(page, '#bottom-nav .nav-item[data-page="page-profile"]');
-    await expect(page.locator('#page-profile.active')).toBeVisible({ timeout: 10000 });
-    await page.waitForFunction(
-      () => {
-        const pa = document.getElementById('profileActions');
-        return pa && /logout/i.test(pa.textContent || '');
-      },
-      { timeout: 20000 }
-    );
-    await page.locator('#profileActions button', { hasText: /logout/i }).click();
+    await logoutViaMoreSheet(page);
     await page.waitForURL(
       (url) => {
         const path = url.pathname.replace(/\/$/, '') || '/';

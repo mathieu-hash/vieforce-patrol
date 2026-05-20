@@ -319,6 +319,8 @@ export async function loginToSalesAdminHtml(page: Page) {
 export async function installAppInitScripts(page: Page) {
   await installApiRouteMocks(page);
   await page.addInitScript(({ store }) => {
+    (window as any).__PATROL_E2E = true;
+    localStorage.setItem('patrol_readiness_done', '1');
     const applyPatrolE2eStubs = () => {
       const sampleStore = store;
       const sampleStores = [sampleStore];
@@ -620,6 +622,20 @@ export async function loginAsRsm(page: Page) {
   await stubPatrolApis(page);
 }
 
+/** SAP roster: desktop shows table; mobile (<640px) shows card stack instead. */
+export async function expectSapRosterLoaded(page: Page, expectedTotal?: string) {
+  if (expectedTotal != null) {
+    await expect(page.locator('#sap-stat-total')).toHaveText(expectedTotal, { timeout: 15000 });
+  }
+  const width = page.viewportSize()?.width ?? 1280;
+  if (width < 640) {
+    await expect(page.locator('#sap-cards')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#sap-cards .sap-card').first()).toBeVisible();
+  } else {
+    await expect(page.locator('#sap-table-wrap')).toBeVisible({ timeout: 15000 });
+  }
+}
+
 export async function loginAsCeo(page: Page) {
   await installAppInitScripts(page);
   await seedSession(page, {
@@ -631,7 +647,7 @@ export async function loginAsCeo(page: Page) {
     territory: null,
   });
   await page.goto('/admin-users-sap.html');
-  await page.waitForSelector('#sap-table-wrap', { timeout: 25000 });
+  await expectSapRosterLoaded(page);
 }
 
 export async function openMoreSheet(page: Page) {
@@ -639,6 +655,32 @@ export async function openMoreSheet(page: Page) {
   await expect(moreBtn).toBeVisible({ timeout: 15000 });
   await moreBtn.click();
   await expect(page.locator('#more-sheet')).toBeVisible();
+}
+
+/** TSR/Champion: Profile moved off bottom nav → More sheet → Profile. */
+export async function openTsrProfile(page: Page) {
+  await openMoreSheet(page);
+  const profileItem = page.locator('#more-sheet .more-sheet-item').filter({ hasText: /profile/i });
+  await expect(profileItem.first()).toBeVisible({ timeout: 10000 });
+  await profileItem.first().click();
+  await expect(page.locator('#page-profile.active')).toBeVisible({ timeout: 10000 });
+}
+
+/** TSR/Champion: Visits list moved off bottom nav → More sheet → Visits. */
+export async function openTsrVisits(page: Page) {
+  await openMoreSheet(page);
+  const visitsItem = page.locator('#more-sheet .more-sheet-item').filter({ hasText: /^visits$/i });
+  await expect(visitsItem.first()).toBeVisible({ timeout: 10000 });
+  await visitsItem.first().click();
+  await expect(page.locator('#page-visits.active')).toBeVisible({ timeout: 10000 });
+}
+
+/** TSR/Champion: Logout from More sheet (field roles). */
+export async function logoutViaMoreSheet(page: Page) {
+  await openMoreSheet(page);
+  const logoutItem = page.locator('#more-sheet .more-sheet-item').filter({ hasText: /logout/i });
+  await expect(logoutItem.first()).toBeVisible({ timeout: 10000 });
+  await logoutItem.first().click();
 }
 
 export async function openVisitSheet(

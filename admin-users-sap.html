@@ -1,190 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="admin-html">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VieForce Patrol — User admin / SAP (Beta)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/patrol.css">
-<style>
-  /* Standalone desktop-first roster */
-  body {
-    max-width: 1480px;
-    margin: 0 auto;
-  }
-  .sap-body {
-    padding: 0 20px 48px;
-  }
-  .sap-toolbar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    margin: 16px 0 12px;
-  }
-  .sap-toolbar input[type="search"] {
-    flex: 1;
-    min-width: 220px;
-    padding: 10px 14px;
-    border: 1px solid var(--mid);
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-  }
-  .sap-toolbar input:focus {
-    outline: none;
-    border-color: var(--blue);
-  }
-  .sap-btn {
-    padding: 10px 18px;
-    border: none;
-    border-radius: var(--radius);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    background: var(--navy);
-    color: var(--white);
-  }
-  .sap-btn.secondary {
-    background: var(--white);
-    color: var(--navy);
-    border: 1px solid var(--navy);
-  }
-  .sap-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin: 12px 0 20px;
-  }
-  .sap-stat {
-    background: var(--white);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    border: 1px solid #eee;
-  }
-  .sap-stat .label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #888;
-  }
-  .sap-stat .value {
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--navy);
-    margin-top: 4px;
-  }
-  .sap-table-wrap {
-    overflow-x: auto;
-    border-radius: var(--radius);
-    border: 1px solid #eee;
-    background: var(--white);
-  }
-  .sap-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  .sap-table th {
-    background: var(--navy);
-    color: var(--white);
-    text-transform: uppercase;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 11px 12px;
-    text-align: left;
-    white-space: nowrap;
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
-  .sap-table td {
-    padding: 10px 12px;
-    border-bottom: 1px solid #f0f0f0;
-    vertical-align: top;
-  }
-  .sap-table tr:hover td {
-    background: #fafafa;
-  }
-  .sap-row-vacant td {
-    background: #fffbf0;
-  }
-  .sap-sub {
-    font-size: 11px;
-    color: #888;
-    word-break: break-all;
-    max-width: 220px;
-  }
-  .sap-memo {
-    max-width: 280px;
-    white-space: normal;
-    font-size: 12px;
-    color: #555;
-  }
-  .sap-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .sap-badge-ok {
-    background: #c6f6d5;
-    color: #276749;
-  }
-  .sap-badge-muted {
-    background: #edf2f7;
-    color: #4a5568;
-  }
-  .sap-badge-warn {
-    background: #feebc8;
-    color: #c05621;
-  }
-  .hidden {
-    display: none !important;
-  }
-  .sap-loading,
-  .sap-error {
-    text-align: center;
-    padding: 40px 16px;
-    color: #666;
-  }
-  .sap-error {
-    color: #c53030;
-    font-weight: 600;
-  }
-  .subtitle-note {
-    font-size: 12px;
-    color: #888;
-    margin-top: 4px;
-    font-weight: 500;
-    line-height: 1.45;
-    max-width: 720px;
-  }
-  .sap-policy {
-    font-size: 13px;
-    line-height: 1.5;
-    color: #3d4f5f;
-    background: #f0f7fb;
-    border: 1px solid #c5dff0;
-    border-radius: var(--radius);
-    padding: 14px 18px;
-    margin: 0 0 20px;
-    max-width: 920px;
-  }
-  .sap-policy strong {
-    color: var(--navy);
-  }
-  @media (max-width: 720px) {
-    .sap-stats {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
+<link rel="stylesheet" href="css/admin-page.css?v=4">
+<link rel="stylesheet" href="css/admin-sap.css?v=1">
 </head>
-<body>
+<body class="admin-page sap-page">
 
 <div class="top-bar">
   <a href="admin.html" class="back-btn" style="text-decoration:none;">&#8592;</a>
@@ -197,6 +22,12 @@
 </div>
 
 <div class="sap-body">
+  <nav class="admin-subnav" aria-label="Admin sections">
+    <a href="admin.html" class="admin-subnav-link">Sales Admin</a>
+    <a href="admin-users-sap.html" class="admin-subnav-link" aria-current="page">SAP roster</a>
+    <a href="admin-org.html" class="admin-subnav-link">Org master</a>
+  </nav>
+
   <div class="sap-policy">
     <strong>SAP vs Patrol:</strong> “Reports to (U_RSM)” comes from Business One — that is your SAP sales hierarchy. Patrol uses separate fields on each Supabase user: <strong>Region</strong>, <strong>District</strong>, and <strong>Territory</strong> (set on <a href="admin.html" style="color:var(--blue);font-weight:700;">Sales Admin — main user table</a>, Edit user).
     Executive, Admin, CEO, RSM, DSM, and Marketing rows here are tied to OSLP for linking.
@@ -230,7 +61,15 @@
     <button type="button" class="sap-btn secondary" id="sap-export">Export CSV</button>
   </div>
 
-  <div id="sap-loading" class="sap-loading">Loading SAP roster…</div>
+  <div id="sap-loading" class="admin-skeleton-wrap" aria-busy="true" aria-live="polite">
+    <div class="admin-skeleton-grid admin-skeleton-grid--stats">
+      <div class="admin-skeleton-block"></div>
+      <div class="admin-skeleton-block"></div>
+      <div class="admin-skeleton-block"></div>
+    </div>
+    <div class="admin-skeleton-block tall" style="margin-top:12px"></div>
+    <p class="admin-skeleton-label">Loading SAP roster…</p>
+  </div>
   <div id="sap-error" class="sap-error hidden">
     <p id="sap-error-msg"></p>
     <button type="button" class="sap-btn" id="sap-retry" style="margin-top:12px;">Retry</button>
@@ -257,6 +96,8 @@
       <tbody id="sap-tbody"></tbody>
     </table>
   </div>
+
+  <div id="sap-cards" class="sap-cards hidden" aria-label="SAP roster cards"></div>
 </div>
 
 <script src="config.js"></script>
@@ -266,7 +107,7 @@
 <script src="js/validate.js"></script>
 <script src="js/auth.js?v=24"></script>
 <script src="js/db.js"></script>
-<script src="js/admin-users-sap.js"></script>
+<script src="js/admin-users-sap.js?v=2"></script>
 <script>
   // User Admin — CEO, Sales Admin (admin), EVP Sales (evp), Marketing Manager (marketing)
   var session = getSession();

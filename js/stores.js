@@ -673,6 +673,8 @@ async function renderTindahan(externalFilter) {
 
     _updateFilterCounts(storesScoped);
 
+    var hintEl = document.getElementById('stores-empty-hint');
+
     if (!filtered.length) {
       priEl.innerHTML = '';
       if (secPri) secPri.style.display = 'none';
@@ -683,11 +685,20 @@ async function renderTindahan(externalFilter) {
           '<div class="tindahan-empty-title">' +
           _esc(t('tindahan.empty_filter', { filter: _tTindahanFilterEmptyLabel(activeFilter) })) +
           '</div></div>';
+        if (hintEl) hintEl.style.display = 'none';
       } else {
         _tRenderTindahanRows('tindahanAllList', [], false, {
           emptyKey: 'tindahan.empty_all',
           icon: '\ud83c\udfea'
         });
+        if (hintEl) {
+          var roleLc = (session && session.role ? session.role : 'tsr').toLowerCase();
+          var isMgr = roleLc === 'dsm' || roleLc === 'rsm' || roleLc === 'ceo';
+          var hintTextEl = document.getElementById('stores-empty-hint-text');
+          var ctaKey = isMgr ? 'tindahan.empty_cta_fab' : 'tindahan.empty_cta_hdr';
+          if (hintTextEl) hintTextEl.textContent = t(ctaKey);
+          hintEl.style.display = '';
+        }
       }
       _tRestoreTindahanFilterActiveClass();
       window.__patrolTindahanHydratedOnce = true;
@@ -741,7 +752,6 @@ async function renderTindahan(externalFilter) {
       secPri.style.display = priorityStores.length === 0 ? 'none' : '';
     }
 
-    var hintEl = document.getElementById('stores-empty-hint');
     if (hintEl) hintEl.style.display = 'none';
 
     _tRestoreTindahanFilterActiveClass();

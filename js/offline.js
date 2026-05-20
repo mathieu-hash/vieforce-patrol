@@ -29,6 +29,7 @@ async function queueVisit(visitData) {
   await _ensureOfflineDb().pendingVisits.add(visitData);
   // Update sync UI immediately after queue write
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
 }
 
 async function queueStore(storeData) {
@@ -37,6 +38,7 @@ async function queueStore(storeData) {
   await _ensureOfflineDb().pendingStores.add(storeData);
   // Update sync UI immediately after queue write
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
 }
 
 async function queueFarm(farmData) {
@@ -44,6 +46,7 @@ async function queueFarm(farmData) {
   farmData.created_at = new Date().toISOString();
   await _ensureOfflineDb().pendingFarms.add(farmData);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
 }
 
 var MAX_SYNC_RETRIES = 3;
@@ -97,6 +100,7 @@ function _applySyncSummary(results) {
     errors: (results.errors && results.errors.length) || 0
   };
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
 }
 
 async function syncPending() {
