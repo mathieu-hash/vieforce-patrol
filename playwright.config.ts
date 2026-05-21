@@ -18,7 +18,9 @@ export default defineConfig({
     ? {
         command: 'npx --yes serve . -l 4173',
         url: 'http://127.0.0.1:4173',
-        reuseExistingServer: !process.env.CI,
+        // Never reuse an arbitrary process on this port; a stale server can make tests
+        // pass/fail against the wrong app.
+        reuseExistingServer: false,
         timeout: 120000,
       }
     : undefined,
