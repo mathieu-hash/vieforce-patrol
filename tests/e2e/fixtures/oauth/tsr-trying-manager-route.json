@@ -1,0 +1,53 @@
+{
+  "description": "Role bypass attempt — valid @vienovo.ph Google account, users.email matches, but users.role is 'tsr'. isManagerRole() must reject and force PIN login.",
+  "supabaseSession": {
+    "access_token": "synthetic.tsr.access.jwt",
+    "refresh_token": "synthetic.tsr.refresh.jwt",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": 9999999999,
+    "user": {
+      "id": "20000000-0000-4000-a000-000000000003",
+      "aud": "authenticated",
+      "role": "authenticated",
+      "email": "tsr.test@vienovo.ph",
+      "app_metadata": {
+        "provider": "google",
+        "providers": ["google"],
+        "role": "tsr",
+        "patrol_user_id": "20000000-0000-4000-a000-000000000003"
+      },
+      "user_metadata": {
+        "email": "tsr.test@vienovo.ph",
+        "email_verified": true,
+        "full_name": "E2E TSR Trying Google",
+        "name": "E2E TSR Trying Google",
+        "provider_id": "google-tsr-003"
+      },
+      "identities": [
+        {
+          "provider": "google",
+          "identity_data": {
+            "email": "tsr.test@vienovo.ph",
+            "email_verified": true,
+            "name": "E2E TSR Trying Google"
+          }
+        }
+      ]
+    }
+  },
+  "patrolUserRow": {
+    "id": "20000000-0000-4000-a000-000000000003",
+    "name": "E2E TSR Trying Google",
+    "phone": "09170000003",
+    "email": "tsr.test@vienovo.ph",
+    "role": "tsr",
+    "region": "Visayas",
+    "district": "CEBU-SOUTH",
+    "territory": "CEBU-SOUTH",
+    "is_active": true,
+    "is_champion": false,
+    "auth_type": "phone",
+    "language": "tl"
+  }
+}

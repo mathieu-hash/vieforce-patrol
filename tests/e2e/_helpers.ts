@@ -578,6 +578,12 @@ export async function stubAssignApis(page: Page) {
   );
 }
 
+// PERFORMANCE SHORTCUT — bypasses OAuth. The real OAuth path (domain lock,
+// users.email match, role gate, "No email — Google login blocked" UI state)
+// is exercised by tests/e2e/21-oauth-flow.spec.ts. Do NOT use these helpers
+// (loginAsDsm / loginAsRsm / loginAsCeo) when testing auth itself — they
+// seed patrol_session directly into localStorage and never touch
+// supabase.auth.signInWithOAuth / maybeHandleGoogleLoginOnLoad.
 export async function loginAsDsm(page: Page) {
   await installAppInitScripts(page);
   await seedSession(page, {
@@ -606,6 +612,8 @@ export async function loginAsTsr(page: Page) {
   await stubPatrolApis(page);
 }
 
+// PERFORMANCE SHORTCUT — bypasses OAuth. See loginAsDsm header comment.
+// Real OAuth flow is in tests/e2e/21-oauth-flow.spec.ts.
 export async function loginAsRsm(page: Page) {
   await installAppInitScripts(page);
   await seedSession(page, {
@@ -636,6 +644,8 @@ export async function expectSapRosterLoaded(page: Page, expectedTotal?: string) 
   }
 }
 
+// PERFORMANCE SHORTCUT — bypasses OAuth. See loginAsDsm header comment.
+// Real OAuth flow is in tests/e2e/21-oauth-flow.spec.ts.
 export async function loginAsCeo(page: Page) {
   await installAppInitScripts(page);
   await seedSession(page, {
