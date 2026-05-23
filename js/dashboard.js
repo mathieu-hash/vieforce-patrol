@@ -1,6 +1,6 @@
 // DSM Dashboard Module — Elite redesign v2 (Sprint B-DSM)
 // Renders Hero metric + Segment Matrix v2 + Product Penetration v2 +
-// Visit Trend v2 + TSR Leaderboard + Critical Alerts v2 + Team CTA + Export.
+// Visit Trend v2 + Critical Alerts v2 + Team CTA + Export.
 // All output lands in #dsm-dash-v2-root so the page shell in app.html
 // stays minimal.
 
@@ -524,121 +524,6 @@ async function _renderVisitTrend() {
   return cardHtml;
 }
 
-// ── 5. TSR Leaderboard ───────────────────────────────────────
-
-async function _renderLeaderboardCard() {
-  var results = await Promise.all([ getUsers(), getAssignmentCounts() ]);
-  var users = results[0] || [];
-  var assignCounts = results[1] || {};
-
-  var tsrUsers = users.filter(function (u) { return u.role === 'tsr' && u.is_active; });
-  if (tsrUsers.length === 0) {
-    return '<div class="lb-card">' +
-      '<div class="card-header"><div class="card-title">\ud83c\udfc6 TSR Leaderboard</div></div>' +
-      '<div style="padding:24px;text-align:center;color:#65676B;font-size:13px">No active TSRs yet.</div>' +
-    '</div>';
-  }
-
-  var weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-
-  var visitsRes = await supabaseClient
-    .from('visits')
-    .select('tsr_id, order_taken, order_amount')
-    .gte('visited_at', weekAgo.toISOString());
-  var visits = (visitsRes && visitsRes.data) || [];
-
-  var tsrMap = {};
-  tsrUsers.forEach(function (u) {
-    tsrMap[u.id] = { user: u, visitCount: 0, orderTotal: 0, assignedStores: assignCounts[u.id] || 0 };
-  });
-  for (var v = 0; v < visits.length; v++) {
-    var tid = visits[v].tsr_id;
-    if (tsrMap[tid]) {
-      tsrMap[tid].visitCount++;
-      if (visits[v].order_taken) tsrMap[tid].orderTotal += parseFloat(visits[v].order_amount) || 0;
-    }
-  }
-
-  var ranked = Object.keys(tsrMap).map(function (k) { return tsrMap[k]; });
-  ranked.sort(function (a, b) { return b.visitCount - a.visitCount; });
-  var top = ranked.slice(0, 10);
-
-  var rowsHtml = '';
-  top.forEach(function (entry, i) {
-    var pos = i + 1;
-    var medal = pos === 1 ? '\ud83e\udd47' : pos === 2 ? '\ud83e\udd48' : pos === 3 ? '\ud83e\udd49' : '';
-    var rankClass = pos === 1 ? 'gold' : pos === 2 ? 'silver' : pos === 3 ? 'bronze' : '';
-    var territory = entry.user.territory || entry.user.district || entry.user.region || '\u2014';
-    var storeLabel = entry.assignedStores + ' store' + (entry.assignedStores !== 1 ? 's' : '');
-    var safeName = _ddEsc(entry.user.name).replace(/'/g, "\\'");
-    rowsHtml +=
-      '<div class="list-row" style="cursor:pointer" onclick="showTSRAssignedStores(\'' + entry.user.id + '\',\'' + safeName + '\')">' +
-        '<div class="rank ' + rankClass + '">' + (medal || pos) + '</div>' +
-        '<div style="flex:1">' +
-          '<b style="font-size:13px">' + _ddEsc(entry.user.name) + '</b>' +
-          '<div style="font-size:11px;color:#65676B">' + _ddEsc(territory) + ' \u00b7 ' + entry.visitCount + ' visits</div>' +
-          '<div style="font-size:10px;color:#0084FF;margin-top:2px">' + storeLabel + '</div>' +
-        '</div>' +
-        '<div style="text-align:right;font-size:12px">' +
-          '<b style="color:#10B981">' + formatCurrency(entry.orderTotal) + '</b><br>' +
-          '<span style="font-size:10px;color:#65676B">orders</span>' +
-        '</div>' +
-      '</div>';
-  });
-
-  return '<div class="lb-card">' +
-    '<div class="card-header">' +
-      '<div class="card-title">\ud83c\udfc6 TSR Leaderboard</div>' +
-      '<button class="assign-cta" onclick="nav(\'page-assign\')">I-assign ang Stores</button>' +
-    '</div>' +
-    '<div class="card-sub">Last 7 days activity</div>' +
-    '<div class="lb-host">' + rowsHtml + '</div>' +
-  '</div>';
-}
-
-// Modal — retained (used by leaderboard rows)
-async function showTSRAssignedStores(tsrId, tsrName) {
-  try {
-    var stores = await getStoresByTSR(tsrId);
-    var existing = document.getElementById('tsr-stores-modal');
-    if (existing) existing.remove();
-
-    var modal = document.createElement('div');
-    modal.id = 'tsr-stores-modal';
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);';
-    modal.onclick = function (e) { if (e.target === modal) modal.remove(); };
-
-    var card = '<div style="background:#fff;max-width:400px;width:90%;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.2);overflow:hidden;max-height:80vh;display:flex;flex-direction:column" onclick="event.stopPropagation()">';
-    card += '<div style="background:linear-gradient(135deg,#0084FF,#A855F7);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">';
-    card += '<div><div style="font-size:14px;font-weight:800">' + _ddEsc(tsrName) + '</div><div style="font-size:11px;opacity:0.85">' + stores.length + ' assigned stores</div></div>';
-    card += '<button onclick="this.closest(\'#tsr-stores-modal\').remove()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:0 4px">\u00d7</button>';
-    card += '</div><div style="overflow-y:auto;flex:1">';
-
-    if (stores.length === 0) {
-      card += '<div style="text-align:center;color:#65676B;padding:24px;font-size:13px">Walang assigned stores</div>';
-    } else {
-      for (var i = 0; i < stores.length; i++) {
-        var s = stores[i];
-        var loc = s.city || s.province || s.region || '\u2014';
-        var hColor = s.health_status === 'crit' ? '#FA383E' : s.health_status === 'warn' ? '#F7B928' : '#31A24C';
-        card += '<div style="padding:10px 18px;border-bottom:1px solid rgba(0,0,0,0.05);display:flex;align-items:center;gap:8px">';
-        card += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + hColor + ';flex-shrink:0"></span>';
-        card += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#050505">' + _ddEsc(s.name) + '</div>';
-        card += '<div style="font-size:11px;color:#65676B">' + _ddEsc(loc) + '</div></div>';
-        if (s.vol_class) {
-          card += '<span style="background:rgba(0,132,255,0.08);color:#0084FF;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800">Vol ' + s.vol_class + '</span>';
-        }
-        card += '</div>';
-      }
-    }
-
-    card += '</div></div>';
-    modal.innerHTML = card;
-    document.body.appendChild(modal);
-  } catch (err) { console.error('showTSRAssignedStores:', err); }
-}
-
 // ── 6. Critical alerts ───────────────────────────────────────
 
 function _renderCriticalAlerts(stores) {
@@ -1096,5 +981,4 @@ window.setPulseRepFilter = function (id) {
 window.initDashboard            = initDashboard;
 window.renderDashboardV2        = renderDashboardV2;
 window.showSegment              = showSegment;
-window.showTSRAssignedStores    = showTSRAssignedStores;
 window.formatCurrency           = formatCurrency;

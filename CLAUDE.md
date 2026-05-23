@@ -248,7 +248,7 @@ vieforce-patrol/
 │   ├── camera.js                      ← Photo capture + compression + Supabase Storage upload
 │   ├── gps.js                         ← Geolocation helpers
 │   ├── stores.js / visits.js / visit-wizard.js / validate.js
-│   ├── home-tsr.js / home-dsm.js / home-extras.js
+│   ├── home-tsr.js / home-dsm.js
 │   ├── dashboard.js / map.js / scorecard.js / sales-tab.js
 │   ├── dsm-audit.js / dsm-coaching.js / dsm-forecast.js / rsm.js / team.js
 │   ├── assign.js                      ← DSM → TSR store/farm assignment UI (#page-assign)

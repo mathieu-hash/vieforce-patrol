@@ -361,43 +361,6 @@ async function getRecentTeamActivity(managerId, limit) {
 }
 window.getRecentTeamActivity = getRecentTeamActivity;
 
-// ── DSM Summary ──
-
-async function getDSMSummary(district, dateFrom) {
-  // Get stores in district
-  var { data: stores, error: stErr } = await supabaseClient
-    .from('stores')
-    .select('id, name, health_status, territory')
-    .eq('district', district);
-
-  if (stErr) throw new Error('getDSMSummary stores: ' + stErr.message);
-
-  // Get visits in date range
-  var storeIds = (stores || []).map(function (s) { return s.id; });
-  var visits = [];
-
-  if (storeIds.length > 0) {
-    var query = supabaseClient
-      .from('visits')
-      .select('*')
-      .in('store_id', storeIds)
-      .order('visited_at', { ascending: false });
-
-    if (dateFrom) query = query.gte('visited_at', dateFrom);
-
-    var { data: v, error: vErr } = await query;
-    if (vErr) throw new Error('getDSMSummary visits: ' + vErr.message);
-    visits = v || [];
-  }
-
-  return {
-    totalStores: (stores || []).length,
-    stores: stores || [],
-    totalVisits: visits.length,
-    visits: visits
-  };
-}
-
 // ── Users (Admin) ──
 
 async function getUsers() {

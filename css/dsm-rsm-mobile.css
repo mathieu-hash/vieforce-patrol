@@ -421,29 +421,6 @@ body.role-ceo #bottom-nav .nav-badge {
 .sales-insight-rose  { background: linear-gradient(180deg, #fff1f2 0%, #fff 70%); }
 
 /* Cards (list cards used by brand/customer/whitespace/at-risk) */
-.sales-sap-loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px;
-  background: #f0f2f5;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #65676b;
-}
-.sales-sap-spinner {
-  width: 18px;
-  height: 18px;
-  border: 2px solid #ccd0d5;
-  border-top-color: #0084ff;
-  border-radius: 50%;
-  animation: sales-spin 0.7s linear infinite;
-}
-@keyframes sales-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 .sales-sap-error,
 .sales-sap-empty {
   padding: 14px 16px;
