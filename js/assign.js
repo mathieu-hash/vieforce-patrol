@@ -360,11 +360,14 @@ async function assignSingleStore(storeId) {
   var isFarm = _assignMode === 'farms';
 
   try {
-    if (isFarm) {
-      await assignFarms([storeId], _selectedTSR.id);
-    } else {
-      await assignStores([storeId], _selectedTSR.id);
-    }
+    // Wave 2 (Audit D O4): queue the assignment so a flaky DSM connection
+    // doesn't lose work. UI mutates optimistically below — the queue makes
+    // the write durable.
+    await queueAssignment({
+      kind: isFarm ? 'farm' : 'store',
+      tsr_id: _selectedTSR.id,
+      store_id: storeId
+    });
 
     var item = null;
     var unassigned = isFarm ? _assignFarmsUnassigned : _assignStoresUnassigned;
@@ -406,11 +409,12 @@ async function unassignSingleStore(storeId) {
   var isFarm = _assignMode === 'farms';
 
   try {
-    if (isFarm) {
-      await unassignFarms([storeId]);
-    } else {
-      await unassignStores([storeId]);
-    }
+    // Wave 2 (Audit D O4): queue the unassign — same durability story.
+    await queueAssignment({
+      kind: isFarm ? 'farm' : 'store',
+      tsr_id: null,
+      store_id: storeId
+    });
 
     var item = null;
     var assigned = isFarm ? _assignFarmsAssigned : _assignStoresAssigned;
@@ -478,11 +482,14 @@ async function bulkAssignAll() {
   if (!confirm('I-assign ang ' + count + ' ' + entity + ' kay ' + _selectedTSR.name + '?')) return;
 
   try {
+    // Wave 2 (Audit D O4): bulk-assign becomes N atomic queue entries.
+    // Per-row atomicity means partial success preserves the work that
+    // DID land — a DSM bulk-assigning 50 stores no longer has to start
+    // over if signal drops at item 30.
     var ids = unassigned.map(function (s) { return s.id; });
-    if (isFarm) {
-      await assignFarms(ids, _selectedTSR.id);
-    } else {
-      await assignStores(ids, _selectedTSR.id);
+    var kind = isFarm ? 'farm' : 'store';
+    for (var qi = 0; qi < ids.length; qi++) {
+      await queueAssignment({ kind: kind, tsr_id: _selectedTSR.id, store_id: ids[qi] });
     }
 
     var assigned = isFarm ? _assignFarmsAssigned : _assignStoresAssigned;

@@ -630,7 +630,16 @@ async function submitEditUser() {
       updated_at: new Date().toISOString()
     };
 
-    await updateUser(userId, payload);
+    // Wave 2 (Audit D O3): admin user edits typically need synchronous
+    // confirmation (admins are on desktop). If the admin happens to be
+    // offline at submit time, fall back to the offline queue so the edit
+    // isn't lost — same durability story as TSR writes.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false &&
+        typeof queueProfileEdit === 'function') {
+      await queueProfileEdit({ user_id: userId, patch: payload });
+    } else {
+      await updateUser(userId, payload);
+    }
 
     closeEditUserModal();
     showToast('User updated successfully.', 'success');
@@ -789,10 +798,17 @@ async function toggleUserActive(userId, currentStatus) {
   if (!confirm('Are you sure you want to ' + action + ' this user?')) return;
 
   try {
-    await updateUser(userId, {
+    var togglePatch = {
       is_active: newStatus,
       updated_at: new Date().toISOString()
-    });
+    };
+    // Wave 2 (Audit D O3): offline-fallback for admin toggle.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false &&
+        typeof queueProfileEdit === 'function') {
+      await queueProfileEdit({ user_id: userId, patch: togglePatch });
+    } else {
+      await updateUser(userId, togglePatch);
+    }
     showToast('User ' + action + 'd successfully.', 'success');
     await loadUserTable();
     await loadAdminStats();

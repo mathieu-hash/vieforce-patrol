@@ -384,19 +384,32 @@ async function submitVisit() {
 
     // 4b. Phase 3 — First-order celebration if this visit converts a prospect
     //     Triggers when outcome = order AND current store.store_status = 'prospect'.
+    //
+    //     Wave 2 (Audit D O3): route the prospect→active conversion through
+    //     the offline queue. UI fires immediately (the celebration toast); the
+    //     server update is durable across signal drops. Previously this used
+    //     a direct updateStore() call wrapped in a silent /* non-critical */
+    //     catch — the celebration moment we ship for adoption was the moment
+    //     most likely to silently lose data offline.
     try {
       var storeNow = await getStoreById(_visitData.storeId);
       if (storeNow && storeNow.store_status === 'prospect' && _visitData.order_taken) {
-        await updateStore(_visitData.storeId, {
-          store_status: 'active',
-          prospect_stage: 'converted',
-          converted_at: new Date().toISOString()
+        await queueStoreUpdate({
+          store_id: _visitData.storeId,
+          patch: {
+            store_status: 'active',
+            prospect_stage: 'converted',
+            converted_at: new Date().toISOString()
+          }
         });
         if (typeof showConversionCelebration === 'function') {
           showConversionCelebration(storeNow.name || (_visitData.storeName || ''));
         }
       }
-    } catch (e) { /* non-critical — don't block the visit save */ }
+    } catch (e) {
+      // IDB write failed (quota etc.) — log so we can investigate.
+      console.error('[visit-wizard] queueStoreUpdate (conversion) failed:', e);
+    }
 
     submitBtn.textContent = T.syncing || 'Syncing...';
 
@@ -415,10 +428,20 @@ async function submitVisit() {
     }
 
     // Update store's last_visit_at after the visit has actually synced.
+    //
+    // Wave 2 (Audit D O3): route the tick through the offline queue so the
+    // "last visit" timestamp survives a signal drop between the visit
+    // insert and this update. Idempotent on server (same timestamp written
+    // twice is harmless). UI list refresh below still fires optimistically.
     if (visitSyncResult.state === 'synced') {
       try {
-        await updateStore(_visitData.storeId, { last_visit_at: visitPayload.visited_at });
-      } catch (e) { /* non-critical */ }
+        await queueVisitTouch({
+          store_id: _visitData.storeId,
+          visited_at: visitPayload.visited_at
+        });
+      } catch (e) {
+        console.error('[visit-wizard] queueVisitTouch failed:', e);
+      }
     }
 
     // 6. Close sheet + append bubble to chat after brief delay

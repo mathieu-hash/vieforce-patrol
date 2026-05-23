@@ -46,6 +46,21 @@ offlineDb.version(2).stores({
   cachedStores:  'id, updated_at'
 });
 
+// v3: route EVERY write through the queue (Wave 2 — Audit D O3+O4).
+// Adds tables for store updates, DSM assignments, last_visit_at ticks,
+// and profile edits — all paths that previously hit Supabase directly
+// and would silently lose data on intermittent connections.
+offlineDb.version(3).stores({
+  pendingVisits:        '++id, offline_id, created_at',
+  pendingStores:        '++id, offline_id, created_at',
+  pendingFarms:         '++id, offline_id, created_at',
+  pendingStoreUpdates:  '++id, offline_id, created_at',
+  pendingAssignments:   '++id, offline_id, created_at',
+  pendingVisitTouches:  '++id, offline_id, created_at',
+  pendingProfileEdits:  '++id, offline_id, created_at',
+  cachedStores:         'id, updated_at'
+});
+
 async function queueVisit(visitData) {
   visitData.offline_id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   visitData.created_at = new Date().toISOString();
@@ -70,6 +85,64 @@ async function queueFarm(farmData) {
   await _ensureOfflineDb().pendingFarms.add(farmData);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
+}
+
+// ─── Wave 2: queue every write (Audit D O3+O4) ───────────────────────────
+//
+// The helpers below mirror queueVisit/queueStore/queueFarm: write IDB
+// first, then (when online) attempt one immediate sync. On failure the
+// row stays in IDB and the new W2-RetryClassify _handleSyncFailure
+// machinery handles it on the next pass — never silently ejecting.
+// Callers update local UI optimistically; the queue makes the write
+// durable regardless of connectivity.
+
+async function queueStoreUpdate(payload) {
+  // payload: { store_id, patch }
+  payload.offline_id = 'su_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  payload.created_at = new Date().toISOString();
+  await _ensureOfflineDb().pendingStoreUpdates.add(payload);
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    try { await syncPending(); } catch (e) { /* leave in IDB for retry */ }
+  }
+}
+
+async function queueAssignment(payload) {
+  // payload: { kind: 'store'|'farm', tsr_id, store_id }
+  // tsr_id === null is an unassign.
+  payload.offline_id = 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  payload.created_at = new Date().toISOString();
+  await _ensureOfflineDb().pendingAssignments.add(payload);
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    try { await syncPending(); } catch (e) { /* leave in IDB for retry */ }
+  }
+}
+
+async function queueVisitTouch(payload) {
+  // payload: { store_id, visited_at }
+  payload.offline_id = 'vt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  payload.created_at = new Date().toISOString();
+  await _ensureOfflineDb().pendingVisitTouches.add(payload);
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    try { await syncPending(); } catch (e) { /* leave in IDB for retry */ }
+  }
+}
+
+async function queueProfileEdit(payload) {
+  // payload: { user_id, patch }
+  payload.offline_id = 'pe_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  payload.created_at = new Date().toISOString();
+  await _ensureOfflineDb().pendingProfileEdits.add(payload);
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+  if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
+  if (typeof navigator !== 'undefined' && navigator.onLine) {
+    try { await syncPending(); } catch (e) { /* leave in IDB for retry */ }
+  }
 }
 
 // Soft "slow-sync" hint after this many active attempts on a single record.
@@ -201,7 +274,7 @@ function _queuePayload(record, extraSkip) {
   return out;
 }
 
-// Wave 2 (Audit D O1): replaces _markRetryOrEject. NEVER deletes the
+// Wave 2 (Audit D O1): replaces _handleSyncFailure. NEVER deletes the
 // record. Updates bookkeeping in place; quarantine flag for permanent
 // errors; backoff timer for transient errors.
 async function _handleSyncFailure(table, record, err, label) {
@@ -385,7 +458,11 @@ async function _syncOnePhotoRecord(record, cfg) {
 }
 
 async function _syncPendingImpl() {
-  var results = { visits: 0, stores: 0, farms: 0, errors: [], ejected: 0, lastError: null };
+  var results = {
+    visits: 0, stores: 0, farms: 0,
+    storeUpdates: 0, assignments: 0, visitTouches: 0, profileEdits: 0,
+    errors: [], ejected: 0, lastError: null
+  };
   var now = Date.now();
 
   function recordError(label, err, classification) {
@@ -499,6 +576,100 @@ async function _syncPendingImpl() {
     }
   }
 
+  // ─── Wave 2 drains (Audit D O3+O4) ─────────────────────────────────────
+  // Each row drives the same Supabase UPDATE that the call site used to
+  // perform synchronously. Failures route through the existing retry/eject
+  // machinery (W2-RetryClassify will refine the classification later).
+
+  // Store updates (prospect→active conversion, plus any field edit).
+  var pendingStoreUpdates = await offlineDb.pendingStoreUpdates.toArray();
+  for (var sui = 0; sui < pendingStoreUpdates.length; sui++) {
+    var su = pendingStoreUpdates[sui];
+    try {
+      if (typeof updateStore !== 'function') throw new Error('updateStore unavailable');
+      await updateStore(su.store_id, su.patch || {});
+      await offlineDb.pendingStoreUpdates.delete(su.id);
+      results.storeUpdates++;
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+    } catch (e) {
+      results.errors.push('StoreUpdate: ' + e.message);
+      var suOutcome = await _handleSyncFailure(offlineDb.pendingStoreUpdates, su, e, 'StoreUpdate');
+      if (suOutcome === 'permanent') results.ejected++; // quarantined; legacy field name kept
+    }
+  }
+
+  // last_visit_at touches — emitted by visit-wizard once a visit syncs.
+  // Idempotent on server (overwriting the same timestamp is harmless).
+  var pendingVisitTouches = await offlineDb.pendingVisitTouches.toArray();
+  for (var vti = 0; vti < pendingVisitTouches.length; vti++) {
+    var vt = pendingVisitTouches[vti];
+    try {
+      if (typeof updateStore !== 'function') throw new Error('updateStore unavailable');
+      await updateStore(vt.store_id, { last_visit_at: vt.visited_at });
+      await offlineDb.pendingVisitTouches.delete(vt.id);
+      results.visitTouches++;
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+    } catch (e) {
+      results.errors.push('VisitTouch: ' + e.message);
+      var vtOutcome = await _handleSyncFailure(offlineDb.pendingVisitTouches, vt, e, 'VisitTouch');
+      if (vtOutcome === 'permanent') results.ejected++; // quarantined; legacy field name kept
+    }
+  }
+
+  // DSM assignments — atomic per row so a bulk that partially syncs
+  // preserves the work that DID land.
+  var pendingAssignments = await offlineDb.pendingAssignments.toArray();
+  for (var ai = 0; ai < pendingAssignments.length; ai++) {
+    var a = pendingAssignments[ai];
+    try {
+      var ids = [a.store_id];
+      // Call the raw Supabase helpers, NOT the queueing public ones —
+      // otherwise we'd recurse back into the queue forever.
+      if (a.kind === 'farm') {
+        if (a.tsr_id == null) {
+          if (typeof _rawUnassignFarms !== 'function') throw new Error('_rawUnassignFarms unavailable');
+          await _rawUnassignFarms(ids);
+        } else {
+          if (typeof _rawAssignFarms !== 'function') throw new Error('_rawAssignFarms unavailable');
+          await _rawAssignFarms(ids, a.tsr_id);
+        }
+      } else {
+        if (a.tsr_id == null) {
+          if (typeof _rawUnassignStores !== 'function') throw new Error('_rawUnassignStores unavailable');
+          await _rawUnassignStores(ids);
+        } else {
+          if (typeof _rawAssignStores !== 'function') throw new Error('_rawAssignStores unavailable');
+          await _rawAssignStores(ids, a.tsr_id);
+        }
+      }
+      await offlineDb.pendingAssignments.delete(a.id);
+      results.assignments++;
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+    } catch (e) {
+      results.errors.push('Assignment: ' + e.message);
+      var aOutcome = await _handleSyncFailure(offlineDb.pendingAssignments, a, e, 'Assignment');
+      if (aOutcome === 'permanent') results.ejected++; // quarantined; legacy field name kept
+    }
+  }
+
+  // Profile edits (users.update). Admin edits are normally sync (see
+  // js/admin.js) — this drain handles the offline-fallback rows only.
+  var pendingProfileEdits = await offlineDb.pendingProfileEdits.toArray();
+  for (var pei = 0; pei < pendingProfileEdits.length; pei++) {
+    var pe = pendingProfileEdits[pei];
+    try {
+      if (typeof updateUser !== 'function') throw new Error('updateUser unavailable');
+      await updateUser(pe.user_id, pe.patch || {});
+      await offlineDb.pendingProfileEdits.delete(pe.id);
+      results.profileEdits++;
+      if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
+    } catch (e) {
+      results.errors.push('ProfileEdit: ' + e.message);
+      var peOutcome = await _handleSyncFailure(offlineDb.pendingProfileEdits, pe, e, 'ProfileEdit');
+      if (peOutcome === 'permanent') results.ejected++; // quarantined; legacy field name kept
+    }
+  }
+
   _applySyncSummary(results);
   return results;
 }
@@ -508,15 +679,30 @@ window.patrolInspectQueue = async function () {
   var v = await offlineDb.pendingVisits.toArray();
   var s = await offlineDb.pendingStores.toArray();
   var f = await offlineDb.pendingFarms.toArray();
+  var su = await offlineDb.pendingStoreUpdates.toArray();
+  var a = await offlineDb.pendingAssignments.toArray();
+  var vt = await offlineDb.pendingVisitTouches.toArray();
+  var pe = await offlineDb.pendingProfileEdits.toArray();
   console.log('[queue] pending visits:', v);
   console.log('[queue] pending stores:', s);
   console.log('[queue] pending farms:', f);
-  return { visits: v, stores: s, farms: f };
+  console.log('[queue] pending store updates:', su);
+  console.log('[queue] pending assignments:', a);
+  console.log('[queue] pending visit touches:', vt);
+  console.log('[queue] pending profile edits:', pe);
+  return {
+    visits: v, stores: s, farms: f,
+    storeUpdates: su, assignments: a, visitTouches: vt, profileEdits: pe
+  };
 };
 window.patrolClearQueue = async function () {
   await offlineDb.pendingVisits.clear();
   await offlineDb.pendingStores.clear();
   await offlineDb.pendingFarms.clear();
+  await offlineDb.pendingStoreUpdates.clear();
+  await offlineDb.pendingAssignments.clear();
+  await offlineDb.pendingVisitTouches.clear();
+  await offlineDb.pendingProfileEdits.clear();
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   console.log('[queue] cleared');
 };
@@ -527,10 +713,18 @@ window.patrolClearQueue = async function () {
 // source of truth fix — Audit D O2: "Naka-sync na ✓✓" after eject is
 // no longer possible because we never eject).
 async function getSyncStatus() {
+  // Walk all 7 pending tables for accurate count. _computeQueueStats only
+  // covers the photo-bearing tables (visits/stores/farms) for quarantine
+  // tracking — add the 4 new Wave 2 tables to the simple count.
   var stats = await _computeQueueStats();
+  var psu = await offlineDb.pendingStoreUpdates.count();
+  var pa = await offlineDb.pendingAssignments.count();
+  var pvt = await offlineDb.pendingVisitTouches.count();
+  var ppe = await offlineDb.pendingProfileEdits.count();
+  var total = stats.pending + psu + pa + pvt + ppe;
   return {
-    pending: stats.pending,
-    synced: stats.pending === 0,
+    pending: total,
+    synced: total === 0,
     ejected: 0, // we never eject any more; preserved for legacy consumers
     quarantined: stats.quarantined,
     syncErrors: _lastSyncSummary.errors || 0
