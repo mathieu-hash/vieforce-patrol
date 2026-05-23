@@ -128,68 +128,15 @@ function getStatusBadge(isActive) {
   return '<span class="status-badge inactive">Inactive</span>';
 }
 
-function _pinRaw(u) {
-  return u && u.pin_hash != null ? String(u.pin_hash) : '';
+// PIN value is intentionally NEVER read into JS state nor rendered. The admin
+// UI shows a static bullet placeholder (PIN: ••••); to change a PIN, admins
+// use the Reset-PIN sub-modal which posts to /api/admin/users/reset-pin.
+var ADMIN_PIN_MASK = '••••'; // four bullet chars
+
+function getPinDisplayMasked() {
+  return '<span class="admin-pin-masked" aria-label="PIN hidden">' + ADMIN_PIN_MASK + '</span>';
 }
 
-function _isBcryptPin(raw) {
-  var s = String(raw || '');
-  return s.indexOf('$2') === 0 && s.length > 15;
-}
-
-function _isPlainPinDigits(raw) {
-  return /^\d{4,6}$/.test(String(raw || '').trim());
-}
-
-/**
- * Admin table cell: show digits when DB stores plaintext PIN; otherwise hashed / empty.
- */
-function getPinDisplayUser(u) {
-  var raw = _pinRaw(u);
-  if (!raw) {
-    return '<span class="admin-pin-none" title="No PIN on file">\u2014</span>';
-  }
-  if (_isPlainPinDigits(raw)) {
-    return (
-      '<span class="admin-pin-plain" title="Plaintext in DB (admin only) — avoid in production if possible">' +
-      escapeHtml(raw) +
-      '</span>'
-    );
-  }
-  if (_isBcryptPin(raw)) {
-    return (
-      '<span class="admin-pin-hashed" title="Legacy bcrypt — user cannot log in until you set a new plain PIN (Edit → Reset PIN).">' +
-      '<strong>Hashed (legacy)</strong> <span class="admin-pin-suffix">reset required</span></span>'
-    );
-  }
-  return (
-    '<span class="admin-pin-hashed" title="Unrecognized format — set a new PIN under Edit.">' +
-    '<strong>Unknown</strong> <span class="admin-pin-suffix">reset suggested</span></span>'
-  );
-}
-
-function _formatCurrentPinField(u) {
-  var raw = _pinRaw(u);
-  if (!raw) {
-    return { value: '', hint: 'No PIN on file. Set one below or use Add User flow.' };
-  }
-  if (_isPlainPinDigits(raw)) {
-    return {
-      value: raw,
-      hint: 'Stored as plain digits in the database (visible to admins on this page only).'
-    };
-  }
-  if (_isBcryptPin(raw)) {
-    return {
-      value: '(legacy bcrypt — cannot display)',
-      hint: 'Login uses plain PINs now. Reset PIN below once; the new digits will show in this table.'
-    };
-  }
-  return {
-    value: '(unrecognized — set new PIN below)',
-    hint: 'Save a new 4–6 digit PIN so the account can log in.'
-  };
-}
 
 function adminOrgSummary(u) {
   var parts = [];
@@ -276,7 +223,7 @@ async function loadUserTable() {
       html += '<div class="admin-user-card-line">';
       html += '<span>' + escapeHtml(u.phone || '—') + '</span>';
       html += adminEmailLine(u);
-      html += '<span>PIN ' + getPinDisplayUser(u) + '</span>';
+      html += '<span>PIN: ' + getPinDisplayMasked() + '</span>';
       html += getRoleBadge(u.role);
       html += getStatusBadge(u.is_active);
       html += '</div>';
@@ -601,16 +548,8 @@ function openEditUserModal(userId) {
   if (elTerritory) elTerritory.value = user.territory || '';
   if (elStatus) elStatus.value = user.is_active === false ? 'false' : 'true';
 
-  var cur = _formatCurrentPinField(user);
-  var elPinCur = document.getElementById('edit-pin-current');
-  var elPinHint = document.getElementById('edit-pin-current-hint');
-  if (elPinCur) elPinCur.value = cur.value;
-  if (elPinHint) elPinHint.textContent = cur.hint;
-
-  var elPinNew = document.getElementById('edit-pin-new');
-  var elPinConfirm = document.getElementById('edit-pin-confirm');
-  if (elPinNew) elPinNew.value = '';
-  if (elPinConfirm) elPinConfirm.value = '';
+  // PIN is never read into the edit modal; the static placeholder in admin.html
+  // (#edit-pin-display) shows "PIN: ••••" only. Use Reset PIN to change.
 
   openAdminModal(modal);
   syncAdminOrgHint('edit');
@@ -641,8 +580,7 @@ async function submitEditUser() {
   var territory = (document.getElementById('edit-territory') || {}).value || '';
   var statusRaw = (document.getElementById('edit-status') || {}).value || 'true';
 
-  var newPin = ((document.getElementById('edit-pin-new') || {}).value || '').trim();
-  var confirmPin = ((document.getElementById('edit-pin-confirm') || {}).value || '').trim();
+  // PIN is no longer editable from this form. Use the Reset PIN sub-modal.
 
   if (!userId) {
     showToast('No user selected.', 'error');
@@ -680,17 +618,6 @@ async function submitEditUser() {
     return;
   }
 
-  if (newPin || confirmPin) {
-    if (newPin !== confirmPin) {
-      showToast('New PIN and confirmation do not match.', 'error');
-      return;
-    }
-    if (!/^\d{4,6}$/.test(newPin)) {
-      showToast('PIN must be 4-6 digits.', 'error');
-      return;
-    }
-  }
-
   try {
     var payload = {
       name: name.trim(),
@@ -703,16 +630,8 @@ async function submitEditUser() {
       is_active: statusRaw === 'true',
       updated_at: new Date().toISOString()
     };
-    if (newPin) {
-      payload.pin_hash = newPin;
-    }
 
     await updateUser(userId, payload);
-
-    var elPn = document.getElementById('edit-pin-new');
-    var elPc = document.getElementById('edit-pin-confirm');
-    if (elPn) elPn.value = '';
-    if (elPc) elPc.value = '';
 
     closeEditUserModal();
     showToast('User updated successfully.', 'success');
@@ -724,9 +643,35 @@ async function submitEditUser() {
   }
 }
 
-// ── Reset PIN ──
+// ── Reset PIN (sub-modal flow) ──
+//
+// PIN values never round-trip through the admin user list / edit modal. The
+// only path to change a PIN is the Reset PIN sub-modal, which posts to a
+// server endpoint that updates the row under the service role + audit log.
 
-async function resetUserPIN(userId) {
+function _adminLookupUserById(uid) {
+  if (!uid) return null;
+  for (var i = 0; i < _adminUsers.length; i++) {
+    if (_adminUsers[i].id === uid) return _adminUsers[i];
+  }
+  return null;
+}
+
+function _adminT(key, fallback) {
+  // Lightweight lookup so the admin page works whether labels-v2 / window.T is
+  // loaded or not. Falls back to the English string passed in.
+  try {
+    if (typeof window !== 'undefined' && window.T && typeof window.T[key] === 'string') {
+      return window.T[key];
+    }
+    if (typeof window !== 'undefined' && window.PATROL_LOCALE && window.PATROL_LOCALE[key]) {
+      return window.PATROL_LOCALE[key];
+    }
+  } catch (_) {}
+  return fallback;
+}
+
+function openResetPinModal(userId) {
   var uid =
     userId ||
     (document.getElementById('edit-user-id') || {}).value ||
@@ -736,25 +681,95 @@ async function resetUserPIN(userId) {
     return;
   }
 
-  var newPin = prompt('Enter new PIN (4-6 digits):');
-  if (newPin === null) return; // cancelled
+  var user = _adminLookupUserById(uid);
+  var modal = document.getElementById('modal-reset-pin');
+  if (!modal) {
+    showToast('Reset PIN dialog is unavailable on this page.', 'error');
+    return;
+  }
+
+  var hidden = document.getElementById('reset-pin-user-id');
+  if (hidden) hidden.value = uid;
+
+  var nameLine = document.getElementById('reset-pin-user-line');
+  if (nameLine) {
+    var nm = (user && user.name) ? String(user.name) : uid;
+    nameLine.textContent = nm;
+  }
+
+  var newPin = document.getElementById('reset-pin-new');
+  var confirmPin = document.getElementById('reset-pin-confirm');
+  if (newPin) newPin.value = '';
+  if (confirmPin) confirmPin.value = '';
+
+  openAdminModal(modal);
+}
+
+async function submitResetPin() {
+  var uid = (document.getElementById('reset-pin-user-id') || {}).value || '';
+  var newPin = ((document.getElementById('reset-pin-new') || {}).value || '').trim();
+  var confirmPin = ((document.getElementById('reset-pin-confirm') || {}).value || '').trim();
+
+  if (!uid) {
+    showToast('Open a user for editing first.', 'error');
+    return;
+  }
 
   if (!/^\d{4,6}$/.test(newPin)) {
     showToast('PIN must be 4-6 digits.', 'error');
     return;
   }
 
+  if (newPin !== confirmPin) {
+    showToast(_adminT('admin.resetPin.mismatch', 'PINs do not match.'), 'error');
+    return;
+  }
+
   try {
-    await updateUser(uid, {
-      pin_hash: newPin,
-      updated_at: new Date().toISOString()
+    var session = (typeof getSession === 'function') ? getSession() : null;
+    var headers = { 'Content-Type': 'application/json' };
+    if (session && session.id) headers['x-session-id'] = session.id;
+
+    var res = await fetch('/api/admin/users/reset-pin', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({ target_user_id: uid, new_pin: newPin })
     });
-    showToast('PIN reset successfully.', 'success');
-    await loadUserTable();
+
+    if (!res.ok) {
+      var msg = 'HTTP ' + res.status;
+      try {
+        var errBody = await res.json();
+        if (errBody && (errBody.message || errBody.error)) {
+          msg = errBody.message || errBody.error;
+        }
+      } catch (_) {}
+      throw new Error(msg);
+    }
+
+    var nm = (_adminLookupUserById(uid) || {}).name || 'user';
+    var tpl = _adminT(
+      'admin.resetPin.success',
+      'PIN reset. Notify the user of the new PIN via SMS/call.'
+    );
+    showToast('PIN reset for ' + nm + ' — ' + tpl, 'success');
+
+    // Clear sensitive values from the DOM and close the sub-modal.
+    var elN = document.getElementById('reset-pin-new');
+    var elC = document.getElementById('reset-pin-confirm');
+    if (elN) elN.value = '';
+    if (elC) elC.value = '';
+    closeModal('modal-reset-pin');
   } catch (err) {
-    console.error('resetUserPIN:', err);
+    console.error('submitResetPin:', err);
     showToast('Failed to reset PIN: ' + friendlyAdminErr(err), 'error');
   }
+}
+
+// Legacy alias kept so any stray HTML / external caller still works. Routes
+// the call into the new sub-modal flow instead of leaking a `prompt()` value.
+function resetUserPIN(userId) {
+  openResetPinModal(userId);
 }
 
 /** admin.html onclick aliases */
@@ -790,6 +805,7 @@ async function toggleUserActive(userId, currentStatus) {
 
 // ── Export CSV ──
 
+// PIN is intentionally not exported; use admin "Reset PIN" flow instead.
 function exportUsersCSV() {
   if (!_adminUsers || _adminUsers.length === 0) {
     showToast('No user data to export.', 'error');
@@ -800,8 +816,6 @@ function exportUsersCSV() {
     'Name',
     'Phone',
     'Email',
-    'PIN (plain if stored)',
-    'PIN is hashed',
     'Role',
     'Region',
     'District',
@@ -813,15 +827,10 @@ function exportUsersCSV() {
 
   for (var i = 0; i < _adminUsers.length; i++) {
     var u = _adminUsers[i];
-    var raw = _pinRaw(u);
-    var plain = _isPlainPinDigits(raw) ? raw : '';
-    var hashed = u.has_pin && !_isPlainPinDigits(raw) ? 'yes' : 'no';
     var row = [
       csvEscape(u.name || ''),
       csvEscape(u.phone || ''),
       csvEscape(u.email || ''),
-      csvEscape(plain),
-      hashed,
       csvEscape((u.role || '').toUpperCase()),
       csvEscape(u.region || ''),
       csvEscape(u.district || ''),

@@ -249,6 +249,18 @@ body.admin-page .admin-empty {
     box-sizing: border-box;
   }
 
+  /* PIN bullet placeholder shown in the user list + edit modal — never a real value. */
+  .admin-pin-masked {
+    font-family: ui-monospace, monospace;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: var(--navy);
+  }
+  .admin-pin-readonly--mask {
+    letter-spacing: 0.18em;
+    color: #4a5568;
+  }
+
   .form-hint {
     display: block;
     margin-top: 6px;
