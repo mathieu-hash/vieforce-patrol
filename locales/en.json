@@ -200,5 +200,9 @@
   "admin.resetPin.confirmLabel": "Confirm PIN",
   "admin.resetPin.submit": "Save new PIN",
   "admin.resetPin.success": "PIN reset. Notify the user of the new PIN via SMS/call.",
-  "admin.resetPin.mismatch": "PINs do not match."
+  "admin.resetPin.mismatch": "PINs do not match.",
+  "leaderboard.yourRank": "You",
+  "leaderboard.keepGoing": "Keep going! 💪",
+  "leaderboard.topPerformers": "This week's top performers",
+  "leaderboard.moreHidden": "+{n} more"
 }

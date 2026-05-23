@@ -1011,52 +1011,181 @@
     pod.innerHTML = buildPodiumMarkup(top3);
   }
 
-  function renderRankingsRest(sorted) {
-    var list = document.getElementById('rankingsList');
-    if (!list) return;
-    var slice = sorted.slice(3);
-    var html = '';
-    for (var i = 0; i < slice.length; i++) {
-      var u = slice[i];
-      var rank = i + 4;
-      var deltaText = u.delta > 0 ? '+' + u.delta : String(u.delta);
-      var deltaColor = u.delta >= 0 ? 'var(--success)' : 'var(--danger)';
-      var arrow = u.delta >= 0 ? '▲' : '▼';
-      html +=
-        '<div class="row" onclick="patrolNavToProfileSafe(\'' +
-        String(u.id).replace(/'/g, "\\'") +
-        '\')" style="cursor:pointer">' +
-        '<div style="width:24px;text-align:center;font-size:14px;font-weight:800;color:var(--text-secondary);font-family:Manrope,sans-serif">' +
-        rank +
-        '</div>' +
-        '<div class="avatar">' +
-        _escapeHtml(u.initials) +
-        '</div>' +
-        '<div class="row-content">' +
-        '<div class="row-title">' +
-        _escapeHtml(u.name) +
-        '</div>' +
-        '<div class="row-subtitle">' +
-        _escapeHtml(u.role) +
-        ' · ' +
-        u.bags.toLocaleString('en-PH') +
-        ' bags</div></div>' +
-        '<div style="font-size:11px;color:' +
-        deltaColor +
-        ';font-weight:800;font-family:Manrope,sans-serif;white-space:nowrap">' +
-        arrow +
-        ' ' +
-        _escapeHtml(deltaText) +
-        '</div></div>';
+  /**
+   * Filipino hiya rule (CLAUDE.md §0 Rule 8 + §15.2): never expose ranks 4..N
+   * publicly. Only admin-class roles (the same allowlist as
+   * js/auth.js#canAccessUserAdmin — ceo, admin, evp, marketing) see the full
+   * leaderboard tail; everyone else sees podium top-3 + their own row.
+   */
+  var LEADERBOARD_FULL_ROLES = ['ceo', 'admin', 'evp', 'marketing'];
+
+  function _shouldShowFullLeaderboard(role) {
+    var r = String(role || '').toLowerCase();
+    for (var i = 0; i < LEADERBOARD_FULL_ROLES.length; i++) {
+      if (LEADERBOARD_FULL_ROLES[i] === r) return true;
     }
-    list.innerHTML =
-      html ||
-      '<div class="phase4-muted-hint">Walang iba pang ranking.</div>';
+    return false;
   }
 
-  function renderRankingsTiered(parts) {
+  /**
+   * Translation helper that falls back to a literal when window.t is not
+   * loaded (e.g. in unit tests).
+   */
+  function _lbT(key, fallback, vars) {
+    try {
+      if (typeof window !== 'undefined' && typeof window.t === 'function') {
+        var v = window.t(key, vars || {});
+        if (v && v !== key) return v;
+      }
+    } catch (e) {}
+    var out = fallback || '';
+    if (vars) {
+      for (var k in vars) {
+        if (Object.prototype.hasOwnProperty.call(vars, k)) {
+          out = out.replace(new RegExp('\\{' + k + '\\}', 'g'), String(vars[k]));
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Single source of truth for the visibility gate. Given an already-sorted
+   * rank list (desc by score), a viewer's id + role, plus the per-row
+   * `rank`-key to read (e.g. `rank` global or `tierRank` per tier), returns:
+   *   - rowsToRender   — the rows the renderer should iterate (excluding the
+   *                      podium top 3; podium is rendered separately upstream)
+   *   - ownRow         — the viewer's own row if it must be appended as a
+   *                      separate "Ikaw: #N" entry (i.e. viewer is outside
+   *                      top 3 AND not in rowsToRender)
+   *   - hiddenCount    — how many rows are being suppressed (admin hint only)
+   *   - showFull       — whether the viewer sees the full tail
+   */
+  function _buildVisibleRanks(sortedRows, viewerId, viewerRole, rankKey) {
+    rankKey = rankKey || 'rank';
+    var rows = sortedRows || [];
+    var showFull = _shouldShowFullLeaderboard(viewerRole);
+    var tail = rows.slice(3); // ranks 4..N
+    var vid = viewerId == null ? null : String(viewerId);
+    if (showFull) {
+      return { rowsToRender: tail, ownRow: null, hiddenCount: 0, showFull: true };
+    }
+    // Non-admin: hide the tail. Surface the viewer's own row only if they
+    // are outside the podium (top 3).
+    var ownRow = null;
+    if (vid) {
+      for (var i = 0; i < rows.length; i++) {
+        if (String(rows[i].id) === vid) {
+          var rk = rows[i][rankKey];
+          if (typeof rk !== 'number') rk = i + 1;
+          if (rk > 3) ownRow = rows[i];
+          break;
+        }
+      }
+    }
+    return {
+      rowsToRender: [],
+      ownRow: ownRow,
+      hiddenCount: tail.length,
+      showFull: false,
+    };
+  }
+
+  function _rankRowHtml(u, rank, opts) {
+    opts = opts || {};
+    var deltaText = u.delta > 0 ? '+' + u.delta : String(u.delta);
+    var deltaColor = u.delta >= 0 ? 'var(--success)' : 'var(--danger)';
+    var arrow = u.delta >= 0 ? '▲' : '▼';
+    var subtitle = _escapeHtml(u.role) + ' · ' + u.bags.toLocaleString('en-PH') + ' bags';
+    var nameHtml = _escapeHtml(u.name);
+    var rowBg = '';
+    if (opts.isOwnRow) {
+      nameHtml += ' <span style="font-size:11px;color:var(--accent);font-weight:700">(' +
+        _escapeHtml(_lbT('leaderboard.yourRank', 'You')) +
+        ')</span>';
+      if (opts.encourage) {
+        subtitle += ' · ' + _escapeHtml(_lbT('leaderboard.keepGoing', 'Keep going! 💪'));
+      }
+      rowBg = 'background:rgba(0,166,206,0.06);';
+    }
+    return (
+      '<div class="row" onclick="patrolNavToProfileSafe(\'' +
+      String(u.id).replace(/'/g, "\\'") +
+      '\')" style="cursor:pointer;' + rowBg + '">' +
+      '<div style="width:24px;text-align:center;font-size:14px;font-weight:800;color:var(--text-secondary);font-family:Manrope,sans-serif">' +
+      rank +
+      '</div>' +
+      '<div class="avatar">' +
+      _escapeHtml(u.initials) +
+      '</div>' +
+      '<div class="row-content">' +
+      '<div class="row-title">' +
+      nameHtml +
+      '</div>' +
+      '<div class="row-subtitle">' +
+      subtitle +
+      '</div></div>' +
+      '<div style="font-size:11px;color:' +
+      deltaColor +
+      ';font-weight:800;font-family:Manrope,sans-serif;white-space:nowrap">' +
+      arrow +
+      ' ' +
+      _escapeHtml(deltaText) +
+      '</div></div>'
+    );
+  }
+
+  function renderRankingsRest(sorted, session) {
     var list = document.getElementById('rankingsList');
     if (!list) return;
+    var sess = session || (typeof window.getSession === 'function' ? window.getSession() : null);
+    var viewerId = sess && sess.id ? String(sess.id) : null;
+    var viewerRole = sess ? sess.role : '';
+    var view = _buildVisibleRanks(sorted || [], viewerId, viewerRole, 'rank');
+
+    var html = '';
+    for (var i = 0; i < view.rowsToRender.length; i++) {
+      var u = view.rowsToRender[i];
+      var rank = (typeof u.rank === 'number') ? u.rank : (i + 4);
+      var isOwn = viewerId && String(u.id) === viewerId;
+      html += _rankRowHtml(u, rank, { isOwnRow: isOwn });
+    }
+
+    if (view.ownRow) {
+      var own = view.ownRow;
+      var ownRank = (typeof own.rank === 'number') ? own.rank : null;
+      html +=
+        '<div style="border-top:2px dashed #E4E6EB;margin:4px 0"></div>' +
+        _rankRowHtml(own, ownRank == null ? '?' : ownRank, { isOwnRow: true, encourage: true });
+    }
+
+    if (view.showFull && view.hiddenCount === 0 && html === '') {
+      // Admin viewing an empty tail.
+      list.innerHTML = '<div class="phase4-muted-hint">Walang iba pang ranking.</div>';
+      return;
+    }
+
+    if (!view.showFull && view.hiddenCount > 0 && !view.ownRow && html === '') {
+      // Non-admin viewer is inside the podium and there is no tail to show.
+      list.innerHTML = '';
+      return;
+    }
+
+    if (view.showFull && view.hiddenCount > 0 && view.rowsToRender.length === view.hiddenCount) {
+      // Admin "+N more" hint is implicit — they see them all already.
+    }
+
+    list.innerHTML = html || '<div class="phase4-muted-hint">Walang iba pang ranking.</div>';
+  }
+
+  function renderRankingsTiered(parts, session) {
+    var list = document.getElementById('rankingsList');
+    if (!list) return;
+    var sess = session || (typeof window.getSession === 'function' ? window.getSession() : null);
+    var viewerId = sess && sess.id ? String(sess.id) : null;
+    var viewerRole = sess ? sess.role : '';
+    var showFull = _shouldShowFullLeaderboard(viewerRole);
+
     var tiers = [
       { key: 'executive', label: 'Executive' },
       { key: 'regional', label: 'Regional (RSM)' },
@@ -1064,53 +1193,38 @@
       { key: 'field', label: 'Field (TSR)' }
     ];
     var html = '';
-    var ti;
-    for (ti = 0; ti < tiers.length; ti++) {
+    for (var ti = 0; ti < tiers.length; ti++) {
       var tierRows = parts[tiers[ti].key] || [];
-      var slice = tierRows.slice(3);
-      if (slice.length === 0) continue;
+      if (tierRows.length === 0) continue;
+      var view = _buildVisibleRanks(tierRows, viewerId, viewerRole, 'tierRank');
+      // Skip the tier header entirely if there's nothing past the podium for
+      // this viewer — the podium already shows the top 3.
+      if (view.rowsToRender.length === 0 && !view.ownRow) continue;
+
       html +=
         '<div class="leaderboard-tier-rank-hdr section-label phase4-section leaderboard-tier-title">' +
         _escapeHtml(tiers[ti].label) +
         ' · rankings</div>';
-      var i;
-      for (i = 0; i < slice.length; i++) {
-        var u = slice[i];
-        var rank = u.tierRank;
-        var deltaText = u.delta > 0 ? '+' + u.delta : String(u.delta);
-        var deltaColor = u.delta >= 0 ? 'var(--success)' : 'var(--danger)';
-        var arrow = u.delta >= 0 ? '▲' : '▼';
+
+      for (var i = 0; i < view.rowsToRender.length; i++) {
+        var u = view.rowsToRender[i];
+        var rank = (typeof u.tierRank === 'number') ? u.tierRank : (i + 4);
+        var isOwn = viewerId && String(u.id) === viewerId;
+        html += _rankRowHtml(u, rank, { isOwnRow: isOwn });
+      }
+
+      if (view.ownRow) {
+        var own = view.ownRow;
+        var ownRank = (typeof own.tierRank === 'number') ? own.tierRank : null;
         html +=
-          '<div class="row" onclick="patrolNavToProfileSafe(\'' +
-          String(u.id).replace(/'/g, "\\'") +
-          '\')" style="cursor:pointer">' +
-          '<div style="width:24px;text-align:center;font-size:14px;font-weight:800;color:var(--text-secondary);font-family:Manrope,sans-serif">' +
-          rank +
-          '</div>' +
-          '<div class="avatar">' +
-          _escapeHtml(u.initials) +
-          '</div>' +
-          '<div class="row-content">' +
-          '<div class="row-title">' +
-          _escapeHtml(u.name) +
-          '</div>' +
-          '<div class="row-subtitle">' +
-          _escapeHtml(u.role) +
-          ' · ' +
-          u.bags.toLocaleString('en-PH') +
-          ' bags</div></div>' +
-          '<div style="font-size:11px;color:' +
-          deltaColor +
-          ';font-weight:800;font-family:Manrope,sans-serif;white-space:nowrap">' +
-          arrow +
-          ' ' +
-          _escapeHtml(deltaText) +
-          '</div></div>';
+          '<div style="border-top:2px dashed #E4E6EB;margin:4px 0"></div>' +
+          _rankRowHtml(own, ownRank == null ? '?' : ownRank, { isOwnRow: true, encourage: true });
       }
     }
-    list.innerHTML =
-      html ||
-      '<div class="phase4-muted-hint">Walang iba pang ranking.</div>';
+    list.innerHTML = html || '<div class="phase4-muted-hint">Walang iba pang ranking.</div>';
+    // Suppress unused-var warning in environments where showFull isn't used
+    // beyond the buildVisibleRanks calls above.
+    void showFull;
   }
 
   window.patrolNavToProfileSafe = function (id) {
@@ -1132,10 +1246,10 @@
     var tiered = shouldUseTieredLeaderLayout(parts);
     if (tiered) {
       renderPodiumStacked(parts);
-      renderRankingsTiered(parts);
+      renderRankingsTiered(parts, sess);
     } else {
       renderPodium(rows.slice(0, Math.min(3, rows.length)));
-      renderRankingsRest(rows);
+      renderRankingsRest(rows, sess);
     }
 
     var me = rows.filter(function (r) {
@@ -1454,6 +1568,14 @@
   window.renderSearchEmpty = renderSearchEmpty;
   window.initPhase4Social = initPhase4Social;
   window.updateBellBadges = updateBellBadges;
+
+  // Exposed for unit tests + cross-module use (e.g. champion.js / scorecard.js
+  // can share the same Filipino-hiya gate).
+  window.PatrolLeaderboard = {
+    shouldShowFull: _shouldShowFullLeaderboard,
+    buildVisibleRanks: _buildVisibleRanks,
+    fullRoles: LEADERBOARD_FULL_ROLES.slice(),
+  };
 
   window.renderPatrolNotifs = function () {
     renderNotifs(window._patrolNotifFilter || 'all');

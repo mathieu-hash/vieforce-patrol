@@ -200,5 +200,9 @@
   "admin.resetPin.confirmLabel": "Sublia ang PIN",
   "admin.resetPin.submit": "I-save ang bag-ong PIN",
   "admin.resetPin.success": "Na-reset ang PIN. I-text o tawagi ang user sa bag-ong PIN.",
-  "admin.resetPin.mismatch": "Lahi ang duha ka PIN."
+  "admin.resetPin.mismatch": "Lahi ang duha ka PIN.",
+  "leaderboard.yourRank": "Ikaw",
+  "leaderboard.keepGoing": "Padayon! 💪",
+  "leaderboard.topPerformers": "Top performers karong semana",
+  "leaderboard.moreHidden": "+{n} pa"
 }
