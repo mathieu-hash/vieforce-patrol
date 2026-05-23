@@ -189,5 +189,12 @@
   "assign.all_stores_assigned": "Lahat ng stores ay na-assign na",
   "assign.all_farms_assigned": "Lahat ng bukid ay na-assign na",
   "assign.none_assigned_to": "Walang assigned {entity} kay {name}",
-  "assign.assigned_to_count": "Assigned kay {name} ({count})"
+  "assign.assigned_to_count": "Assigned kay {name} ({count})",
+  "admin.resetPin.button": "I-reset ang PIN",
+  "admin.resetPin.modalTitle": "I-reset ang PIN ng user",
+  "admin.resetPin.newPinLabel": "Bagong PIN",
+  "admin.resetPin.confirmLabel": "Ulitin ang PIN",
+  "admin.resetPin.submit": "I-save ang bagong PIN",
+  "admin.resetPin.success": "Na-reset ang PIN. I-text o tawagan ang user ng bagong PIN.",
+  "admin.resetPin.mismatch": "Hindi pareho ang dalawang PIN."
 }

@@ -29,7 +29,7 @@
   </nav>
   <p class="admin-intro">
     Executive, Admin, CEO, RSM, DSM, and Marketing follow SAP (OSLP). <strong>Every TSR</strong> is added manually below — not from the SAP roster.
-    <span style="display:block;margin-top:10px;padding:10px 12px;background:#f7fafc;border-radius:8px;border:1px solid #e2e8f0;color:#4a5568;"><strong>PINs</strong> are stored as plain 4–6 digits in the database (Sales Admin can view them here). If a row still shows <strong>Hashed (legacy)</strong>, that user cannot log in until you <strong>Edit</strong> → <strong>Reset PIN</strong> once. Hard-refresh (<kbd>Ctrl</kbd>+<kbd>F5</kbd>) after deploy.</span>
+    <span style="display:block;margin-top:10px;padding:10px 12px;background:#f7fafc;border-radius:8px;border:1px solid #e2e8f0;color:#4a5568;"><strong>PINs</strong> are never displayed on this page. To change a user's PIN, open <strong>Edit</strong> and tap <strong>Reset PIN</strong>; then communicate the new digits to the user via SMS or call.</span>
   </p>
 
   <aside class="admin-hierarchy-guide" aria-label="How Patrol grouping works">
@@ -102,7 +102,8 @@
       </div>
       <div class="form-group">
         <label>PIN</label>
-        <input type="password" id="add-pin" required maxlength="6" placeholder="4-6 digit PIN">
+        <input type="password" id="add-pin" required maxlength="6" placeholder="4-6 digit PIN" autocomplete="new-password">
+        <small class="form-hint">PIN is set once here and never displayed afterward. Use <strong>Edit → Reset PIN</strong> to change it later.</small>
       </div>
       <div class="form-group">
         <label>Role</label>
@@ -171,15 +172,9 @@
         <small class="form-hint" id="edit-email-hint">Required for DSM, RSM, Exec, Sales Admin, and CEO. Must match their Google account (@vienovo.ph).</small>
       </div>
       <div class="form-group">
-        <label>Current login PIN</label>
-        <input type="text" id="edit-pin-current" class="admin-pin-readonly" readonly aria-readonly="true" value="" autocomplete="off">
-        <small class="form-hint" id="edit-pin-current-hint"></small>
-      </div>
-      <div class="form-group">
-        <label>New PIN <span style="font-weight:400;color:#718096">(optional)</span></label>
-        <input type="password" id="edit-pin-new" maxlength="6" placeholder="Leave blank to keep current PIN" autocomplete="new-password">
-        <input type="password" id="edit-pin-confirm" maxlength="6" placeholder="Confirm new PIN" autocomplete="new-password" style="margin-top:8px">
-        <small class="form-hint">If the current PIN is shown above (plain storage), you can share it with the user. If it is hashed, set a <strong>new</strong> PIN here or use Reset PIN.</small>
+        <label>Login PIN</label>
+        <div class="admin-pin-readonly admin-pin-readonly--mask" id="edit-pin-display" aria-label="PIN is hidden">PIN: &bull;&bull;&bull;&bull;</div>
+        <small class="form-hint">PINs are never shown here. Tap <strong data-i18n="admin.resetPin.button">Reset PIN</strong> below to set a new one.</small>
       </div>
       <div class="form-group">
         <label>Role</label>
@@ -226,9 +221,35 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-reset-pin" onclick="resetUserPIN()">Reset PIN</button>
+      <button type="button" class="btn-reset-pin" onclick="openResetPinModal()" data-i18n="admin.resetPin.button">Reset PIN</button>
       <button class="btn-cancel" onclick="closeModal('modal-edit-user')">Cancel</button>
       <button class="btn-save" onclick="saveEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RESET PIN SUB-MODAL ===== -->
+<div class="modal-overlay" id="modal-reset-pin" role="dialog" aria-modal="true" aria-labelledby="modal-reset-pin-title" onclick="closeModalOnOverlay(event, 'modal-reset-pin')">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="modal-reset-pin-title" data-i18n="admin.resetPin.modalTitle">Reset user PIN</h2>
+      <button type="button" class="modal-close" onclick="closeModal('modal-reset-pin')" aria-label="Close dialog">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="admin-form-section-lead" id="reset-pin-user-line">&nbsp;</p>
+      <input type="hidden" id="reset-pin-user-id">
+      <div class="form-group">
+        <label for="reset-pin-new" data-i18n="admin.resetPin.newPinLabel">New PIN</label>
+        <input type="password" id="reset-pin-new" maxlength="6" inputmode="numeric" autocomplete="new-password" placeholder="4-6 digits">
+      </div>
+      <div class="form-group">
+        <label for="reset-pin-confirm" data-i18n="admin.resetPin.confirmLabel">Confirm PIN</label>
+        <input type="password" id="reset-pin-confirm" maxlength="6" inputmode="numeric" autocomplete="new-password" placeholder="Re-type the PIN">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('modal-reset-pin')">Cancel</button>
+      <button class="btn-save" onclick="submitResetPin()" data-i18n="admin.resetPin.submit">Save new PIN</button>
     </div>
   </div>
 </div>
@@ -247,7 +268,7 @@
 <script src="js/auth.js?v=24"></script>
 <script src="js/db.js"></script>
 <script src="js/admin-org.js?v=1"></script>
-<script src="js/admin.js?v=12"></script>
+<script src="js/admin.js?v=13"></script>
 <script>
   // Auth gate — User Admin (CEO, Sales Admin, EVP Sales, Marketing Manager)
   var session = getSession();

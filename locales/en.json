@@ -189,5 +189,12 @@
   "assign.all_stores_assigned": "All stores are assigned",
   "assign.all_farms_assigned": "All farms are assigned",
   "assign.none_assigned_to": "No assigned {entity} for {name}",
-  "assign.assigned_to_count": "Assigned to {name} ({count})"
+  "assign.assigned_to_count": "Assigned to {name} ({count})",
+  "admin.resetPin.button": "Reset PIN",
+  "admin.resetPin.modalTitle": "Reset user PIN",
+  "admin.resetPin.newPinLabel": "New PIN",
+  "admin.resetPin.confirmLabel": "Confirm PIN",
+  "admin.resetPin.submit": "Save new PIN",
+  "admin.resetPin.success": "PIN reset. Notify the user of the new PIN via SMS/call.",
+  "admin.resetPin.mismatch": "PINs do not match."
 }

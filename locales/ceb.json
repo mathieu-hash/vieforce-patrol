@@ -189,5 +189,12 @@
   "assign.all_stores_assigned": "Tanan stores na-assign na",
   "assign.all_farms_assigned": "Tanan bukid na-assign na",
   "assign.none_assigned_to": "Walay assigned {entity} kang {name}",
-  "assign.assigned_to_count": "Assigned kang {name} ({count})"
+  "assign.assigned_to_count": "Assigned kang {name} ({count})",
+  "admin.resetPin.button": "I-reset ang PIN",
+  "admin.resetPin.modalTitle": "I-reset ang PIN sa user",
+  "admin.resetPin.newPinLabel": "Bag-ong PIN",
+  "admin.resetPin.confirmLabel": "Sublia ang PIN",
+  "admin.resetPin.submit": "I-save ang bag-ong PIN",
+  "admin.resetPin.success": "Na-reset ang PIN. I-text o tawagi ang user sa bag-ong PIN.",
+  "admin.resetPin.mismatch": "Lahi ang duha ka PIN."
 }
