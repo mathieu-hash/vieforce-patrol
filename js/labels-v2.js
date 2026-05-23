@@ -1053,26 +1053,19 @@ function setLanguage(lang, opts) {
   opts = opts || {};
   var silent = !!opts.silent;
   var source = opts.source || 'local';
-  console.log('setLanguage input:', lang);
   lang = String(lang).toUpperCase();
-  console.log('after toUpperCase:', lang);
   if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') {
-    console.log('REJECTED - invalid lang:', lang);
     return;
   }
   window.currentLang = lang;
-  console.log('window.currentLang set to:', window.currentLang);
   localStorage.setItem('patrol_lang', lang);
-  console.log('localStorage set to:', localStorage.getItem('patrol_lang'));
   // Rebuild T in-place — keeps same reference for all scripts
   var newT = getT();
-  console.log('newT.withOrder:', newT.withOrder);
   var keys = Object.keys(newT);
   for (var i = 0; i < keys.length; i++) {
     T[keys[i]] = newT[keys[i]];
   }
   window.T = T;
-  console.log('T.withOrder after rebuild:', T.withOrder);
   // Force update all data-t elements
   var els = document.querySelectorAll('[data-t]');
   for (var j = 0; j < els.length; j++) {
@@ -1093,8 +1086,6 @@ function setLanguage(lang, opts) {
     if (aid === 'page-home' && typeof renderStoreList === 'function') renderStoreList();
     if (aid === 'page-home' && typeof updateHomeKPIs === 'function') updateHomeKPIs();
     if (aid === 'page-home' && typeof renderTsrScorecardHero === 'function') renderTsrScorecardHero();
-    if (aid === 'page-home' && typeof renderNbaHero === 'function') renderNbaHero();
-    if (aid === 'page-home' && typeof renderStreakCard === 'function') renderStreakCard();
     if (aid === 'page-visits' && typeof renderVisitList === 'function') renderVisitList();
     if (aid === 'page-dashboard' && typeof initDashboard === 'function') initDashboard();
     if (aid === 'page-home' && typeof initActivityFeed === 'function') {
@@ -1132,7 +1123,6 @@ function setLanguage(lang, opts) {
     window.dispatchEvent(new CustomEvent('patrol:language-changed', { detail: { lang: lang, source: source } }));
   } catch (e) {}
   if (!silent && source !== 'patrol-i18n-bridge') showLangToast();
-  console.log('setLanguage COMPLETE:', window.currentLang);
 }
 
 // Re-render all data-t elements + active page dynamic content

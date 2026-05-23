@@ -146,7 +146,6 @@ function normalizeSessionLanguage(raw) {
   if (s === 'bis' || s === 'ceb' || s === 'cebuano' || s === 'bisaya') return 'ceb';
   if (s === 'fil' || s === 'tl' || s === 'tagalog') return 'tl';
   if (s === 'en' || s === 'english') return 'en';
-  if (s === 'tl' || s === 'ceb') return s;
   return 'en';
 }
 
