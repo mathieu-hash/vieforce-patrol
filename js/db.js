@@ -777,7 +777,11 @@ async function getFarmsForTerritoryMap() {
   return rAll.data || [];
 }
 
-async function assignStores(storeIds, tsrId) {
+// Wave 2 (Audit D O4): raw Supabase write — used by offline.js sync drain.
+// External callers should go through queueAssignment so the write survives
+// signal drops. assignStores() below queues per-row, then the offline.js
+// drain calls _rawAssignStores to actually hit Supabase.
+async function _rawAssignStores(storeIds, tsrId) {
   if (!storeIds || storeIds.length === 0) return;
 
   var { error } = await supabaseClient
@@ -788,7 +792,7 @@ async function assignStores(storeIds, tsrId) {
   if (error) throw new Error('assignStores: ' + error.message);
 }
 
-async function unassignStores(storeIds) {
+async function _rawUnassignStores(storeIds) {
   if (!storeIds || storeIds.length === 0) return;
 
   var { error } = await supabaseClient
@@ -797,6 +801,23 @@ async function unassignStores(storeIds) {
     .in('id', storeIds);
 
   if (error) throw new Error('unassignStores: ' + error.message);
+}
+
+// Public helpers — queue per-row so a flaky link doesn't lose work.
+// Each row is atomic on the server; a bulk that partially syncs preserves
+// the work that DID land. See _audit/AUDIT_D_offline_first.md (P0 O4).
+async function assignStores(storeIds, tsrId) {
+  if (!storeIds || storeIds.length === 0) return;
+  for (var i = 0; i < storeIds.length; i++) {
+    await queueAssignment({ kind: 'store', tsr_id: tsrId, store_id: storeIds[i] });
+  }
+}
+
+async function unassignStores(storeIds) {
+  if (!storeIds || storeIds.length === 0) return;
+  for (var i = 0; i < storeIds.length; i++) {
+    await queueAssignment({ kind: 'store', tsr_id: null, store_id: storeIds[i] });
+  }
 }
 
 async function getAssignmentCounts() {
@@ -843,7 +864,7 @@ async function getFarmsByTSR(tsrId) {
   return data || [];
 }
 
-async function assignFarms(farmIds, tsrId) {
+async function _rawAssignFarms(farmIds, tsrId) {
   if (!farmIds || farmIds.length === 0) return;
 
   var { error } = await supabaseClient
@@ -854,7 +875,7 @@ async function assignFarms(farmIds, tsrId) {
   if (error) throw new Error('assignFarms: ' + error.message);
 }
 
-async function unassignFarms(farmIds) {
+async function _rawUnassignFarms(farmIds) {
   if (!farmIds || farmIds.length === 0) return;
 
   var { error } = await supabaseClient
@@ -863,6 +884,20 @@ async function unassignFarms(farmIds) {
     .in('id', farmIds);
 
   if (error) throw new Error('unassignFarms: ' + error.message);
+}
+
+async function assignFarms(farmIds, tsrId) {
+  if (!farmIds || farmIds.length === 0) return;
+  for (var i = 0; i < farmIds.length; i++) {
+    await queueAssignment({ kind: 'farm', tsr_id: tsrId, store_id: farmIds[i] });
+  }
+}
+
+async function unassignFarms(farmIds) {
+  if (!farmIds || farmIds.length === 0) return;
+  for (var i = 0; i < farmIds.length; i++) {
+    await queueAssignment({ kind: 'farm', tsr_id: null, store_id: farmIds[i] });
+  }
 }
 
 async function getFarmAssignmentCounts() {
