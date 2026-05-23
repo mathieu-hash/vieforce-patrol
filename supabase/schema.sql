@@ -156,6 +156,26 @@ LANGUAGE sql STABLE AS $$
   SELECT public.patrol_role() IN ('dsm', 'rsm', 'exec', 'ceo', 'evp', 'admin')
 $$;
 
+-- Top managers (exec/CEO/EVP/admin/marketing) see ALL rows — above hierarchy.
+CREATE OR REPLACE FUNCTION public.patrol_is_top_manager() RETURNS boolean
+LANGUAGE sql STABLE AS $$
+  SELECT public.patrol_role() IN ('admin', 'ceo', 'evp', 'exec', 'marketing')
+$$;
+
+CREATE OR REPLACE FUNCTION public.patrol_rsm_in_region(p_region text) RETURNS boolean
+LANGUAGE sql STABLE AS $$
+  SELECT public.patrol_role() = 'rsm'
+     AND public.patrol_jwt_region() IS NOT NULL
+     AND public.patrol_jwt_region() = p_region
+$$;
+
+CREATE OR REPLACE FUNCTION public.patrol_dsm_in_district(p_district text) RETURNS boolean
+LANGUAGE sql STABLE AS $$
+  SELECT public.patrol_role() = 'dsm'
+     AND public.patrol_jwt_district() IS NOT NULL
+     AND public.patrol_jwt_district() = p_district
+$$;
+
 CREATE OR REPLACE FUNCTION public.patrol_jwt_region() RETURNS text
 LANGUAGE sql STABLE AS $$
   SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'region')::text, '')
@@ -200,16 +220,12 @@ DROP POLICY IF EXISTS stores_insert_auth   ON public.stores;
 DROP POLICY IF EXISTS stores_update_scoped ON public.stores;
 DROP POLICY IF EXISTS stores_delete_admin  ON public.stores;
 
+-- Hierarchy: TSR (own) → DSM (district) → RSM (region) → top-manager (all).
 CREATE POLICY stores_select_scoped ON public.stores
   FOR SELECT USING (
-    public.patrol_is_admin()
-    OR (
-      public.patrol_is_manager() AND (
-        public.patrol_jwt_region() IS NULL
-        OR public.patrol_jwt_region() = stores.region
-        OR public.patrol_jwt_district() = stores.district
-      )
-    )
+    public.patrol_is_top_manager()
+    OR public.patrol_rsm_in_region(stores.region)
+    OR public.patrol_dsm_in_district(stores.district)
     OR stores.assigned_tsr = auth.uid()
     OR stores.created_by = auth.uid()
   );
@@ -220,14 +236,16 @@ CREATE POLICY stores_insert_auth ON public.stores
 CREATE POLICY stores_update_scoped ON public.stores
   FOR UPDATE
   USING (
-    public.patrol_is_admin()
-    OR public.patrol_is_manager()
+    public.patrol_is_top_manager()
+    OR public.patrol_rsm_in_region(stores.region)
+    OR public.patrol_dsm_in_district(stores.district)
     OR stores.assigned_tsr = auth.uid()
     OR stores.created_by = auth.uid()
   )
   WITH CHECK (
-    public.patrol_is_admin()
-    OR public.patrol_is_manager()
+    public.patrol_is_top_manager()
+    OR public.patrol_rsm_in_region(stores.region)
+    OR public.patrol_dsm_in_district(stores.district)
     OR stores.assigned_tsr = auth.uid()
     OR stores.created_by = auth.uid()
   );
@@ -319,11 +337,17 @@ DROP POLICY IF EXISTS visits_insert_self        ON public.visits;
 DROP POLICY IF EXISTS visits_update_self_or_mgr ON public.visits;
 DROP POLICY IF EXISTS visits_delete_admin       ON public.visits;
 
+-- Visits inherit hierarchy via parent store (EXISTS-join).
 CREATE POLICY visits_select_scoped ON public.visits
   FOR SELECT USING (
-    public.patrol_is_admin()
-    OR public.patrol_is_manager()
+    public.patrol_is_top_manager()
     OR visits.tsr_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = visits.store_id
+        AND (public.patrol_rsm_in_region(s.region)
+             OR public.patrol_dsm_in_district(s.district))
+    )
   );
 
 CREATE POLICY visits_insert_self ON public.visits
@@ -334,16 +358,26 @@ CREATE POLICY visits_insert_self ON public.visits
 CREATE POLICY visits_update_self_or_mgr ON public.visits
   FOR UPDATE
   USING (
-    public.patrol_is_admin()
-    OR public.patrol_is_manager()
+    public.patrol_is_top_manager()
     OR (visits.tsr_id = auth.uid()
         AND visits.visited_at >= (now() - interval '24 hours'))
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = visits.store_id
+        AND (public.patrol_rsm_in_region(s.region)
+             OR public.patrol_dsm_in_district(s.district))
+    )
   )
   WITH CHECK (
-    public.patrol_is_admin()
-    OR public.patrol_is_manager()
+    public.patrol_is_top_manager()
     OR (visits.tsr_id = auth.uid()
         AND visits.visited_at >= (now() - interval '24 hours'))
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = visits.store_id
+        AND (public.patrol_rsm_in_region(s.region)
+             OR public.patrol_dsm_in_district(s.district))
+    )
   );
 
 CREATE POLICY visits_delete_admin ON public.visits
@@ -355,15 +389,12 @@ DROP POLICY IF EXISTS farms_insert_auth   ON public.farms;
 DROP POLICY IF EXISTS farms_update_scoped ON public.farms;
 DROP POLICY IF EXISTS farms_delete_admin  ON public.farms;
 
+-- Farms hierarchy is region-only (no district column). DSM gets farms
+-- only if assigned or creator. Add district column later for DSM scope.
 CREATE POLICY farms_select_scoped ON public.farms
   FOR SELECT USING (
-    public.patrol_is_admin()
-    OR (
-      public.patrol_is_manager() AND (
-        public.patrol_jwt_region() IS NULL
-        OR public.patrol_jwt_region() = farms.region
-      )
-    )
+    public.patrol_is_top_manager()
+    OR public.patrol_rsm_in_region(farms.region)
     OR farms.assigned_tsr = auth.uid()
     OR farms.created_by = auth.uid()
   );
@@ -374,14 +405,14 @@ CREATE POLICY farms_insert_auth ON public.farms
 CREATE POLICY farms_update_scoped ON public.farms
   FOR UPDATE
   USING (
-    public.patrol_is_admin()
-    OR public.patrol_is_manager()
+    public.patrol_is_top_manager()
+    OR public.patrol_rsm_in_region(farms.region)
     OR farms.assigned_tsr = auth.uid()
     OR farms.created_by = auth.uid()
   )
   WITH CHECK (
-    public.patrol_is_admin()
-    OR public.patrol_is_manager()
+    public.patrol_is_top_manager()
+    OR public.patrol_rsm_in_region(farms.region)
     OR farms.assigned_tsr = auth.uid()
     OR farms.created_by = auth.uid()
   );
@@ -396,15 +427,14 @@ DROP POLICY IF EXISTS sap_accounts_manager_read ON public.sap_accounts;
 CREATE POLICY sap_accounts_manager_read ON public.sap_accounts
   FOR SELECT USING (public.patrol_is_manager());
 
--- STORE_SAP_MATCHES: manager read, admin mutate.
+-- STORE_SAP_MATCHES: admin-only (Mat 2026-05-21 — DSMs don't need raw
+-- match-log visibility; curated data flows through stores).
 ALTER TABLE public.store_sap_matches ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS store_sap_matches_manager_read ON public.store_sap_matches;
 DROP POLICY IF EXISTS store_sap_matches_admin_mutate ON public.store_sap_matches;
+DROP POLICY IF EXISTS store_sap_matches_admin_only   ON public.store_sap_matches;
 
-CREATE POLICY store_sap_matches_manager_read ON public.store_sap_matches
-  FOR SELECT USING (public.patrol_is_manager());
-
-CREATE POLICY store_sap_matches_admin_mutate ON public.store_sap_matches
+CREATE POLICY store_sap_matches_admin_only ON public.store_sap_matches
   FOR ALL
   USING      (public.patrol_is_admin())
   WITH CHECK (public.patrol_is_admin());
