@@ -943,6 +943,9 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
   border: 1px solid rgba(255,255,255,0.15);
   border-radius: 8px; font-family: inherit; font-size: 15px;
   color: #FFFFFF;
+  /* CLAUDE.md Rule 3 — TSR login on field phones requires 64px+ tap targets. */
+  min-height: 64px;
+  box-sizing: border-box;
 }
 .login-box input::placeholder { color: rgba(255,255,255,0.4); }
 .login-box input:focus { outline: none; border-color: #00A6CE; background: rgba(0,174,239,0.08); }
@@ -951,6 +954,11 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
   border: none; border-radius: 8px; font-family: inherit;
   font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 20px;
   letter-spacing: 0.5px;
+}
+/* CLAUDE.md Rule 3 — secondary login (Google) is still TSR-relevant on shared phones. */
+.login-btn.secondary,
+#google-login-btn {
+  min-height: 64px;
 }
 .login-divider {
   display: flex; align-items: center; gap: 12px; margin: 20px 0;
@@ -2409,15 +2417,22 @@ body:has(#page-farm-new.active)  #fab-btn {
   z-index: 2;
 }
 .login-lang-btn {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 24px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   border: 1px solid rgba(255,255,255,0.15);
   background: rgba(255,255,255,0.08);
   color: rgba(255,255,255,0.5);
   transition: all 0.2s;
+  /* CLAUDE.md Rule 3 (login pills) — 48px floor; full 64px makes the lang bar dominate the logo. */
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 .login-lang-btn.active {
   background: #00A6CE;
