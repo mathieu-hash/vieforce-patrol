@@ -48,6 +48,16 @@ LANGUAGE sql STABLE AS $$
   SELECT public.patrol_role() IN ('admin', 'ceo', 'evp', 'exec', 'marketing')
 $$;
 
+CREATE OR REPLACE FUNCTION public.patrol_jwt_region() RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'region')::text, '')
+$$;
+
+CREATE OR REPLACE FUNCTION public.patrol_jwt_district() RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'district')::text, '')
+$$;
+
 -- True if caller is an RSM whose region matches the given value.
 CREATE OR REPLACE FUNCTION public.patrol_rsm_in_region(p_region text) RETURNS boolean
 LANGUAGE sql STABLE AS $$
@@ -64,15 +74,32 @@ LANGUAGE sql STABLE AS $$
      AND public.patrol_jwt_district() = p_district
 $$;
 
-CREATE OR REPLACE FUNCTION public.patrol_jwt_region() RETURNS text
-LANGUAGE sql STABLE AS $$
-  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'region')::text, '')
-$$;
 
-CREATE OR REPLACE FUNCTION public.patrol_jwt_district() RETURNS text
-LANGUAGE sql STABLE AS $$
-  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'district')::text, '')
-$$;
+-- ── 0b. Schema gap fill ─────────────────────────────────────────
+-- Add columns the new RLS policies reference, if missing on the live
+-- DB. All idempotent. Backfill is admin's job via patrol_org wiring.
+
+-- stores: add district (we already have region) so DSM scoping works.
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS district text;
+CREATE INDEX IF NOT EXISTS stores_district_idx ON public.stores(district);
+
+-- farms: add region + assigned_tsr + created_by if missing
+-- (schema.sql claimed they exist, but live drift confirmed otherwise).
+ALTER TABLE public.farms ADD COLUMN IF NOT EXISTS region text;
+ALTER TABLE public.farms ADD COLUMN IF NOT EXISTS assigned_tsr uuid REFERENCES public.users(id);
+ALTER TABLE public.farms ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES public.users(id);
+CREATE INDEX IF NOT EXISTS farms_region_idx ON public.farms(region);
+CREATE INDEX IF NOT EXISTS farms_assigned_tsr_idx ON public.farms(assigned_tsr);
+
+-- stores: ensure assigned_tsr + created_by exist too (defensive).
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS assigned_tsr uuid REFERENCES public.users(id);
+ALTER TABLE public.stores ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES public.users(id);
+CREATE INDEX IF NOT EXISTS stores_assigned_tsr_idx ON public.stores(assigned_tsr);
+
+-- visits: ensure store_id + tsr_id + visited_at exist (defensive).
+ALTER TABLE public.visits ADD COLUMN IF NOT EXISTS store_id uuid REFERENCES public.stores(id);
+ALTER TABLE public.visits ADD COLUMN IF NOT EXISTS tsr_id uuid REFERENCES public.users(id);
+ALTER TABLE public.visits ADD COLUMN IF NOT EXISTS visited_at timestamptz DEFAULT now();
 
 
 -- ── 1. users ────────────────────────────────────────────────────

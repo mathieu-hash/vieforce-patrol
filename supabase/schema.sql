@@ -42,6 +42,9 @@ create table if not exists public.stores (
   updated_at timestamptz default now()
 );
 create index if not exists stores_region_idx on public.stores(region);
+-- district added in 20260521120000_rls_hardening_w1.sql for DSM scoping
+alter table public.stores add column if not exists district text;
+create index if not exists stores_district_idx on public.stores(district);
 
 -- 3. Store Products
 create table if not exists public.store_products (
@@ -162,6 +165,16 @@ LANGUAGE sql STABLE AS $$
   SELECT public.patrol_role() IN ('admin', 'ceo', 'evp', 'exec', 'marketing')
 $$;
 
+CREATE OR REPLACE FUNCTION public.patrol_jwt_region() RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'region')::text, '')
+$$;
+
+CREATE OR REPLACE FUNCTION public.patrol_jwt_district() RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'district')::text, '')
+$$;
+
 CREATE OR REPLACE FUNCTION public.patrol_rsm_in_region(p_region text) RETURNS boolean
 LANGUAGE sql STABLE AS $$
   SELECT public.patrol_role() = 'rsm'
@@ -174,16 +187,6 @@ LANGUAGE sql STABLE AS $$
   SELECT public.patrol_role() = 'dsm'
      AND public.patrol_jwt_district() IS NOT NULL
      AND public.patrol_jwt_district() = p_district
-$$;
-
-CREATE OR REPLACE FUNCTION public.patrol_jwt_region() RETURNS text
-LANGUAGE sql STABLE AS $$
-  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'region')::text, '')
-$$;
-
-CREATE OR REPLACE FUNCTION public.patrol_jwt_district() RETURNS text
-LANGUAGE sql STABLE AS $$
-  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'district')::text, '')
 $$;
 
 -- Enable RLS on every Patrol-managed table
