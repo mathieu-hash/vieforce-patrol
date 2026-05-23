@@ -101,13 +101,9 @@
     return m ? m.name + ' (' + uRsm + ')' : String(uRsm);
   }
 
+  // Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
   function escapeHtml(s) {
-    if (s == null) return '';
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+    return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : (s == null ? '' : String(s));
   }
 
   function patrolPlaceholders(linked) {

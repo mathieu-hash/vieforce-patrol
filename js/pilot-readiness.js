@@ -10,10 +10,9 @@
 
   function $(id) { return document.getElementById(id); }
 
+  // Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
   function esc(s) {
-    var d = document.createElement('div');
-    d.appendChild(document.createTextNode(s == null ? '' : String(s)));
-    return d.innerHTML;
+    return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : (s == null ? '' : String(s));
   }
 
   function injectStyles() {

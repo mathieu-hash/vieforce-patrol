@@ -670,9 +670,9 @@ function _clearMarkers() {
 //  PRIVATE — HTML-escape
 // ═══════════════════════════════════════════════════
 
+// Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
+// NOTE: original returned '' for `0` (falsy) — known P2 bug in audit; the
+// canonical helper correctly preserves "0".
 function _esc(str) {
-  if (!str) return '';
-  var d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
+  return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(str) : (str == null ? '' : String(str));
 }

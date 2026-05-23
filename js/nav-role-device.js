@@ -74,12 +74,17 @@
     return (session && session.role ? session.role : 'tsr').toLowerCase();
   }
 
+  // FLAGGED: escAttr also escapes single-quotes for single-quoted attribute
+  // contexts. PatrolEscape.escapeAttr only handles double-quoted contexts, so
+  // we keep this local variant. If call sites move to double-quoted attrs,
+  // migrate to PatrolEscape.escapeAttr.
   function escAttr(s) {
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  // Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
   function escHtml(s) {
-    return String(s)
+    return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : String(s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');

@@ -27,13 +27,13 @@
     });
   }
 
+  // Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
   function escapeHtml(s) {
-    if (s == null) return '';
-    return String(s)
+    return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : (s == null ? '' : String(s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
+      .replace(/"/g, '&quot;'));
   }
 
   function normKey(s) {

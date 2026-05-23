@@ -169,8 +169,10 @@ function _assigneeLabelForStore(s, lookup) {
 
 var _lastStoresAssigneeLookup = {};
 
+// Delegates to canonical PatrolEscape.escapeAttr (js/_util/escape.js).
+// Canonical escapes &<>" (strictly more than the original which only handled ").
 function _escAttr(s) {
-  return String(s == null ? '' : s).replace(/"/g, '&quot;');
+  return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeAttr(s) : String(s == null ? '' : s).replace(/"/g, '&quot;');
 }
 
 function _refreshAssigneeChipStrip(stores) {
@@ -781,12 +783,11 @@ async function renderStoreList(filter) {
   await renderTindahan(filter);
 }
 
-// HTML-escape helper
+// HTML-escape helper. Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
+// NOTE: original returned '' for `0` (falsy) — known P2 bug in audit; the
+// canonical helper correctly preserves "0".
 function _esc(str) {
-  if (!str) return '';
-  var d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
+  return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(str) : (str == null ? '' : String(str));
 }
 
 // ── FB Messenger conversation row builder ──
