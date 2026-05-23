@@ -14,12 +14,17 @@
     return document.getElementById(id);
   }
 
+  // W1-AuthCore: Bearer JWT replaces x-session-id. Async because Supabase
+  // session lookup is async.
   function apiHeaders() {
-    var session = typeof getSession === 'function' ? getSession() : null;
-    return {
-      'Content-Type': 'application/json',
-      'x-session-id': session && session.id ? session.id : ''
-    };
+    var p = (typeof window.getAuthBearer === 'function')
+      ? window.getAuthBearer()
+      : Promise.resolve(null);
+    return p.then(function (bearer) {
+      var h = { 'Content-Type': 'application/json' };
+      if (bearer) h.Authorization = 'Bearer ' + bearer;
+      return h;
+    });
   }
 
   function escapeHtml(s) {
@@ -234,10 +239,12 @@
   }
 
   function postOrg(body) {
-    return fetch('/api/admin/org', {
-      method: 'POST',
-      headers: apiHeaders(),
-      body: JSON.stringify(body)
+    return apiHeaders().then(function (headers) {
+      return fetch('/api/admin/org', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(body)
+      });
     }).then(function (res) {
       return res.json().then(function (data) {
         if (!res.ok) throw new Error((data && (data.message || data.error)) || 'HTTP ' + res.status);
@@ -255,7 +262,10 @@
     errBox.classList.add('hidden');
     layout.classList.add('hidden');
 
-    return fetch('/api/admin/org', { headers: apiHeaders(), cache: 'no-store' })
+    return apiHeaders()
+      .then(function (headers) {
+        return fetch('/api/admin/org', { headers: headers, cache: 'no-store' });
+      })
       .then(function (res) {
         return res.json().then(function (data) {
           if (!res.ok) throw new Error((data && (data.message || data.error)) || 'HTTP ' + res.status);
@@ -356,7 +366,10 @@
     ensureLoaded: function () {
       var self = this;
       if (self._cache) return Promise.resolve(self._cache);
-      return fetch('/api/admin/org', { headers: apiHeaders(), cache: 'no-store' })
+      return apiHeaders()
+        .then(function (headers) {
+          return fetch('/api/admin/org', { headers: headers, cache: 'no-store' });
+        })
         .then(function (res) {
           return res.json().then(function (data) {
             if (!res.ok) throw new Error('org load failed');

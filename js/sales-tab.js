@@ -735,13 +735,20 @@
     var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 18000) : null;
 
+    // W1-AuthCore: Bearer JWT replaces x-session-id.
+    var bearer = (typeof window.getAuthBearer === 'function') ? await window.getAuthBearer() : null;
+    if (!bearer) {
+      _spreadError([brEl, byEl], { message: 'Session missing. Sign in again.' });
+      return;
+    }
+
     var data;
     try {
       var res = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'x-session-id': session.id
+          Authorization: 'Bearer ' + bearer
         },
         credentials: 'include',
         signal: ctrl ? ctrl.signal : undefined

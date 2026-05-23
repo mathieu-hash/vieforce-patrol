@@ -175,24 +175,31 @@
     return setLocale(code, { skipEvent: true }).then(function () {
       var session = typeof window.getSession === 'function' ? window.getSession() : null;
       if (session && session.id) {
-        return fetch('/api/user/language', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-session-id': session.id
-          },
-          body: JSON.stringify({ language: code })
-        })
-          .then(function (res) {
-            if (!res.ok) {
-              console.warn('[i18n] saveUserLocale HTTP', res.status);
-            }
-            return code;
+        // W1-AuthCore: PATCH with Supabase Auth Bearer JWT.
+        var bearerPromise = (typeof window.getAuthBearer === 'function')
+          ? window.getAuthBearer()
+          : Promise.resolve(null);
+        return bearerPromise.then(function (bearer) {
+          if (!bearer) return code;
+          return fetch('/api/user/language', {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer ' + bearer
+            },
+            body: JSON.stringify({ language: code })
           })
-          .catch(function (err) {
-            console.warn('[i18n] saveUserLocale failed', err && err.message);
-            return code;
-          });
+            .then(function (res) {
+              if (!res.ok) {
+                console.warn('[i18n] saveUserLocale HTTP', res.status);
+              }
+              return code;
+            })
+            .catch(function (err) {
+              console.warn('[i18n] saveUserLocale failed', err && err.message);
+              return code;
+            });
+        });
       }
       return Promise.resolve(code);
     }).then(function () {

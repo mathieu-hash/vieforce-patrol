@@ -10,12 +10,16 @@
     return document.getElementById(id);
   }
 
+  // W1-AuthCore: Bearer JWT replaces x-session-id.
   function apiHeaders() {
-    var session = typeof getSession === 'function' ? getSession() : null;
-    return {
-      'Content-Type': 'application/json',
-      'x-session-id': session && session.id ? session.id : ''
-    };
+    var p = (typeof window.getAuthBearer === 'function')
+      ? window.getAuthBearer()
+      : Promise.resolve(null);
+    return p.then(function (bearer) {
+      var h = { 'Content-Type': 'application/json' };
+      if (bearer) h.Authorization = 'Bearer ' + bearer;
+      return h;
+    });
   }
 
   function loadReps() {
@@ -29,7 +33,10 @@
     table.classList.add('hidden');
     if (cards) cards.classList.add('hidden');
 
-    fetch('/api/admin/sap-reps', { headers: apiHeaders(), cache: 'no-store' })
+    apiHeaders()
+      .then(function (headers) {
+        return fetch('/api/admin/sap-reps', { headers: headers, cache: 'no-store' });
+      })
       .then(function (res) {
         return res.text().then(function (txt) {
           var data = null;
