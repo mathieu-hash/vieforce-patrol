@@ -1,35 +1,36 @@
 // GET /api/whoami
-// Diagnostic endpoint that returns the egress IP this Vercel serverless invocation
-// is using (so we can allowlist it on the SAP MSSQL Azure NSG). Vercel rotates IPs
-// per invocation on Hobby/Pro-without-Secure-Compute, so call this several times.
+// Returns the calling user's identity + diagnostic egress IP / Vercel telemetry.
 //
-// Safe to expose: returns no secrets, only public Vercel telemetry + the public
-// outbound IP (which is anyway trivially observable from any service Vercel calls).
+// Wave 1 (W1-ApiGates): now requires a valid session via requireUser. Previous
+// PATROL_WHOAMI_KEY query-param gate is removed — auth is the gate. Non-auth
+// callers get 401 in every environment (prod or local).
 //
-// Production: disabled unless PATROL_WHOAMI_KEY (or WHOAMI_KEY) is set and caller passes ?key=<same>.
-// Non-production: open for local triage (curl without Origin).
+// Egress-IP probe to api.ipify.org has try/catch fallback so the endpoint
+// never 5xx's just because ipify is briefly down.
+
+const { requireUser } = require('./_lib/api-auth');
 
 module.exports = async function (req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   res.setHeader('Content-Type', 'application/json');
 
-  const prod =
-    process.env.VERCEL_ENV === 'production' ||
-    (process.env.NODE_ENV === 'production' && process.env.VERCEL === '1');
-  const gateKey = String(process.env.PATROL_WHOAMI_KEY || process.env.WHOAMI_KEY || '').trim();
-
-  if (prod) {
-    if (!gateKey) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    const q = (req && req.query) || {};
-    const got = String(q.key == null ? '' : q.key).trim();
-    if (got !== gateKey) {
-      return res.status(404).json({ error: 'Not found' });
-    }
+  let user;
+  try {
+    user = await requireUser(req);
+  } catch (err) {
+    const status = (err && err.status) || 401;
+    return res.status(status).json({ error: err.code || 'UNAUTHORIZED', message: err.message });
   }
 
   const meta = {
+    user: {
+      id: user.id,
+      role: user.role || null,
+      name: user.name || null,
+      region: user.region || null,
+      district: user.district || null,
+      territory: user.territory || null
+    },
     project: process.env.VERCEL_PROJECT_PRODUCTION_URL || null,
     region: process.env.VERCEL_REGION || null,
     deployment_url: process.env.VERCEL_URL || null,
@@ -46,8 +47,7 @@ module.exports = async function (req, res) {
     const body = await r.json();
     return res.status(200).json(Object.assign({ egress_ip: body && body.ip }, meta));
   } catch (err) {
-    return res.status(502).json(
-      Object.assign({ error: 'IP_LOOKUP_FAILED', message: (err && err.message) || String(err) }, meta)
-    );
+    // ipify down → still return identity + Vercel meta. Diagnostic-only field.
+    return res.status(200).json(Object.assign({ egress_ip: null, egress_ip_error: (err && err.message) || String(err) }, meta));
   }
 };
