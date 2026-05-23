@@ -79,6 +79,103 @@ body.role-champion .fab-pick-btn {
   min-height: 64px;
 }
 
+/* ============================================================
+ * W5-TapTargets — CLAUDE.md Rule 3 sweep for the 16 controls
+ * uncovered by the W4 tap-target audit. All TSR-only; manager
+ * shells (DSM/RSM/CEO) keep their denser sizing.
+ * ============================================================ */
+
+/* TSR home header — search hit (was 48px) + circular icon buttons (was 56px). */
+body.role-tsr #page-home-tsr .phase4-inline-search-hit,
+body.role-champion #page-home-tsr .phase4-inline-search-hit,
+#page-home-tsr.phase4-page .phase4-inline-search-hit {
+  min-height: 64px;
+}
+
+body.role-tsr #page-home-tsr .icon-btn,
+body.role-champion #page-home-tsr .icon-btn,
+#page-home-tsr.phase4-page .icon-btn {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
+}
+
+/* NBA Go / Skip buttons (were 48px). */
+body.role-tsr #page-home-tsr .nba-btn,
+body.role-champion #page-home-tsr .nba-btn,
+#page-home-tsr .nba-btn {
+  min-height: 64px;
+  padding: 16px;
+  font-size: 14px;
+}
+
+/* "Optimize route" section action (was a 15px text link masquerading as a button). */
+body.role-tsr #page-home-tsr .tsr-section-action,
+body.role-champion #page-home-tsr .tsr-section-action,
+#page-home-tsr .tsr-section-action {
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 100px;
+  background: var(--bg-hover, rgba(8, 24, 48, 0.06));
+}
+
+/* Route items (were 44px rows; TSRs tap these to drill into a store). */
+body.role-tsr #page-home-tsr .route-item,
+body.role-champion #page-home-tsr .route-item,
+#page-home-tsr .route-item {
+  min-height: 64px;
+  padding: 16px 0;
+}
+
+/* Tindahan store-search input (was 17px when label-only; bump the input itself). */
+body.role-tsr .tindahan-search,
+body.role-champion .tindahan-search,
+body.role-tsr #tindahan-store-search,
+body.role-champion #tindahan-store-search {
+  min-height: 64px;
+}
+body.role-tsr .tindahan-search input,
+body.role-champion .tindahan-search input {
+  min-height: 48px;
+  font-size: 16px;
+}
+
+/* Profile page header back / more (were 56px icon-btns under .phase4-page). */
+body.role-tsr #page-profile .icon-btn,
+body.role-champion #page-profile .icon-btn,
+#page-profile.phase4-page .icon-btn {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
+}
+
+/* Profile actions row — Edit / Logout / Follow / Message (were 36px pills). */
+body.role-tsr #page-profile .profile-actions .prof-btn,
+body.role-champion #page-profile .profile-actions .prof-btn,
+#page-profile .profile-actions .prof-btn {
+  min-height: 64px;
+  padding: 12px 20px;
+  font-size: 14px;
+}
+
+/* Pilot readiness sheet buttons (were 46px; injected via JS but TSR-facing). */
+body.role-tsr .pilot-btn,
+body.role-champion .pilot-btn,
+.pilot-btn {
+  min-height: 64px !important;
+  padding: 16px 18px !important;
+}
+
+/* Theme toggle inside the More sheet (was 30px; 48px keeps the pill shape readable). */
+body.role-tsr .theme-toggle button,
+body.role-champion .theme-toggle button,
+.theme-toggle button {
+  min-height: 48px;
+  padding: 12px 16px;
+}
+
 /* ===== TSR SKELETON VARIANT (CLAUDE.md Rule 7) =====
  * Taller rows and higher-contrast shimmer for sunlight readability + calloused
  * hands. Applied automatically to .skeleton-row when the body role is TSR or

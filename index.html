@@ -92,6 +92,9 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   border: 1px solid rgba(255,255,255,0.15) !important;
   color: #FFFFFF !important;
   border-radius: 8px !important;
+  /* CLAUDE.md Rule 3 — TSRs log in on calloused-hand phones; 64px floor. */
+  min-height: 64px !important;
+  box-sizing: border-box !important;
 }
 .login-box input::placeholder { color: rgba(255,255,255,0.35) !important; }
 .login-box input:focus { border-color: #00A6CE !important; background: rgba(0,174,239,0.08) !important; }
@@ -104,7 +107,8 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
 .login-btn.secondary {
   background: rgba(255,255,255,0.12) !important;
   border: 1px solid rgba(255,255,255,0.2) !important;
-  min-height: 52px !important;
+  /* CLAUDE.md Rule 3 — Google login is still field-facing; 64px floor. */
+  min-height: 64px !important;
   margin-top: 8px !important;
 }
 .login-option-title {
@@ -124,10 +128,17 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   background: rgba(255,255,255,0.1) !important;
   color: rgba(255,255,255,0.7) !important;
   border: 1px solid rgba(255,255,255,0.2) !important;
-  border-radius: 20px !important;
-  padding: 4px 12px !important;
-  font-size: 11px !important; font-weight: 700 !important;
+  border-radius: 24px !important;
+  padding: 8px 16px !important;
+  font-size: 12px !important; font-weight: 700 !important;
   cursor: pointer !important;
+  /* CLAUDE.md Rule 3 (login pills) — 48px floor (decorative-adjacent inline pills). */
+  min-height: 48px !important;
+  min-width: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
 }
 .login-lang-btn.active {
   background: #00A6CE !important;
