@@ -349,11 +349,64 @@ export async function installAppInitScripts(page: Page) {
       window._attemptImmediateSync = async function () {
         return { state: 'queued', message: '\u2713 Na-save!' };
       };
-      window.uploadPhoto = async function () {
+      // uploadPhoto — mock the Supabase Storage round-trip (we have no
+      // Storage in e2e) but ENFORCE the post-W2-PhotoFlow signature so a
+      // regression to `uploadPhoto(blob, path)` is caught here, not later.
+      // Contract: { row_id, blob, tsr_id, table } → public URL string.
+      // (Audit D O5 / 2026-04 H-03; covered live in tests/unit/photo-flow.test.js)
+      window.uploadPhoto = async function (opts: any) {
+        if (!opts || typeof opts !== 'object' || opts instanceof Blob) {
+          throw new Error(
+            'uploadPhoto: e2e stub expects new signature { row_id, blob, tsr_id, table }'
+          );
+        }
+        if (!opts.blob) throw new Error('uploadPhoto: blob is required');
+        if (!opts.row_id) throw new Error('uploadPhoto: row_id is required');
+        if (!opts.table) throw new Error('uploadPhoto: table is required');
         return 'https://e2e.example/photo.jpg';
       };
+      // capturePhoto — Audit E P0 top-1 fix.
+      //
+      // OLD stub (pre-W4-PhotoBudget): returned a 4-byte fake JPEG, so
+      //   tests/e2e/03-visit.spec.ts ran against a fake blob — no test
+      //   ever exercised the real js/camera.js::compressImage pipeline.
+      //
+      // NEW stub: fetches the real ~1.5MB fixture from
+      //   /tests/e2e/fixtures/photo-large-1500kb.jpg, builds a File, and
+      //   pushes it through the REAL compressImage() function loaded by
+      //   the app. The output is a JPEG Blob — the same shape the live
+      //   camera roll produces — so the offline queue, photo budget,
+      //   and visit-submit code paths are exercised against a real
+      //   compressed photo, not a fake.
+      //
+      // If compressImage is not yet defined when capturePhoto is called
+      // (e.g. unit-level Playwright tests that boot before camera.js
+      // loads), fall back to the prior 4-byte fake so existing specs
+      // keep running.
       window.capturePhoto = async function () {
-        return new Blob([0xff, 0xd8, 0xff, 0xd9], { type: 'image/jpeg' });
+        try {
+          const res = await fetch('/tests/e2e/fixtures/photo-large-1500kb.jpg');
+          if (!res.ok) throw new Error('fixture fetch ' + res.status);
+          const ab = await res.arrayBuffer();
+          // Build a File the same way a <input type=file> would supply.
+          const file = new File([ab], 'photo-large-1500kb.jpg', {
+            type: 'image/jpeg',
+          });
+          // Use the REAL compressImage from js/camera.js (loaded by app shell).
+          const compress = (window as any).compressImage;
+          if (typeof compress === 'function') {
+            return await compress(file);
+          }
+          // Pre-camera.js-load fallback: hand back the raw file as a Blob.
+          // Almost no spec hits this branch — installAppInitScripts is
+          // designed to run AFTER the shell scripts have loaded.
+          return new Blob([ab], { type: 'image/jpeg' });
+        } catch (_e) {
+          // Last-resort fallback so a missing fixture cannot break the
+          // entire e2e suite. The new 19-photo-budget.spec.ts will fail
+          // loudly if compression ever silently disappears.
+          return new Blob([0xff, 0xd8, 0xff, 0xd9], { type: 'image/jpeg' });
+        }
       };
       window.getUserById = function (id: string) {
         return {
@@ -504,11 +557,35 @@ export async function stubPatrolApis(page: Page) {
     window._attemptImmediateSync = async function () {
       return { state: 'queued', message: '\u2713 Na-save!' };
     };
-    window.uploadPhoto = async function () {
+    // See installAppInitScripts above for the rationale on these two stubs
+    // (Audit E P0 top-1 — real compress pipeline + post-W2-PhotoFlow signature).
+    window.uploadPhoto = async function (opts: any) {
+      if (!opts || typeof opts !== 'object' || opts instanceof Blob) {
+        throw new Error(
+          'uploadPhoto: e2e stub expects new signature { row_id, blob, tsr_id, table }'
+        );
+      }
+      if (!opts.blob) throw new Error('uploadPhoto: blob is required');
+      if (!opts.row_id) throw new Error('uploadPhoto: row_id is required');
+      if (!opts.table) throw new Error('uploadPhoto: table is required');
       return 'https://e2e.example/photo.jpg';
     };
     window.capturePhoto = async function () {
-      return new Blob([0xff, 0xd8, 0xff, 0xd9], { type: 'image/jpeg' });
+      try {
+        const res = await fetch('/tests/e2e/fixtures/photo-large-1500kb.jpg');
+        if (!res.ok) throw new Error('fixture fetch ' + res.status);
+        const ab = await res.arrayBuffer();
+        const file = new File([ab], 'photo-large-1500kb.jpg', {
+          type: 'image/jpeg',
+        });
+        const compress = (window as any).compressImage;
+        if (typeof compress === 'function') {
+          return await compress(file);
+        }
+        return new Blob([ab], { type: 'image/jpeg' });
+      } catch (_e) {
+        return new Blob([0xff, 0xd8, 0xff, 0xd9], { type: 'image/jpeg' });
+      }
     };
     window.getUserById = function (id: string) {
       return {
