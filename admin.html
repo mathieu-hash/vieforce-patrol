@@ -6,14 +6,14 @@
 <title>VieForce Patrol — Admin (Beta)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/patrol.css">
-<link rel="stylesheet" href="css/admin-page.css?v=4">
+<link rel="stylesheet" href="css/admin-page.css?v=5">
 </head>
 <body class="admin-page">
 
 <!-- ===== TOP BAR ===== -->
 <div class="top-bar">
-  <a href="app.html" class="back-btn" style="text-decoration:none;">&#8592;</a>
-  <div style="flex:1;">
+  <a href="app.html" class="back-btn">&#8592;</a>
+  <div class="top-bar-title">
     <h1>Sales Admin</h1>
     <div class="subtitle" id="admin-name">Admin</div>
   </div>
@@ -29,12 +29,12 @@
   </nav>
   <p class="admin-intro">
     Executive, Admin, CEO, RSM, DSM, and Marketing follow SAP (OSLP). <strong>Every TSR</strong> is added manually below — not from the SAP roster.
-    <span style="display:block;margin-top:10px;padding:10px 12px;background:#f7fafc;border-radius:8px;border:1px solid #e2e8f0;color:#4a5568;"><strong>PINs</strong> are never displayed on this page. To change a user's PIN, open <strong>Edit</strong> and tap <strong>Reset PIN</strong>; then communicate the new digits to the user via SMS or call.</span>
+    <span class="admin-callout"><strong>PINs</strong> are never displayed on this page. To change a user's PIN, open <strong>Edit</strong> and tap <strong>Reset PIN</strong>; then communicate the new digits to the user via SMS or call.</span>
   </p>
 
   <aside class="admin-hierarchy-guide" aria-label="How Patrol grouping works">
     <h2>Who belongs to what (fill this carefully)</h2>
-    <p style="margin:0 0 6px;">Patrol uses the fields <strong>Region</strong>, <strong>District</strong>, and <strong>Territory</strong> on each user to decide dashboards, maps, and team lists. Maintain the master list on <a href="admin-org.html" style="color:var(--blue);font-weight:700">Region / District / Territory</a> (SAP sync for regions &amp; districts), then pick from the dropdowns below.</p>
+    <p class="admin-guide-lead">Patrol uses the fields <strong>Region</strong>, <strong>District</strong>, and <strong>Territory</strong> on each user to decide dashboards, maps, and team lists. Maintain the master list on <a href="admin-org.html" class="admin-inline-link">Region / District / Territory</a> (SAP sync for regions &amp; districts), then pick from the dropdowns below.</p>
     <div class="admin-hier-flow" aria-hidden="true">Region (RSM scope) → District (DSM + TSR team) → Territory (optional sub-area / route label)</div>
     <ul>
       <li><strong>TSR / Champion</strong> — Set <strong>Region</strong> and <strong>District</strong> to the district team they belong to. Must match their DSM’s <strong>District</strong> exactly. <strong>Territory</strong> is optional (e.g. route name).</li>
@@ -96,7 +96,7 @@
         <input type="tel" id="add-phone" required placeholder="09XXXXXXXXX">
       </div>
       <div class="form-group">
-        <label for="add-email">Email <span style="font-weight:400;color:#718096">(for Google sign-in)</span></label>
+        <label for="add-email">Email <span class="admin-label-hint">(for Google sign-in)</span></label>
         <input type="email" id="add-email" autocomplete="email" placeholder="name@vienovo.ph" aria-describedby="add-email-hint">
         <small class="form-hint" id="add-email-hint">Required for DSM, RSM, Exec, Sales Admin, and CEO. Must match their Google account (@vienovo.ph).</small>
       </div>
@@ -136,7 +136,7 @@
           <small class="form-hint"><strong>TSR &amp; DSM:</strong> required for correct team grouping. Use identical text on every person in the same district.</small>
         </div>
         <div class="form-group">
-          <label for="add-territory">Territory <span style="font-weight:600;color:#718096">(optional)</span></label>
+          <label for="add-territory">Territory <span class="admin-label-hint--strong">(optional)</span></label>
           <select id="add-territory"></select>
           <small class="form-hint">Does not replace District; optional detail for reports or display.</small>
         </div>
@@ -167,7 +167,7 @@
         <input type="tel" id="edit-phone" required placeholder="09XXXXXXXXX">
       </div>
       <div class="form-group">
-        <label for="edit-email">Email <span style="font-weight:400;color:#718096">(for Google sign-in)</span></label>
+        <label for="edit-email">Email <span class="admin-label-hint">(for Google sign-in)</span></label>
         <input type="email" id="edit-email" autocomplete="email" placeholder="name@vienovo.ph" aria-describedby="edit-email-hint">
         <small class="form-hint" id="edit-email-hint">Required for DSM, RSM, Exec, Sales Admin, and CEO. Must match their Google account (@vienovo.ph).</small>
       </div>
@@ -207,7 +207,7 @@
           <small class="form-hint"><strong>TSR &amp; DSM:</strong> must match across the whole district team.</small>
         </div>
         <div class="form-group">
-          <label for="edit-territory">Territory <span style="font-weight:600;color:#718096">(optional)</span></label>
+          <label for="edit-territory">Territory <span class="admin-label-hint--strong">(optional)</span></label>
           <select id="edit-territory"></select>
           <small class="form-hint">Optional sub-route; District is what ties people to their DSM.</small>
         </div>

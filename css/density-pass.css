@@ -578,3 +578,26 @@ body.role-ceo #global-sync-bar.sync-bar:not(.sync-hidden) .sync-btn {
   min-height: 36px;
   border-radius: 12px;
 }
+
+/* Manager header icon buttons — PRODUCT.md C1 / Audit B P1#3.
+   Inline styles in app.html (#btn-new-store, #stores-avatar-btn, #visits-avatar-btn)
+   set padding:0 + border-radius:50% but no width/height → render ~36px.
+   TSR/Champion get 64px via tsr-field.css (CLAUDE.md Rule 3). Managers do not
+   need 64px (data-dense executive look) but must clear the 48px tap-target floor. */
+body.role-dsm .hdr-btn,
+body.role-rsm .hdr-btn,
+body.role-ceo .hdr-btn,
+body.role-exec .hdr-btn,
+body.role-admin .hdr-btn {
+  min-width: 48px;
+  min-height: 48px;
+}
+/* The visit-log pill is text + icon, not a circle; keep its natural width but
+   still enforce the 48px tap-target floor. */
+body.role-dsm #btn-visits-new.hdr-btn,
+body.role-rsm #btn-visits-new.hdr-btn,
+body.role-ceo #btn-visits-new.hdr-btn,
+body.role-exec #btn-visits-new.hdr-btn,
+body.role-admin #btn-visits-new.hdr-btn {
+  min-width: 0;
+}
