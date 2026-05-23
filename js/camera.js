@@ -112,30 +112,100 @@ function _maybeWarnCellularUpload() {
   }, 5000);
 }
 
-async function uploadPhoto(blob, path) {
-  if (blob && blob.size > 81920) {
+// Build deterministic Storage path for a row's photo.
+// Format: {tsr_id}/{YYYY-MM-DD}/{row_id}.jpg
+// Stability matters: retries land on the SAME path (upsert) instead of orphaning
+// previous blobs with Date.now()-based paths. Audit D O5 / H-03 (April 2026).
+function buildPhotoPath(tsr_id, row_id, isoDate) {
+  var tsr = tsr_id || 'unknown';
+  var rid = row_id || 'unknown';
+  var day = isoDate || new Date().toISOString().slice(0, 10);
+  return tsr + '/' + day + '/' + rid + '.jpg';
+}
+
+// uploadPhoto — new contract (Audit D O5 / 2026-04 H-03):
+//   uploadPhoto({ row_id, blob, tsr_id, table, isoDate }) → photo_url (string)
+//
+// Flow is INSERT-first now (see js/offline.js), so callers ALWAYS know the
+// row_id when they upload. This lets us:
+//   1. Use a deterministic Storage path → retries overwrite, no orphans.
+//   2. PATCH the row's photo_url after a successful upload.
+//
+// Steps inside this function:
+//   a. Upload blob to {tsr_id}/{YYYY-MM-DD}/{row_id}.jpg with upsert:true.
+//   b. Resolve public URL.
+//   c. PATCH `{table}.photo_url = <url>` WHERE id = row_id.
+//   d. Return the URL (or throw on failure of upload OR patch — caller's retry
+//      classifier decides next move).
+//
+// Backward compat: the OLD signature uploadPhoto(blob, path) had a single
+// caller — js/offline.js — which is migrated in this same change. There are
+// no external callers (verified via grep).
+async function uploadPhoto(opts) {
+  if (!opts || typeof opts !== 'object' || opts instanceof Blob) {
+    throw new Error('uploadPhoto: new signature requires { row_id, blob, tsr_id, table } (Audit D O5)');
+  }
+  var blob = opts.blob;
+  var row_id = opts.row_id;
+  var tsr_id = opts.tsr_id;
+  var table = opts.table; // 'stores' | 'visits' | 'farms'
+  if (!blob) throw new Error('uploadPhoto: blob is required');
+  if (!row_id) throw new Error('uploadPhoto: row_id is required (insert-then-upload flow)');
+  if (!table) throw new Error('uploadPhoto: table is required for photo_url patch');
+
+  if (blob.size > 81920) {
     console.warn('[camera] Photo exceeds 80KB target:', Math.round(blob.size / 1024) + 'KB');
   }
   _maybeWarnCellularUpload();
-  var { data, error } = await supabaseClient.storage
+
+  var path = buildPhotoPath(tsr_id, row_id, opts.isoDate);
+
+  // upsert:true so retries to the SAME deterministic path overwrite the prior
+  // blob rather than creating a sibling orphan.
+  var uploadRes = await supabaseClient.storage
     .from('patrol-photos')
     .upload(path, blob, {
       contentType: 'image/jpeg',
-      upsert: false
+      upsert: true
     });
 
-  if (error) {
-    throw new Error('Upload failed: ' + error.message);
+  if (uploadRes.error) {
+    throw new Error('Upload failed: ' + uploadRes.error.message);
   }
 
-  var { data: urlData } = supabaseClient.storage
+  var urlRes = supabaseClient.storage
     .from('patrol-photos')
     .getPublicUrl(path);
+  var photo_url = urlRes.data && urlRes.data.publicUrl;
+  if (!photo_url) throw new Error('Upload succeeded but getPublicUrl returned no URL');
 
-  // Show data usage indicator (once per session)
+  // Step c — PATCH the row. If this throws, caller still has the deterministic
+  // path; next retry re-patches without re-uploading.
+  var patchRes = await supabaseClient
+    .from(table)
+    .update({ photo_url: photo_url })
+    .eq('id', row_id);
+  if (patchRes.error) {
+    throw new Error('Photo uploaded but row patch failed: ' + patchRes.error.message);
+  }
+
   _showDataUsage(blob.size);
+  return photo_url;
+}
 
-  return urlData.publicUrl;
+// Patch helper used by the sync loop when the photo is already uploaded (the
+// upload step succeeded on a prior attempt) and only the row-patch step needs
+// to be retried. Separated so retries do NOT re-upload.
+async function patchPhotoUrl(table, row_id, photo_url) {
+  if (!table) throw new Error('patchPhotoUrl: table is required');
+  if (!row_id) throw new Error('patchPhotoUrl: row_id is required');
+  if (!photo_url) throw new Error('patchPhotoUrl: photo_url is required');
+  var res = await supabaseClient
+    .from(table)
+    .update({ photo_url: photo_url })
+    .eq('id', row_id);
+  if (res.error) throw new Error('patchPhotoUrl: ' + res.error.message);
+  return photo_url;
 }
 
 // Data usage indicator — shown once per session to reassure TSRs
