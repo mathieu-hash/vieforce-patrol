@@ -158,7 +158,7 @@ Some **`/api/sap/sales/*`** endpoints (e.g. by-customer / whitespace / at-risk p
 
 - **No client-side router:** Deep links to internal “pages” are not expressed as paths; bookmarking uses file name (`app.html`) only unless extended.
 - **Global state:** `window.nav`, `window.getSession`, `window.sapFetch`, `window.PatrolScope`, session in `localStorage` key used by `js/auth.js` (see that file for `SESSION_KEY`).
-- **Service workers:** Explicitly unregistered in `app.html` head — offline handled via Dexie/queue in JS, not SW caching.
+- **Service workers:** **Enabled (cache-first shell)** as of commit `4513c05` ("Enable PWA shell cache-first service worker"). `sw.js` at repo root is registered from `index.html` / `app.html`; offline writes still flow through Dexie/queue in JS (`js/offline.js`), while the SW handles shell asset caching for fast reload and basic offline navigation. Opt-out: `?nosw=1` query param or `localStorage.patrol_nosw=1`.
 - **CEO vs nav:** `js/nav-role-device.js` maps **CEO** to **RSM-style** bottom nav (`navRole = 'rsm'` when role is `ceo`) for tab strip consistency; `PatrolScope` still treats `ceo` as exec for some feed/scope logic — align UX expectations when changing either file.
 
 ## Error Handling

@@ -19,7 +19,7 @@ test.describe('14 — DSM assign page (stores + farms)', () => {
   });
 
   test('Assign page loads store mode by default', async ({ page }) => {
-    await expect(page.locator('#assign-page-title')).toHaveText(/I-assign ang Stores/i);
+    await expect(page.locator('#assign-page-title')).toHaveText(/(I-assign ang Stores|Assign Stores)/i);
     await expect(page.locator('#assign-unassigned-label')).toHaveText(/Unassigned Stores/i);
     await expect(page.locator('#assign-mode-stores')).toHaveClass(/active/);
     await expect(page.locator('#assign-stores-unassigned .assign-store-row')).toContainText(
@@ -29,8 +29,8 @@ test.describe('14 — DSM assign page (stores + farms)', () => {
 
   test('Bukid tab switches to farm assignment mode', async ({ page }) => {
     await safeClick(page, '#assign-mode-farms');
-    await expect(page.locator('#assign-page-title')).toHaveText(/I-assign ang Bukid/i);
-    await expect(page.locator('#assign-unassigned-label')).toHaveText(/Unassigned Bukid/i);
+    await expect(page.locator('#assign-page-title')).toHaveText(/(I-assign ang Bukid|Assign Farms)/i);
+    await expect(page.locator('#assign-unassigned-label')).toHaveText(/(Unassigned Bukid|Unassigned Farms)/i);
     await expect(page.locator('#assign-mode-farms')).toHaveClass(/active/);
     await expect(page.locator('#assign-stores-unassigned .assign-store-row')).toContainText(
       E2E_FARM_NAME

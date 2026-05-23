@@ -1,5 +1,7 @@
 # AUTOPSY REPORT — VieForce Patrol
 
+> **Status as of 2026-05-21:** Findings C-01, C-04, H-01 resolved (see commit log). H-03, H-04 still open — tracked in `_audit/MASTER_PLAN.md` Wave 1/2. This report is retained for historical context.
+
 **Date:** 2026-04-17
 **Branch:** `main` (commit `38f1d86`)
 **Vercel alias:** `patrol.vienovo.ph` (per `vercel.json`)

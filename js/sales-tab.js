@@ -458,6 +458,18 @@
   }
 
   function _showLoading(container) {
+    var brandSkeleton =
+      '<div class="sales-skeleton-bars" aria-hidden="true">' +
+      '<span class="sales-skeleton-bar"></span>' +
+      '<span class="sales-skeleton-bar"></span>' +
+      '<span class="sales-skeleton-bar"></span>' +
+      '</div>';
+    var rowSkeleton =
+      '<div class="sales-skeleton-stack" aria-hidden="true">' +
+      '<span class="sales-skeleton-pill"></span>' +
+      '<span class="sales-skeleton-pill"></span>' +
+      '<span class="sales-skeleton-pill"></span>' +
+      '</div>';
     container.innerHTML =
       '<div class="app-content sales-v2-container">' +
       '<div class="sales-v2-hero-card">' +
@@ -499,11 +511,11 @@
       '<div class="sales-v2-card" id="brandsCard"><div class="sales-v2-card-h">' +
       '<div class="sales-v2-card-title"><span>\ud83c\udff7\ufe0f</span> By brand</div>' +
       '<span class="sales-v2-card-tag">Top 5</span></div>' +
-      '<div id="brandBars"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div>' +
+      '<div id="brandBars" aria-busy="true">' + brandSkeleton + '</div></div>' +
       '<div class="sales-v2-card" id="customersCard"><div class="sales-v2-card-h">' +
       '<div class="sales-v2-card-title"><span>\ud83d\udc65</span> By customer</div>' +
       '<span class="sales-v2-card-tag">Top 5</span></div>' +
-      '<div id="customerRows"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div></div>' +
+      '<div id="customerRows" aria-busy="true">' + rowSkeleton + '</div></div></div>' +
       '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>MORE MODULES</span></div>' +
       '<button type="button" class="sales-v2-module" data-sales-nav="pg-ar">' +
       '<div class="sales-v2-mod-ico" style="background:rgba(244,63,94,0.12);">\ud83d\udcb0</div>' +
@@ -524,7 +536,7 @@
       '<div class="sales-v2-hq-cta">' +
       '<button type="button" id="salesV2OpenHq">Open full dashboard in VieForce HQ <span aria-hidden="true">\u2197</span></button>' +
       '<div class="sales-v2-hq-hint">Desktop experience \u00b7 Full analytics</div></div>' +
-      '<p style="text-align:center;color:var(--text-secondary);font-size:13px;padding:8px 0 0">Loading sales\u2026</p>' +
+      '<div class="sales-skeleton-stack" aria-hidden="true" style="padding:8px 20% 0"><span class="sales-skeleton-line w70"></span></div>' +
       '</div>';
   }
 
@@ -558,6 +570,18 @@
     var pm = data.patrol_meta || {};
     var scope = pm.hq_scope || data.scope || {};
     var isEmpty = !!(pm.is_empty || scope.is_empty);
+    var brandSkeleton =
+      '<div class="sales-skeleton-bars" aria-hidden="true">' +
+      '<span class="sales-skeleton-bar"></span>' +
+      '<span class="sales-skeleton-bar"></span>' +
+      '<span class="sales-skeleton-bar"></span>' +
+      '</div>';
+    var rowSkeleton =
+      '<div class="sales-skeleton-stack" aria-hidden="true">' +
+      '<span class="sales-skeleton-pill"></span>' +
+      '<span class="sales-skeleton-pill"></span>' +
+      '<span class="sales-skeleton-pill"></span>' +
+      '</div>';
 
     if (isEmpty) {
       container.innerHTML =
@@ -618,12 +642,12 @@
       '<div class="sales-v2-card-title"><span>\ud83c\udff7\ufe0f</span> By brand</div>' +
       '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="brand" ' +
       'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;padding:0;">See all \u203a</button></div>' +
-      '<div id="brandBars"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div>' +
+      '<div id="brandBars" aria-busy="true">' + brandSkeleton + '</div></div>' +
       '<div class="sales-v2-card" id="customersCard"><div class="sales-v2-card-h">' +
       '<div class="sales-v2-card-title"><span>\ud83d\udc65</span> By customer</div>' +
       '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="customers" ' +
       'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;padding:0;">See all \u203a</button></div>' +
-      '<div id="customerRows"><div style="color:var(--text-secondary);font-size:13px;">Loading\u2026</div></div></div></div>' +
+      '<div id="customerRows" aria-busy="true">' + rowSkeleton + '</div></div></div>' +
       '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>MORE MODULES</span></div>' +
       '<button type="button" class="sales-v2-module" data-sales-nav="pg-ar">' +
       '<div class="sales-v2-mod-ico" style="background:rgba(244,63,94,0.12);">\ud83d\udcb0</div>' +

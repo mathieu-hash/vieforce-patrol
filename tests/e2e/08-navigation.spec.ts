@@ -23,8 +23,15 @@ test.describe('08 — Role-aware navigation', () => {
     await loginAsDsm(page);
     const sales = page.locator('#bottom-nav .nav-item[data-page="pg-sales"]');
     await expect(sales).toBeVisible();
+    await expect(sales).toHaveCSS('min-height', '52px');
+    await expect(page.locator('script[src*="chart.js"]')).toHaveCount(0);
+    await expect(page.locator('script[src*="xlsx"]')).toHaveCount(0);
+    await expect(page.locator('link[href*="sales-tab-v2.css"]')).toHaveCount(0);
     await sales.click();
     await expect(page.locator('#pg-sales')).toHaveClass(/active/, { timeout: 10000 });
+    await expect(page.locator('script[src*="chart.js"]')).toHaveCount(1, { timeout: 10000 });
+    await expect(page.locator('link[href*="sales-tab-v2.css"]')).toHaveCount(1, { timeout: 10000 });
+    await expect(page.locator('script[src*="xlsx"]')).toHaveCount(0);
   });
 
   test('DSM nav to Stores does not leave shell blank', async ({ page }) => {

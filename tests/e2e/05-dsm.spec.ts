@@ -13,8 +13,35 @@ test.describe('05 — DSM Home', () => {
   });
 
   test('DSM TSR performance table is present', async ({ page }) => {
+    await page.evaluate(() => {
+      window.getDirectReports = async function () {
+        return [
+          { id: 'tsr-1', name: 'Alpha One', role: 'tsr' },
+          { id: 'tsr-2', name: 'Beta Two', role: 'tsr' },
+          { id: 'tsr-3', name: 'Gamma Three', role: 'tsr' },
+          { id: 'tsr-4', name: 'Delta Four', role: 'tsr' },
+          { id: 'tsr-5', name: 'Echo Five', role: 'tsr' },
+        ];
+      };
+      if (typeof renderDsmHome === 'function') return renderDsmHome();
+      return Promise.resolve();
+    });
+
     await expect(page.locator('#dsmTsrTable')).toBeVisible();
     await expect(page.locator('#dsmTsrPerfTitle')).toBeVisible();
+    await expect(page.locator('#dsmTsrTable [data-dsm-tsr-row]')).toHaveCount(3, {
+      timeout: 10000,
+    });
+    await expect(page.locator('#dsmTsrTable')).toContainText('top performers');
+  });
+
+  test('DSM home can render skeleton-first manager sections', async ({ page }) => {
+    await page.evaluate(() => {
+      if (typeof renderDsmSkeletons === 'function') renderDsmSkeletons();
+    });
+    await expect(page.locator('#dsmKpiGrid .dsm-skeleton.kpi')).toHaveCount(4);
+    await expect(page.locator('#dsmTsrTable .dsm-skeleton')).toHaveCount(18);
+    await expect(page.locator('#dsmSquadFeed .dsm-skeleton-card')).toBeVisible();
   });
 
   test('DSM can open team from performance details', async ({ page }) => {

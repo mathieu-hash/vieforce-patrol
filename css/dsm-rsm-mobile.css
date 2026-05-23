@@ -25,6 +25,7 @@ body.role-rsm #bottom-nav .nav-item,
 body.role-ceo #bottom-nav .nav-item {
   flex: 1 1 0;
   min-width: 0;
+  min-height: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -38,6 +39,7 @@ body.role-ceo #bottom-nav .nav-item {
   cursor: pointer;
   font-size: 10px;
   line-height: 1.1;
+  touch-action: manipulation;
 }
 body.role-dsm #bottom-nav .nav-item.active,
 body.role-rsm #bottom-nav .nav-item.active,
@@ -61,6 +63,13 @@ body.role-ceo #bottom-nav .nav-lbl {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+}
+
+body.role-dsm #bottom-nav .nav-badge,
+body.role-rsm #bottom-nav .nav-badge,
+body.role-ceo #bottom-nav .nav-badge {
+  right: 6px;
 }
 
 /* ── More bottom sheet ────────────────────────────────────── */
@@ -592,6 +601,43 @@ body.role-ceo #bottom-nav .nav-lbl {
   letter-spacing: 4px;
   opacity: 0.55;
   animation: sales-pulse 1.2s ease-in-out infinite;
+}
+.sales-skeleton-stack {
+  display: grid;
+  gap: 8px;
+}
+.sales-skeleton-line,
+.sales-skeleton-pill,
+.sales-skeleton-bar {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.18), rgba(148, 163, 184, 0.36), rgba(148, 163, 184, 0.18));
+  background-size: 220% 100%;
+  animation: sales-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+.sales-skeleton-line {
+  height: 14px;
+}
+.sales-skeleton-line.w70 { width: 70%; }
+.sales-skeleton-line.w55 { width: 55%; }
+.sales-skeleton-line.w40 { width: 40%; }
+.sales-skeleton-pill {
+  height: 34px;
+  width: 100%;
+}
+.sales-skeleton-bars {
+  display: grid;
+  gap: 10px;
+}
+.sales-skeleton-bar {
+  height: 12px;
+}
+.sales-skeleton-bar:nth-child(1) { width: 92%; }
+.sales-skeleton-bar:nth-child(2) { width: 74%; }
+.sales-skeleton-bar:nth-child(3) { width: 58%; }
+@keyframes sales-skeleton-shimmer {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
 }
 @keyframes sales-pulse {
   0%, 100% { opacity: 1; }

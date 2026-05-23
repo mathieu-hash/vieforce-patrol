@@ -488,8 +488,8 @@
   <div class="top-bar">
     <button onclick="nav('page-dashboard')" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;margin-right:8px">&larr;</button>
     <div style="flex:1">
-      <h1 id="assign-page-title">I-assign ang Stores</h1>
-      <div class="subtitle" id="assign-selected-label">Pumili muna ng TSR</div>
+      <h1 id="assign-page-title" data-i18n="assign.title_stores">I-assign ang Stores</h1>
+      <div class="subtitle" id="assign-selected-label" data-i18n="assign.select_tsr">Pumili muna ng TSR</div>
     </div>
   </div>
 
@@ -498,13 +498,13 @@
     <button type="button" id="assign-mode-farms" class="assign-mode-tab" onclick="setAssignMode('farms')">Bukid</button>
   </div>
 
-  <div class="assign-stats-bar" id="assign-stats">Loading...</div>
+  <div class="assign-stats-bar" id="assign-stats" data-i18n="assign.loading">Naglo-load...</div>
 
   <div class="assign-layout">
     <!-- Left: TSR List -->
     <div class="assign-panel">
       <div class="assign-panel-header">
-        <span>Mga TSR</span>
+        <span data-i18n="assign.tsr_panel">Mga TSR</span>
         <span id="assign-tsr-count">--</span>
       </div>
       <div class="assign-panel-body" id="assign-tsr-list">
@@ -517,12 +517,12 @@
     <!-- Right: Unassigned Stores -->
     <div class="assign-panel">
       <div class="assign-panel-header">
-        <span id="assign-unassigned-label">Mga Unassigned Stores</span>
+        <span id="assign-unassigned-label" data-i18n="assign.unassigned_stores">Mga Unassigned Stores</span>
         <span id="assign-unassigned-count">--</span>
       </div>
-      <input type="text" id="assign-search-input" class="assign-search" placeholder="Hanapin ang store..." oninput="searchAssignStores(this.value)">
+      <input type="text" id="assign-search-input" class="assign-search" placeholder="Hanapin ang store..." data-i18n-placeholder="assign.search_stores" oninput="searchAssignStores(this.value)">
       <div class="assign-panel-body" id="assign-stores-unassigned">
-        <div style="text-align:center;color:#888;padding:24px;font-size:13px">Loading...</div>
+        <div style="text-align:center;color:#888;padding:24px;font-size:13px" data-i18n="assign.loading">Naglo-load...</div>
       </div>
     </div>
   </div>
@@ -1535,26 +1535,49 @@
   var MANAGER_ROLES = ['dsm','rsm','exec','admin','ceo'];
   var _roleLc = session && session.role ? session.role.toLowerCase() : '';
 
-  if (session && MANAGER_ROLES.indexOf(_roleLc) !== -1) {
-    (function () {
+  function _loadScriptOnce(src, globalName) {
+    if (globalName && window[globalName]) return Promise.resolve();
+    var existing = document.querySelector('script[src="' + src + '"]');
+    if (existing) {
+      return new Promise(function (resolve, reject) {
+        existing.addEventListener('load', resolve, { once: true });
+        existing.addEventListener('error', reject, { once: true });
+        if (existing.dataset.loaded === '1') resolve();
+      });
+    }
+    return new Promise(function (resolve, reject) {
       var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+      s.src = src;
       s.async = true;
+      s.onload = function () { s.dataset.loaded = '1'; resolve(); };
+      s.onerror = reject;
       document.head.appendChild(s);
-    })();
-    (function () {
-      var s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1';
-      s.async = true;
-      document.head.appendChild(s);
-    })();
-    (function () {
+    });
+  }
+
+  function _loadCssOnce(href) {
+    var existing = document.querySelector('link[href="' + href + '"]');
+    if (existing) return Promise.resolve();
+    return new Promise(function (resolve, reject) {
       var l = document.createElement('link');
       l.rel = 'stylesheet';
-      l.href = 'css/sales-tab-v2.css?v=1';
+      l.href = href;
+      l.onload = resolve;
+      l.onerror = reject;
       document.head.appendChild(l);
-    })();
+    });
   }
+
+  window.ensureManagerSalesAssets = function () {
+    return Promise.all([
+      _loadCssOnce('css/sales-tab-v2.css?v=1'),
+      _loadScriptOnce('https://cdn.jsdelivr.net/npm/chart.js@4.4.1', 'Chart')
+    ]);
+  };
+
+  window.ensureManagerExportAssets = function () {
+    return _loadScriptOnce('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX');
+  };
 
   if (session && typeof PatrolScope !== 'undefined') {
     window.PatrolSession = {
@@ -2955,7 +2978,11 @@
       initRsmHome();
     }
     if (pageId === 'pg-sales' && typeof initSalesTab === 'function') {
-      initSalesTab();
+      if (typeof window.ensureManagerSalesAssets === 'function') {
+        window.ensureManagerSalesAssets().finally(function () { initSalesTab(); });
+      } else {
+        initSalesTab();
+      }
     }
     if (pageId === 'page-tsr-scorecard' && typeof renderTsrScorecardDetail === 'function' && window._selectedTsrId) {
       renderTsrScorecardDetail(window._selectedTsrId);
@@ -2988,7 +3015,13 @@
   var _activeOnLoad = document.querySelector('.page.active');
   if (_activeOnLoad && _activeOnLoad.id === 'page-stores') _bootstrapStoresPage();
   if (_activeOnLoad && _activeOnLoad.id === 'page-visits') _bootstrapVisitsPage();
-  if (_activeOnLoad && _activeOnLoad.id === 'pg-sales' && typeof initSalesTab === 'function') initSalesTab();
+  if (_activeOnLoad && _activeOnLoad.id === 'pg-sales' && typeof initSalesTab === 'function') {
+    if (typeof window.ensureManagerSalesAssets === 'function') {
+      window.ensureManagerSalesAssets().finally(function () { initSalesTab(); });
+    } else {
+      initSalesTab();
+    }
+  }
   // Landing init (renderTsrHome / renderDsmHome) runs after PatrolI18n.init() in the Phase 4.5 landing block.
 
   // ===== My Location button =====

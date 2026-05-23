@@ -337,6 +337,43 @@
     host.innerHTML = html;
   }
 
+  function renderDsmSkeletons() {
+    var kpiHost = document.getElementById('dsmKpiGrid');
+    if (kpiHost) {
+      kpiHost.innerHTML =
+        '<div class="dsm-skeleton kpi" aria-hidden="true"></div>' +
+        '<div class="dsm-skeleton kpi" aria-hidden="true"></div>' +
+        '<div class="dsm-skeleton kpi" aria-hidden="true"></div>' +
+        '<div class="dsm-skeleton kpi" aria-hidden="true"></div>';
+    }
+    var tbody = document.getElementById('dsmTsrTable');
+    if (tbody) {
+      var rows = '';
+      for (var i = 0; i < 3; i++) {
+        rows +=
+          '<tr aria-hidden="true">' +
+          '<td><span class="dsm-skeleton line w80"></span></td>' +
+          '<td class="num"><span class="dsm-skeleton line w40"></span></td>' +
+          '<td class="num"><span class="dsm-skeleton line w40"></span></td>' +
+          '<td class="num"><span class="dsm-skeleton line w40"></span></td>' +
+          '<td class="num"><span class="dsm-skeleton line w40"></span></td>' +
+          '<td><span class="dsm-skeleton line w40"></span></td>' +
+          '</tr>';
+      }
+      tbody.innerHTML = rows;
+    }
+    var coachHost = document.getElementById('dsmCoachingList');
+    if (coachHost) {
+      coachHost.innerHTML =
+        '<div class="dsm-skeleton-card" aria-hidden="true"><span class="dsm-skeleton line w60"></span><span class="dsm-skeleton line w80"></span></div>';
+    }
+    var squadHost = document.getElementById('dsmSquadFeed');
+    if (squadHost) {
+      squadHost.innerHTML =
+        '<div class="dsm-skeleton-card" aria-hidden="true"><span class="dsm-skeleton line w40"></span><span class="dsm-skeleton line w80"></span><span class="dsm-skeleton line w60"></span></div>';
+    }
+  }
+
   function renderDsmTsrTable(tsrs) {
     var tbody = document.getElementById('dsmTsrTable');
     if (!tbody) return;
@@ -349,7 +386,7 @@
     }
     var sorted = tsrs.slice().sort(function (a, b) {
       return (b.score || 0) - (a.score || 0);
-    });
+    }).slice(0, 3);
     var html = '';
     for (var i = 0; i < sorted.length; i++) {
       var tr = sorted[i];
@@ -397,6 +434,14 @@
         '</tr>';
     }
     tbody.innerHTML = html;
+    if (tsrs.length > sorted.length) {
+      tbody.insertAdjacentHTML(
+        'beforeend',
+        '<tr class="dsm-top-only-note"><td colspan="6" style="text-align:center;padding:12px;color:var(--text-secondary);font-size:12px;">' +
+          _escapeHtml(_t('dsm.tsr_perf_top_only', { hidden: tsrs.length - sorted.length })) +
+          '</td></tr>'
+      );
+    }
     tbody.querySelectorAll('[data-dsm-tsr-row]').forEach(function (row) {
       row.addEventListener('click', function () {
         var uid = row.getAttribute('data-dsm-tsr-row');
@@ -497,6 +542,7 @@
   async function renderDsmHome() {
     var session = getSessionUser();
     if (!session || !session.id) return;
+    renderDsmSkeletons();
 
     var dsmSearchBtn = document.getElementById('dsmHomeSearchBtn');
     if (dsmSearchBtn) dsmSearchBtn.setAttribute('aria-label', _t('dsm.search_aria'));
@@ -621,6 +667,7 @@
   }
 
   window.renderDsmHome = renderDsmHome;
+  window.renderDsmSkeletons = renderDsmSkeletons;
 
   window.addEventListener('patrol:locale-changed', function () {
     var ap = document.querySelector('.page.active');

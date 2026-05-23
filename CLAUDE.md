@@ -1,6 +1,6 @@
 # VieForce Patrol — CLAUDE.md
 ## Claude Code Project Brief · Vienovo Philippines Inc.
-### Version 3.0 — April 2026 · Messenger-Hybrid UX · Low-Tech Field Workers
+### Version 3.1 — May 2026 · Stack-accurate · Messenger-Hybrid UX
 
 ---
 
@@ -72,28 +72,32 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 
 **Product:** VieForce Patrol — Field CRM & POS Mapping Tool
 **Company:** Vienovo Philippines Inc. (VPI) — Animal feed manufacturer, Philippines
-**Live URL:** https://vieforce-patrol.vercel.app
-**API URL:** https://patrol-api-*.asia-southeast1.run.app
+**Live URL:** https://vieforce-patrol.vercel.app (custom domain: `patrol.vienovo.ph` via Vercel alias)
+**Backend:** Vercel serverless functions in `api/**` (Node 18+) — no separate Cloud Run service for Patrol itself
+**HQ proxy (SAP B1):** Cloud Run — `vieforce-hq-api-*.asia-southeast1.run.app`; Patrol talks to HQ only via `api/_lib/hq-client.js`
 
 ### What's Already Built ✅
-- Auth: PIN login (TSR) + Google OAuth (DSM/EVP)
-- Stores: Registration, full 12-section POS visit form, detail pages
-- Farms: Registration, full 11-section farm visit form, detail pages
+- Auth: PIN login (TSR, via Supabase Edge Function `verify-pin`) + Google OAuth (DSM/RSM/EVP/Admin) through Supabase Auth
+- Stores: Registration, full POS visit form, detail pages
+- Farms: Registration, full farm visit form, detail pages
 - DSM Pulse: KPIs, alerts, TSR leaderboard, segment distribution
 - Territory Map: Leaflet with GPS-plotted stores/farms
-- Backend: Express 5 + Drizzle ORM on Cloud Run
-- Database: PostgreSQL on Cloud SQL (vieforce-db → patrol)
+- Offline queue: Dexie/IndexedDB queue (`js/offline.js` — `PatrolOffline`, stores `pendingVisits` / `pendingStores` / `pendingFarms`)
+- Photo upload: `js/camera.js` → Supabase Storage bucket `patrol-photos` (compressed 640px / JPEG q≈0.5)
+- Assignment (DSM → TSR): `js/assign.js` + `#page-assign` in `app.html`; stores + farms tabs
+- PWA: `manifest.json` + cache-first `sw.js` (registered from `index.html` / `app.html`; opt-out via `?nosw=1` or `localStorage.patrol_nosw=1`)
+- Admin surfaces: `admin.html`, `admin-org.html`, `admin-users-sap.html`
+- HQ/SAP read-through: `api/sap/*` calls Cloud Run HQ via `api/_lib/hq-client.js` with margin stripping
 
 ### Backlog Still To Build 🔧
-- [x] Offline queue (Dexie.js IndexedDB — `js/offline.js`; writes queue before server sync)
-- [x] Photo upload (Supabase Storage bucket `patrol-photos` via `js/camera.js` — not GCS)
-- [x] Store assignment (DSM → TSR — `js/assign.js`, `#page-assign`)
-- [x] Farm assignment UI (DSM `#page-assign` — Bukid tab; `getUnassignedFarms` / `assignFarms` in `js/db.js`)
-- [x] PWA service worker (shell cache-first `sw.js`; manifest + A2HS; opt-out: `?nosw=1` or `localStorage.patrol_nosw=1`)
+See `PRODUCT.md` (UI quality backlog, May 2026) and `docs/AGENT_HANDOFF.md` for current phase status. Highlights:
+- [ ] **B1 (P0)** TSR tap targets to 64px min across `hdr-btn`, visit CTA, FAB, chips
+- [ ] **B2 (P0)** TSR bottom nav: 4 tabs max — fold Profile/More into one "Higit pa" sheet
+- [ ] **B3 (P0)** Replace HTML `Loading...` / English placeholders with `data-i18n` / `T.*` at first paint
+- [ ] **A1/A2** Skeleton loaders on `admin-org.html` and `admin-users-sap.html`; consolidate `admin.html` inline CSS into `admin-page.css`
 - [ ] Excel/PDF export (admin only)
-- [ ] Custom domain: patrol.vienovo.ph
 - [ ] Messenger chatbot integration (daily briefing for TSRs)
-- [ ] GCS migration (optional post-pilot if merged with Cloud Run HQ)
+- [ ] Leaderboard: top performers only (hiya rule)
 
 ### Future: Merge into Vienovo CRM 360°
 - Phase 1: Patrol standalone (this repo) ← current
@@ -102,125 +106,227 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 
 ---
 
-## 2. REAL TECH STACK (verified)
+## 2. REAL TECH STACK (verified — see `.planning/codebase/STACK.md`)
 
 ```
-Frontend:   Next.js 14 (App Router) + Tailwind CSS
-            Deployed on Vercel
-            Live: vieforce-patrol.vercel.app
+Frontend:   Static HTML shells + vanilla JS modules (no framework)
+            Shells:  index.html, app.html, admin.html, admin-org.html, admin-users-sap.html
+            Modules: js/*.js (auth, offline, camera, stores, visits, assign, home-tsr, ...)
+            Styles:  css/*.css (tokens.css, patrol.css, tsr-field.css, admin-page.css, ...)
+            i18n:    locales/{tl,ceb,en}.json + js/i18n.js + js/labels-v2.js
+            Hosting: Vercel (static + custom domain patrol.vienovo.ph)
 
-Backend:    Express 5 + TypeScript + Drizzle ORM
-            Deployed on Google Cloud Run (asia-southeast1)
-            Live: patrol-api-*.asia-southeast1.run.app
+Backend:    Vercel Serverless Functions (Node 18+)
+            api/health.js, api/whoami.js, api/farms.js
+            api/admin/{org,sap-reps}.js
+            api/sap/{ar,customers,inventory,sales,speed}.js (read-only proxy to HQ)
+            api/user/language.js
+            Shared lib: api/_lib/{auth,hq-client,patrol-cors,scope,supabase-service,...}.js
 
-Database:   PostgreSQL on Google Cloud SQL
-            Instance: vieforce-db
-            Database: patrol
+Auth + DB:  Supabase (project ref `yolxcmeoovztuindrglk`)
+            - Postgres + PostgREST for app data
+            - Supabase Auth for Google OAuth (DSM/RSM/EVP/Admin)
+            - Edge Function `supabase/functions/verify-pin/index.ts` for TSR PIN login (CRITICAL)
+            - Browser client: @supabase/supabase-js@2 via CDN (initialized in js/supabase.js)
 
-Auth:       PIN login for TSRs (custom)
-            Google OAuth for DSM/EVP/RSM
+Storage:    Supabase Storage — bucket `patrol-photos` (uploaded directly from browser
+            via js/camera.js, target ≤80KB at 640px / JPEG q≈0.5)
 
-Storage:    Supabase Storage — bucket `patrol-photos` (browser via `js/camera.js`)
+Offline:    Dexie.js (IndexedDB) — js/offline.js (`PatrolOffline` v2; stores
+            pendingVisits / pendingStores / pendingFarms / cachedStores)
 
-Offline:    Dexie.js (IndexedDB) — `js/offline.js` (PatrolOffline queue)
-PWA:        manifest.json + A2HS prompt; shell cache-first `sw.js` (registered from `app.html` / `index.html`)
+PWA:        manifest.json + cache-first sw.js (registered from index.html / app.html;
+            opt-out: ?nosw=1 or localStorage.patrol_nosw=1)
+
+HQ / SAP:   Cloud Run service vieforce-hq-api-*.asia-southeast1.run.app, called
+            ONLY through api/_lib/hq-client.js (server-side, with margin stripping).
+            Patrol never talks to SAP B1 directly.
+
+DB migrations: supabase/migrations/*.sql (run with `npm run sb:push`)
+              supabase/schema.sql is the consolidated reference snapshot
+
+Tests:      Playwright (tests/e2e/, playwright.config.ts)
+            Node built-in test runner (tests/unit/, `npm run test:unit`)
 ```
 
 ---
 
 ## 3. ENVIRONMENT VARIABLES
 
+Real names used by the codebase. Source of truth: `.planning/codebase/STACK.md` plus
+`api/_lib/*.js`, `api/farms.js`, `api/user/language.js`, `scripts/check-supabase-auth-config.mjs`,
+`scripts/patch-supabase-auth-url.mjs`, `api/whoami.js`. Values live in Vercel project
+settings + Supabase dashboard — never committed.
+
 ```bash
-# Vercel (frontend)
-NEXT_PUBLIC_API_URL=https://patrol-api-*.asia-southeast1.run.app
-NEXT_PUBLIC_SUPABASE_URL=          # shared auth (future merge)
-NEXTAUTH_SECRET=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+# === Vercel serverless (api/**) ===
+SUPABASE_URL=                       # Project URL — used by api/_lib/auth.js, api/farms.js, api/user/language.js
+SUPABASE_SERVICE_ROLE_KEY=          # Server-only; admin reads + REST auth lookup
+SUPABASE_SERVICE_KEY=               # Fallback alias used only by server/services/store-sap-matcher.js
+HQ_API_BASE_URL=                    # Preferred Cloud Run HQ base URL (api/_lib/hq-client.js)
+HQ_API_BASE=                        # Legacy alias for the above
+HQ_SERVICE_TOKEN=                   # Server-only bearer for Patrol → HQ
+VERCEL_PROJECT_PRODUCTION_URL=      # Auto-set by Vercel; surfaced in /api/whoami telemetry
+VERCEL_REGION=
+VERCEL_URL=
+VERCEL_DEPLOYMENT_ID=
+VERCEL_GIT_COMMIT_SHA=
 
-# Cloud Run (backend)
-DATABASE_URL=postgresql://user:pass@/patrol?host=/cloudsql/vieforce-db
-GCS_BUCKET=vieforce-patrol-photos
-GCS_PROJECT_ID=
-JWT_SECRET=
+# === Browser bootstrap (config.js, NOT secret) ===
+# SUPABASE_URL + SUPABASE_ANON_KEY + OAUTH_PUBLIC_ORIGIN are baked into config.js
+# and consumed by js/supabase.js / js/auth.js. The anon key is public by design;
+# the service role key NEVER ships to the browser.
+
+# === Supabase Edge Function `verify-pin` (set in Supabase dashboard secrets) ===
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# === CLI / scripts (developer machines only) ===
+SUPABASE_ACCESS_TOKEN=              # Personal Access Token for Management API scripts
+SUPABASE_PROJECT_REF=               # Optional override (default yolxcmeoovztuindrglk)
+PATROL_SITE_URL=                    # Defaults to https://vieforce-patrol.vercel.app
+PATROL_URI_ALLOW_LIST=              # scripts/patch-supabase-auth-url.mjs
+PATROL_URI_SUBSTRINGS=              # scripts/check-supabase-auth-config.mjs
 ```
 
 ---
 
-## 4. DATABASE SCHEMA (Cloud SQL PostgreSQL)
+## 4. DATABASE SCHEMA (Supabase Postgres)
 
-Existing tables — verify with `\dt` in psql before modifying:
+There is no ORM. Schema lives entirely in SQL.
 
-```sql
--- Core tables (already exist)
-users           -- id, phone, pin_hash, name, role, region, district, territory, is_active
-stores          -- id, name, owner_name, phone, address, city, region, lat, lng, photo_url,
-                --   health_status, vol_class, cov_class, segment, bags_per_month,
-                --   last_visit_at, created_by, created_at
-store_products  -- id, store_id, brand, product_group, bags_per_month, is_vienovo
-store_competitors -- id, store_id, brand_name, product_group, est_bags_per_month, notes
-visits          -- id, store_id, tsr_id, visit_type, lat, lng, photo_url, notes,
-                --   order_taken, order_amount, merch_score, offline_id, visited_at
-farms           -- id, name, type, location, size, share, segment, heads, lat, lng, created_by
+- **Consolidated reference:** `supabase/schema.sql`
+- **Migrations (chronological):** `supabase/migrations/*.sql`
+- **Seed data:** `supabase/seed.sql`
+- **Local linkage:** `npm run sb:link` (project ref `yolxcmeoovztuindrglk`)
+- **Apply migrations:** `npm run sb:push` (DO NOT use `db:migrate` — does not exist in this repo)
+- **List applied:** `npm run sb:migration:list`
+- **Verify-pin function deploy:** `npm run sb:fn:deploy-verify-pin`
 
--- To be added (migrations needed)
-ALTER TABLE stores ADD COLUMN IF NOT EXISTS assigned_tsr uuid REFERENCES users(id);
-ALTER TABLE farms  ADD COLUMN IF NOT EXISTS assigned_tsr uuid REFERENCES users(id);
+Core tables (verify against `supabase/schema.sql` before modifying):
+
+```
+users               -- TSR / DSM / RSM / EVP / admin / marketing
+stores              -- POS / outlets — owner, address, lat/lng, segment, assigned_tsr
+farms               -- Customer farms — type, heads, lat/lng, assigned_tsr
+visits              -- Visit log (stores) — includes offline_id for IndexedDB dedup
+store_products      -- Per-store SKU breakdown
+store_competitors   -- Per-store competitor brand data
++ org / hierarchy / patrol-hub tables from sprint-a / sprint-b migrations
 ```
 
-Drizzle schema lives in: `src/db/schema.ts`
-Run migrations with: `npm run db:migrate`
+**Always inspect `supabase/migrations/` to see the live shape before writing a new migration.**
+**Never** edit the DB through the dashboard; everything goes through a versioned SQL file.
 
 ---
 
-## 5. REPO STRUCTURE
+## 5. REPO STRUCTURE (real, as of May 2026)
 
 ```
 vieforce-patrol/
-├── CLAUDE.md                     ← this file
-├── .env.local                    ← git-ignored
-├── next.config.js
-├── package.json
-├── tailwind.config.js
-├── src/
-│   ├── app/                      ← Next.js App Router pages
-│   │   ├── (auth)/
-│   │   │   └── login/page.tsx
-│   │   ├── dashboard/page.tsx    ← DSM Pulse
-│   │   ├── stores/
-│   │   │   ├── page.tsx          ← Store list
-│   │   │   ├── new/page.tsx      ← Add store
-│   │   │   └── [id]/page.tsx     ← Store detail + visit
-│   │   ├── farms/
-│   │   │   ├── page.tsx
-│   │   │   ├── new/page.tsx
-│   │   │   └── [id]/page.tsx
-│   │   ├── map/page.tsx
-│   │   └── admin/page.tsx        ← Admin panel (user mgmt)
-│   ├── components/               ← Shared UI components
-│   ├── lib/
-│   │   ├── auth.ts               ← NextAuth config
-│   │   ├── api.ts                ← API fetch wrapper
-│   │   ├── offline.ts            ← Dexie.js offline queue
-│   │   └── camera.ts             ← Photo capture + GCS upload
-│   └── db/
-│       └── schema.ts             ← Drizzle schema
-├── api-server/                   ← Express backend (separate deploy)
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── routes/
-│   │   │   ├── auth.ts
-│   │   │   ├── stores.ts
-│   │   │   ├── farms.ts
-│   │   │   ├── visits.ts
-│   │   │   └── admin.ts
-│   │   └── db/
-│   │       └── index.ts          ← Drizzle + Cloud SQL connection
-│   └── Dockerfile
-├── public/
-│   ├── manifest.json             ← PWA manifest (to add)
-│   └── sw.js                     ← Service Worker (to add)
-└── supabase/                     ← Shared auth (future merge only)
+├── CLAUDE.md                          ← this file
+├── PRODUCT.md                         ← product spec + UI quality backlog
+├── DESIGN.md                          ← design tokens / system notes
+├── PATROL_AUTOPSY_REPORT.md           ← historical incident record
+├── package.json                       ← scripts: test, sb:*, deploy:vercel
+├── vercel.json                        ← rewrites + security headers + sw.js cache rules
+├── playwright.config.ts
+├── config.js                          ← BROWSER bootstrap (SUPABASE_URL, ANON_KEY, branding)
+├── sw.js                              ← Service Worker (shell cache-first)
+├── manifest.json                      ← PWA manifest
+├── index.html                         ← Login / landing shell
+├── app.html                           ← Main TSR/DSM app shell (#page-* sections)
+├── admin.html                         ← Admin dashboard shell
+├── admin-org.html                     ← Org/hierarchy admin
+├── admin-users-sap.html               ← SAP user mapping admin
+│
+├── js/                                ← All client logic — vanilla JS modules
+│   ├── auth.js                        ← Google OAuth + PIN flow (calls verify-pin)
+│   ├── supabase.js                    ← @supabase/supabase-js client init
+│   ├── db.js                          ← Data access helpers (stores, farms, visits)
+│   ├── offline.js                     ← Dexie `PatrolOffline` queue (v2)
+│   ├── camera.js                      ← Photo capture + compression + Supabase Storage upload
+│   ├── gps.js                         ← Geolocation helpers
+│   ├── stores.js / visits.js / visit-wizard.js / validate.js
+│   ├── home-tsr.js / home-dsm.js / home-extras.js
+│   ├── dashboard.js / map.js / scorecard.js / sales-tab.js
+│   ├── dsm-audit.js / dsm-coaching.js / dsm-forecast.js / rsm.js / team.js
+│   ├── assign.js                      ← DSM → TSR store/farm assignment UI (#page-assign)
+│   ├── admin.js / admin-org.js / admin-users-sap.js
+│   ├── i18n.js / labels-v2.js / lang-picker.js
+│   ├── role-scope.js / nav-role-device.js / stores-nav-pref.js
+│   ├── feature-flags.js / release-channel.js / theme-switcher.js
+│   ├── export.js / chatbot-register.js / champion.js / activity-feed.js
+│   ├── pilot-readiness.js / ux-polish.js / phase4-social.js
+│
+├── css/                               ← All styles
+│   ├── tokens.css                     ← CSS variables / design tokens
+│   ├── patrol.css                     ← Global app styles
+│   ├── tsr-field.css                  ← TSR Messenger-hybrid styles
+│   ├── admin-page.css / admin-org.css / admin-sap.css
+│   ├── elite-components.css / elite-action.css
+│   ├── dsm-rsm-mobile.css / visits-page.css / activity-feed.css
+│   └── phase3-sales-stores.css / phase4-social.css / sales-tab-v2.css / density-pass.css / rsm.css
+│
+├── api/                               ← Vercel serverless functions (Node)
+│   ├── health.js / whoami.js / farms.js
+│   ├── _lib/
+│   │   ├── auth.js                    ← Server-side auth header → user
+│   │   ├── hq-client.js               ← Cloud Run HQ proxy + margin stripping
+│   │   ├── patrol-cors.js             ← CORS allow-list
+│   │   ├── scope.js                   ← Role/scope guard
+│   │   ├── supabase-service.js        ← Service-role Supabase client
+│   │   ├── org-sync.js / sales-queries.js / user-admin.js
+│   ├── admin/
+│   │   ├── org.js / sap-reps.js
+│   ├── sap/                           ← Read-only SAP via HQ proxy
+│   │   ├── ar.js / customers.js / customer/ / inventory.js / sales.js / sales/ / speed.js / README.md
+│   └── user/
+│       └── language.js
+│
+├── supabase/
+│   ├── config.toml
+│   ├── schema.sql                     ← Consolidated reference snapshot
+│   ├── seed.sql
+│   ├── migrations/                    ← Chronological SQL — applied via `npm run sb:push`
+│   └── functions/
+│       └── verify-pin/                ← Edge Function (Deno) — TSR PIN auth
+│
+├── server/                            ← Local/dev helpers (NOT deployed)
+│   └── services/store-sap-matcher.js
+│
+├── scripts/                           ← Maintenance scripts
+│   ├── check-locale-parity.mjs
+│   ├── check-supabase-auth-config.mjs
+│   ├── patch-supabase-auth-url.mjs
+│   ├── merge-admin-css.mjs
+│   ├── _patch_assign.py / regenerate-logo.py
+│
+├── locales/                           ← i18n JSON
+│   ├── tl.json / ceb.json / en.json
+│
+├── icons/                             ← PWA icons
+├── tests/                             ← Playwright e2e + Node unit tests
+│   ├── e2e/ ...
+│   └── unit/ (hq-client, whoami, patrol-cors, org-sync, scope, role-scope,
+│              offline-queue-payload, sap-* ...)
+│
+├── docs/                              ← Operational docs (read these first)
+│   ├── AGENT_HANDOFF.md               ← CURRENT phase / what to pick up
+│   ├── PATROL-OPS-RUNBOOK.md
+│   ├── PATROL-USER-MANUAL.md
+│   ├── PATROL-TESTER-UAT-CHECKLIST.md
+│   ├── PILOT-KNOWN-ISSUES.md
+│   ├── PRE-RELEASE-SMOKE-CHECKLIST.md
+│   ├── HQ_API_CONTRACT.md / POS_OWNERSHIP_MODEL.md / QA-SMOKE.md
+│   └── SESSION_HANDOFF_*.md (chronological session notes)
+│
+├── .planning/codebase/                ← Source of truth for stack / structure / testing
+│   ├── STACK.md / STRUCTURE.md / ARCHITECTURE.md / CONVENTIONS.md
+│   └── INTEGRATIONS.md / TESTING.md / CONCERNS.md
+│
+├── migrations/                        ← legacy / mirror migrations folder
+└── node_modules/                      ← git-ignored
 ```
 
 ---
@@ -262,175 +368,117 @@ Hands:      Calloused from field work — small targets = rage taps
 
 ---
 
-## 7. OFFLINE QUEUE — IMPLEMENTATION SPEC
+## 7. OFFLINE QUEUE — IMPLEMENTATION (shipped, see `js/offline.js`)
 
-**Library:** Dexie.js (IndexedDB wrapper)
-**Install:** `npm install dexie`
+**Library:** Dexie.js (IndexedDB wrapper), loaded via `<script>` tag — not npm.
+**Module:** `js/offline.js` — plain global vanilla JS (no ES modules in browser).
+**DB:** `PatrolOffline`, version 2.
 
-```typescript
-// src/lib/offline.ts
-import Dexie from 'dexie'
+```javascript
+// js/offline.js (real shape — paraphrased)
 
-const db = new Dexie('PatrolOffline')
-db.version(1).stores({
+var offlineDb = new Dexie('PatrolOffline');
+
+offlineDb.version(2).stores({
   pendingVisits: '++id, offline_id, created_at',
   pendingStores: '++id, offline_id, created_at',
-  cachedStores:  'id, updated_at, territory'
-})
+  pendingFarms:  '++id, offline_id, created_at',
+  cachedStores:  'id, updated_at'
+});
 
-// Queue a visit when offline
-export async function queueVisit(data: VisitPayload) {
-  await db.pendingVisits.add({
-    ...data,
-    offline_id: `${data.tsr_id}_${Date.now()}`
-  })
-  updateSyncBadge()
+async function queueVisit(visitData) {
+  visitData.offline_id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  visitData.created_at = new Date().toISOString();
+  await offlineDb.pendingVisits.add(visitData);
+  if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
 }
 
-// Auto-sync when back online
-window.addEventListener('online', syncPending)
-
-export async function syncPending() {
-  const pending = await db.pendingVisits.toArray()
-  for (const visit of pending) {
-    try {
-      await api.post('/visits', visit)
-      await db.pendingVisits.delete(visit.id)
-    } catch (e) {
-      break // stop on first failure, retry next time
-    }
-  }
-  updateSyncBadge()
-}
-
-// Sync status indicator
-export function updateSyncBadge() {
-  const count = await db.pendingVisits.count()
-  const el = document.getElementById('sync-badge')
-  if (!el) return
-  if (!navigator.onLine) {
-    el.textContent = `Offline · ${count} pending`
-    el.className = 'badge-orange'
-  } else if (count > 0) {
-    el.textContent = `Syncing...`
-    el.className = 'badge-blue'
-  } else {
-    el.textContent = `Synced ✓`
-    el.className = 'badge-green'
-  }
-}
+// Similar: queueStore() → pendingStores, queueFarm() → pendingFarms
+// All write to IndexedDB FIRST, then enhancedSyncStatus() repaints the sync bar.
 ```
 
-**UI requirement:** Persistent sync indicator in the top bar, always visible. Include a manual "I-sync ngayon" (Sync Now) button on the home screen.
+**Critical bug guard (already implemented):** `_queuePayload()` strips
+`offline_id`, `id`, `created_at`, `retry_count`, `last_error`, `last_attempt_at`,
+`gps_failed` before POSTing to PostgREST. Leaving `offline_id` on the payload
+triggers PGRST204 and the record gets ejected after 3 retries. Do not remove
+this strip step.
+
+**Retry policy:** `MAX_SYNC_RETRIES = 3`. After 3 failures the record is ejected
+with a console warning. Treat ejections as bugs to investigate, not normal.
+
+**UI:** Persistent sync indicator in the top bar (rendered by `enhancedSyncStatus`).
+Manual "I-sync ngayon" button on the home screen calls the same sync routine.
 
 ---
 
-## 8. PHOTO UPLOAD — IMPLEMENTATION SPEC
+## 8. PHOTO UPLOAD — IMPLEMENTATION (shipped, see `js/camera.js`)
 
-**Storage:** Google Cloud Storage
-**Bucket:** `vieforce-patrol-photos`
-**Folder structure:** `{tsr_id}/{YYYY-MM-DD}/{timestamp}_{store_id}.jpg`
+**Storage:** Supabase Storage
+**Bucket:** `patrol-photos`
+**Upload path:** Direct browser → Supabase Storage (no backend route, no signed
+URL service). The browser uses the user's Supabase Auth session; bucket RLS
+enforces ownership.
 
-```typescript
-// src/lib/camera.ts
+`js/camera.js` exposes (real function names — refer to source rather than copy-paste):
 
-// Step 1: Capture (mobile camera or file picker)
-export async function capturePhoto(): Promise<Blob | null> {
-  return new Promise((resolve) => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.capture = 'environment'  // rear camera on mobile
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return resolve(null)
-      const compressed = await compressImage(file)
-      resolve(compressed)
-    }
-    input.click()
-  })
-}
+- `capturePhoto()` — opens hidden `<input type=file accept=image/* capture=environment>`,
+  resolves to a compressed Blob.
+- `compressImage(file, maxWidth=640, maxHeight=?, quality=0.5)` — canvas-resize +
+  `canvas.toBlob(..., 'image/jpeg', 0.5)`. Soft warn threshold: 80KB.
+- `isWifiOrGoodConnection()` — checks `navigator.connection.type`/`effectiveType`
+  before allowing a cellular upload; `_maybeWarnCellularUpload()` shows a toast.
+- `uploadPhoto(blob, path)` — calls
+  `supabaseClient.storage.from('patrol-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false })`
+  then `getPublicUrl(path)`. Returns the public URL.
+- `_showDataUsage(bytes)` — one-per-session "Ginamit: XKB lang" reassurance toast.
 
-// Step 2: Compress aggressively — target 50KB
-export async function compressImage(file: File): Promise<Blob> {
-  return new Promise((resolve) => {
-    const canvas = document.createElement('canvas')
-    const img = new Image()
-    img.onload = () => {
-      // Max 640px wide
-      const scale = Math.min(1, 640 / img.width)
-      canvas.width  = img.width  * scale
-      canvas.height = img.height * scale
-      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height)
-      canvas.toBlob(resolve as BlobCallback, 'image/jpeg', 0.5) // quality 0.5
-    }
-    img.src = URL.createObjectURL(file)
-  })
-}
-
-// Step 3: Upload to GCS via backend (never direct from browser)
-export async function uploadPhoto(blob: Blob, path: string): Promise<string> {
-  const formData = new FormData()
-  formData.append('photo', blob, path)
-  const res = await fetch('/api/photos/upload', {
-    method: 'POST',
-    body: formData
-  })
-  const { url } = await res.json()
-  return url
-}
-
-// WiFi-only option (respect TSR data budget)
-export function isWifiConnected(): boolean {
-  const conn = (navigator as any).connection
-  return conn?.type === 'wifi' || conn?.effectiveType === '4g'
-}
-```
-
-**Backend route (Cloud Run):**
-```typescript
-// api-server/src/routes/photos.ts
-// POST /photos/upload
-// Uses Google Cloud Storage client library
-// Returns signed URL with 7-day expiry
-```
+**Do NOT** introduce a `/api/photos/upload` route. There is no GCS in this stack.
+If a photo upload fails offline, queue the capture into the offline queue and
+retry on next sync — same as visits.
 
 ---
 
-## 9. STORE/FARM ASSIGNMENT (DSM → TSR)
+## 9. STORE/FARM ASSIGNMENT (DSM → TSR) — shipped
 
-**Migration needed first:**
-```sql
-ALTER TABLE stores ADD COLUMN IF NOT EXISTS assigned_tsr uuid REFERENCES users(id);
-ALTER TABLE farms  ADD COLUMN IF NOT EXISTS assigned_tsr uuid REFERENCES users(id);
-CREATE INDEX stores_assigned_tsr_idx ON stores(assigned_tsr);
-CREATE INDEX farms_assigned_tsr_idx  ON farms(assigned_tsr);
-```
+**Schema:** `assigned_tsr` columns + indexes live in `supabase/migrations/`
+(see the sprint-a-* and `20260518120000_patrol_org_master.sql` migrations).
+Any new column or constraint goes in a new dated SQL file in
+`supabase/migrations/` and is applied with `npm run sb:push`.
 
-**Admin UI:**
-- DSM sees list of TSRs in their district
-- Per TSR: shows their assigned stores count + unassigned stores in territory
-- Drag or tap to assign stores to TSRs
-- Bulk assign: "Assign all MM-North stores to Rico Abante"
+**UI surface:**
+- DSM/RSM/Admin view: `#page-assign` section in `app.html`, driven by `js/assign.js`.
+  Tabs for Stores (Tindahan) and Farms (Bukid).
+- Data helpers: `getUnassignedFarms` / `assignFarms` (and the store equivalents)
+  live in `js/db.js`.
+- Admin org / SAP-rep mapping: `admin-org.html` + `admin-users-sap.html`
+  (server endpoints under `api/admin/`).
 
-**TSR filter:** When TSR logs in, `getStores()` filters by `assigned_tsr = currentUser.id`
+**TSR filter:** `js/db.js` filters store + farm lists by `assigned_tsr = currentUser.id`
+for TSR-role sessions; DSM/RSM see their wider scope via `api/_lib/scope.js`
+and `js/role-scope.js`.
 
 ---
 
-## 10. EXCEL/PDF EXPORT
+## 10. EXCEL/PDF EXPORT (backlog — admin/DSM only)
 
-**For DSM and Admin only — not TSRs.**
+**For DSM and Admin only — never on TSR screens.**
 
-```typescript
-// Excel: use exceljs
-// npm install exceljs
+Frontend stub: `js/export.js` (lazy-loaded; do not pull onto the TSR critical path
+per PRODUCT.md item B6).
 
-// PDF: use @react-pdf/renderer (Next.js) or pdfkit (backend)
+When this ships, follow the existing pattern:
 
-// Export endpoints:
-// GET /api/export/visits?format=xlsx&period=MTD&tsr_id=
-// GET /api/export/stores?format=xlsx&region=
-// GET /api/export/summary?format=pdf&period=MTD
+```
+- Excel: SheetJS (xlsx) loaded lazily from CDN in the browser, OR exceljs in a
+  Vercel serverless function under api/export/ if the dataset is too large
+  to assemble client-side.
+- PDF: pdfkit or pdf-lib in a Vercel serverless function. There is no React in
+  this codebase, so no @react-pdf/renderer.
+
+- Planned endpoints (Vercel serverless):
+    GET /api/export/visits?format=xlsx&period=MTD&tsr_id=
+    GET /api/export/stores?format=xlsx&region=
+    GET /api/export/summary?format=pdf&period=MTD
 ```
 
 Reports to generate:
@@ -440,11 +488,14 @@ Reports to generate:
 
 ---
 
-## 11. MESSENGER CHATBOT (preferred over Push Notifications)
+## 11. MESSENGER CHATBOT (backlog — not yet built)
 
 **Why Messenger over browser push:** TSRs already live on Messenger. Push notification permission dialogs confuse low-tech users. Messenger chatbot is zero-friction.
 
-**Stack:** Meta Messenger Platform (Webhook) + Node.js handler on Cloud Run
+**Planned stack:** Meta Messenger Platform webhook → a small handler hosted
+either as another Vercel serverless route under `api/` or on the existing HQ
+Cloud Run service. Decision deferred until pilot data lands.
+Frontend hook already stubbed: `js/chatbot-register.js` (opt-in linking flow).
 
 **Daily flow:**
 ```
@@ -465,48 +516,34 @@ Opens app directly to visit form for that store. Pre-fills store name.
 
 ---
 
-## 12. PWA SETUP
+## 12. PWA SETUP (shipped)
 
-### `public/manifest.json`
-```json
-{
-  "name": "VieForce Patrol",
-  "short_name": "Patrol",
-  "description": "Vienovo Philippines — Field Sales Tool",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#004D71",
-  "theme_color": "#004D71",
-  "lang": "fil",
-  "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
-}
-```
+- `manifest.json` lives at repo root (served from `/manifest.json` by Vercel).
+- `sw.js` lives at repo root — **shell cache-first**, registered from
+  `index.html` / `app.html`. Cache rules and headers are managed in `vercel.json`.
+- Icons in `icons/`. The manifest references Vienovo navy theming.
+- Opt-out for debugging: `?nosw=1` or `localStorage.patrol_nosw = 1`.
 
-### Service Worker strategy
-```javascript
-// Cache first for app shell
-// Network first for API calls
-// Queue writes when offline (via Dexie.js)
-// Show "You are offline" banner — never a white screen
-```
+### Worker strategy (already implemented in `sw.js`)
+- Cache-first for the app shell (HTML, JS, CSS, icons).
+- Network for API calls + Supabase requests (NEVER cache auth or signed URLs).
+- Writes go through `js/offline.js` (Dexie queue), not through the worker.
+- "Offline" banner is rendered in-app via `enhancedSyncStatus()` — never a white screen.
 
-**Install prompt:** Show "Add to Home Screen" banner after 2nd visit. Label it: *"I-save ang app sa iyong phone"*
+**Install prompt:** "Add to Home Screen" banner shows after the user's 2nd login.
+Label: *"I-save ang Patrol sa iyong home screen para mas mabilis!"* — see Section 15.4.
 
 ---
 
 ## 13. CUSTOM DOMAIN
 
-**Target:** patrol.vienovo.ph
+**Target:** `patrol.vienovo.ph` — wired in `vercel.json` (alias) and `config.js`
+(`OAUTH_PUBLIC_ORIGIN` defaults include both the vercel.app URL and the custom
+domain). If the alias needs to be re-applied, Vercel Dashboard → Domains is the
+single source of truth.
 
-**Steps:**
-1. Vercel Dashboard → Domains → Add `patrol.vienovo.ph`
-2. Add CNAME record in DNS: `patrol → cname.vercel-dns.com`
-3. Vercel auto-provisions SSL certificate
-4. Update all API URLs in env vars to use new domain
-5. Update Messenger webhook URL to new domain
+When the Messenger chatbot ships, point the webhook at the custom domain so it
+survives Vercel preview-URL churn.
 
 ---
 
@@ -532,62 +569,20 @@ Opens app directly to visit form for that store. Pre-fills store name.
 
 ---
 
-## 15. BUILD ORDER (for new Claude Code session)
+## 15. BUILD ORDER
 
-```
-Phase A — Offline Queue (most critical, do first)
-  [ ] 1.  npm install dexie
-  [ ] 2.  Create src/lib/offline.ts
-  [ ] 3.  Add sync badge to top nav (all TSR screens)
-  [ ] 4.  Add "I-sync ngayon" button to home screen
-  [ ] 5.  Wire visit submit to use queueVisit() when offline
-  [ ] 6.  Wire store create to use queueStore() when offline
-  [ ] 7.  Test: submit visit offline → queue → reconnect → auto-sync → verify in DB
+The original Phase A–G plan in this section is **historical** — those phases are
+shipped (offline queue, photo upload to Supabase, assignment UI, PWA shell,
+custom domain). Do not re-execute them.
 
-Phase B — Photo Upload
-  [ ] 8.  npm install @google-cloud/storage (backend)
-  [ ] 9.  Create GCS bucket vieforce-patrol-photos
-  [ ] 10. Create src/lib/camera.ts with compression
-  [ ] 11. Add POST /photos/upload route in Cloud Run API
-  [ ] 12. Wire photo capture to store + visit forms
-  [ ] 13. Test: capture photo → compress to ~50KB → upload → URL stored in DB
+**Current phase status lives in two places — read both before starting work:**
 
-Phase C — Store/Farm Assignment
-  [ ] 14. Run migration: add assigned_tsr column
-  [ ] 15. Update getStores() to filter by assigned_tsr for TSR role
-  [ ] 16. Build assignment UI in admin page (DSM view)
-  [ ] 17. Test: DSM assigns store → TSR logs in → only sees assigned stores
+1. `docs/AGENT_HANDOFF.md` — what the last session left in flight + what to pick up.
+2. `PRODUCT.md` → "UI quality backlog (audit — May 2026)" — prioritized punch list
+   (Phase A admin/auth, Phase B TSR field, Phase C manager screens).
 
-Phase D — Excel/PDF Export
-  [ ] 18. npm install exceljs @react-pdf/renderer
-  [ ] 19. Build export API endpoints
-  [ ] 20. Wire export buttons in admin panel
-  [ ] 21. Test: export MTD visits as XLSX → opens in Excel correctly
-
-Phase E — Messenger Chatbot
-  [ ] 22. Create Meta App + Messenger webhook
-  [ ] 23. Build chatbot handler in Cloud Run
-  [ ] 24. Daily briefing: 6:30 AM, today's stores list
-  [ ] 25. End-of-day summary: visits logged / remaining
-  [ ] 26. Deep links: Messenger → app visit form
-
-Phase F — PWA + Custom Domain
-  [ ] 27. Create public/manifest.json
-  [ ] 28. Create public/sw.js (service worker)
-  [ ] 29. Register SW in layout.tsx
-  [ ] 30. Generate icons (192px + 512px) in Vienovo navy
-  [ ] 31. Add "Add to Home Screen" prompt (Taglish label)
-  [ ] 32. Configure patrol.vienovo.ph in Vercel
-  [ ] 33. Update DNS CNAME record
-  [ ] 34. Test: "Add to Home Screen" on Android Chrome → opens as standalone app
-
-Phase G — UX Polish (apply throughout)
-  [ ] 35. Audit all touch targets → minimum 56dp height
-  [ ] 36. Add Taglish labels to all TSR-facing screens
-  [ ] 37. Add "You are offline" banner (orange, never white screen)
-  [ ] 38. Add loading skeletons (not spinners) for all data loads
-  [ ] 39. Onboarding walkthrough (3 screens, Tagalog, first login only)
-```
+For the original historical build order, see the appendix at the bottom of this
+document.
 
 ---
 
@@ -879,125 +874,75 @@ export const T = {
 
 ## 18. COMPONENT LIBRARY (TSR-SPECIFIC)
 
-Build these reusable components implementing the Messenger-hybrid design:
+There is no React. "Components" in this codebase are vanilla-JS render
+functions that build DOM (or return HTML strings) plus matching CSS classes.
+Each conceptual component below is already implemented — preserve the design
+intent listed when modifying.
 
-### `<StoreRow />` — The core component
-```tsx
-// Looks like a Messenger chat row
-// Props: store, lastVisit, syncStatus, onTap, onLongPress
-// Health dot color from store.health_status
-// Bold name if not visited today
-// Preview text = last visit outcome
-// Timestamp = relative ("Kahapon", "2d ago")
-// Sync tick = ✓✓ blue if synced, ○ gray if pending
-```
+### Store row — Messenger chat row pattern
+- **Code:** render functions in `js/home-tsr.js` and `js/stores.js`
+- **Styles:** `.store-row`, `.store-avatar`, health-dot classes in `css/tsr-field.css` + `css/patrol.css`
+- Health-dot color from `store.health_status`; bold name when unvisited today;
+  preview text = last visit outcome; relative timestamp ("Kahapon", "2d ago");
+  sync tick state from offline queue.
 
-### `<OutcomeChips />` — First question on visit
-```tsx
-// 3 big tappable chips: May Order / Walang Order / Bukas ulit
-// Tap expands to relevant mini-form
-// No scrolling, everything visible above the fold
-```
+### Outcome chips — First question on visit
+- **Code:** `js/visits.js` / `js/visit-wizard.js`
+- **Styles:** `.outcome-chip` family in `css/tsr-field.css` / `css/visits-page.css`
+- 3 big tappable chips: May Order / Walang Order / Bukas ulit.
+  Tap expands to the relevant mini-form; nothing else scrolls.
 
-### `<VisitBubble />` — Previous visit display
-```tsx
-// Looks like a received message bubble (gray, left-aligned)
-// Shows: date, TSR name, outcome, order amount if any
-// Right-aligned timestamp, sync status tick
-```
+### Visit bubble — Previous-visit display
+- **Code:** render helpers in `js/visits.js`
+- **Styles:** `.visit-bubble` in `css/visits-page.css`
+- Looks like a received message bubble (gray, left-aligned). Shows date, TSR
+  name, outcome, order amount if any. Right-aligned timestamp + sync tick.
 
-### `<SyncBar />` — Always-on sync status
-```tsx
-// Sticky top bar, only shows when offline or syncing
-// Hidden when online + synced (don't distract)
-// Tappable when error (retry action)
-```
+### Sync bar — Always-on sync status
+- **Code:** `enhancedSyncStatus()` / `patrolUpdatePilotCard()` (called from
+  `js/offline.js`, `js/pilot-readiness.js`).
+- **Styles:** `.sync-bar` / sync-state classes in `css/tsr-field.css`
+- Sticky top bar; hidden when online + everything synced. Tappable when in error.
 
-### `<PhotoCapture />` — Camera button
-```tsx
-// Looks like Messenger camera button (blue circle, camera icon)
-// On tap: opens rear camera immediately
-// Shows thumbnail preview after capture
-// Compresses to ~50KB before storing
-// Uploads when online, queues when offline
-```
+### Photo capture — Camera button
+- **Code:** `capturePhoto()` / `compressImage()` / `uploadPhoto()` in `js/camera.js`
+- **Styles:** `.photo-capture-btn` family in `css/tsr-field.css`
+- Opens rear camera immediately. Shows thumbnail after capture. Compresses to
+  ≤80KB (target 50KB). Uploads to Supabase Storage when online; queues otherwise.
 
-### `<BigButton />` — Primary action
-```tsx
-// Full width, 64px height minimum
-// Messenger-blue background (#00A6CE)
-// White bold text, 17px
-// Used for: Submit Visit, Sync Now, Save Store
-```
+### Big button — Primary CTA
+- **Styles:** `.btn-primary-big` / `.btn-messenger-blue` in `css/tsr-field.css`
+- Full width, **64px** minimum height (Rule 3). `#00A6CE` background, white 17px
+  bold text. Used for: Submit Visit, Sync Now, Save Store.
 
 ---
 
-## 19. UPDATED BUILD ORDER (Messenger UX first)
+## 19. UPDATED BUILD ORDER
 
-```
-Phase 0 — Messenger-Hybrid UX Foundation (DO FIRST)
-  [ ] 0.1  Apply color system (Section 16) to Tailwind config
-           tailwind.config.js: add all --accent, --status-*, --sync-* colors
-  [ ] 0.2  Build <StoreRow /> component (Messenger chat row pattern)
-  [ ] 0.3  Build <SyncBar /> component (sticky, offline-aware)
-  [ ] 0.4  Build <OutcomeChips /> component (3-chip outcome selector)
-  [ ] 0.5  Build <VisitBubble /> component (message bubble = past visit)
-  [ ] 0.6  Build <BigButton /> component (full-width, 64px, Messenger blue)
-  [ ] 0.7  Build <PhotoCapture /> component (camera button)
-  [ ] 0.8  Implement T (translations) object (Section 17)
-  [ ] 0.9  Replace all TSR-facing screen text with T.* labels
-  [ ] 0.10 Replace store list rows with <StoreRow /> 
-  [ ] 0.11 Replace visit form top section with <VisitBubble /> history
-  [ ] 0.12 Replace visit form CTA with <OutcomeChips /> + <BigButton />
-  [ ] 0.13 Add <SyncBar /> to root layout (all TSR screens)
-  [ ] 0.14 Test on real low-end Android in Chrome
-           Pass/fail: "Can a non-tech 45-year-old use this in 30 seconds?"
-
-Phase A — Offline Queue (as before, now with Messenger sync UX)
-  [ ] A.1  npm install dexie
-  [ ] A.2  Wire offline queue to <SyncBar /> status
-  [ ] A.3  Sync tick icons on <StoreRow /> (✓✓ or ○)
-  [ ] A.4  Manual sync button on home screen ("I-sync ngayon")
-  [ ] A.5  Test offline → queue → reconnect → auto-sync
-
-Phase B — Photo Upload (as before)
-  [ ] B.1  Wire <PhotoCapture /> to GCS upload
-  [ ] B.2  Compress to 50KB before any storage/upload
-  [ ] B.3  Show thumbnail in <VisitBubble /> after upload
-
-Phase C — Store/Farm Assignment (as before)
-Phase D — Excel/PDF Export (as before — DSM/Admin only)
-Phase E — PWA + Custom Domain (as before)
-
-Phase F — Polish
-  [ ] F.1  Long-press store row → quick action sheet
-           (Call owner / Get directions / Mark visited)
-  [ ] F.2  Onboarding: 3-screen walkthrough in Tagalog
-           Screen 1: "I-tap ang tindahan para mag-log"
-           Screen 2: "Kumuha ng litrato · Lagay ang order"
-           Screen 3: "Mag-sync kapag may signal na"
-  [ ] F.3  Empty state screens (Taglish, friendly illustration)
-  [ ] F.4  "Magandang araw!" greeting with TSR name on home
-```
+This section is **historical**. The Phase 0 / A–F plan documented here has shipped
+(Messenger-hybrid UX foundation, offline queue, Supabase photo upload, assignment,
+PWA, custom domain). For current next steps see `docs/AGENT_HANDOFF.md` and the
+"UI quality backlog (audit — May 2026)" in `PRODUCT.md`.
 
 ---
 
 ## 20. FUTURE: CRM 360° MERGE
 
-When Patrol beta and HQ beta are both stable:
+When Patrol beta and HQ beta are both stable, the two repos consolidate into a
+single Vienovo CRM platform:
 
 ```
 vienovo-crm360/
-├── modules/patrol/     ← this codebase (Messenger-hybrid UI)
-├── modules/hq/         ← HQ codebase (executive BI)
-├── shared/auth/        ← unified PIN login (same users table)
+├── modules/patrol/     ← this codebase (Messenger-hybrid TSR UI + DSM/RSM screens)
+├── modules/hq/         ← HQ codebase (executive BI + SAP B1 surface)
+├── shared/auth/        ← unified Supabase Auth (one users / org table set)
 ├── shared/nav/         ← role-based navigation shell
-└── api/                ← both backend API layers
-
-Note: The Messenger-hybrid UI is TSR-only.
-DSM/RSM/CEO use the VieForce HQ design system (navy, data-dense).
-The merge shell detects role and renders correct design system.
+└── api/                ← both serverless API layers (still Vercel + Cloud Run HQ proxy)
 ```
+
+Note: The Messenger-hybrid UI is TSR-only. DSM/RSM/CEO continue to use the
+Vienovo navy executive look (data-dense). The merge shell detects role and
+renders the correct design system.
 
 ---
 
@@ -1012,13 +957,32 @@ The merge shell detects role and renders correct design system.
 - **No spinners for TSRs.** Use skeleton screens or cached data. Spinners cause anxiety for low-tech users.
 - **No swipe gestures.** Explicit buttons only. Swipe is invisible to non-tech users.
 - **Never show loading spinners to TSRs.** Use skeleton screens or cached data.
-- **Do not add npm packages without confirming** — bundle size matters for 2G/3G devices.
-- **Run `npm run db:migrate` after any schema changes** — never edit DB directly.
+- **Do not add npm packages without confirming** — bundle size matters for 2G/3G devices. Browser libs (Dexie, Supabase JS) are loaded from CDN, not npm.
+- **Schema changes go in `supabase/migrations/*.sql`** — apply with `npm run sb:push`. Never edit the DB through the dashboard. Never assume `npm run db:migrate` exists; it does not.
+- **No build step for the frontend** — `app.html` / `index.html` / `admin*.html` are deployed as-is by Vercel. There is no Next.js, no React, no bundler.
+- **All SAP B1 reads go through `api/_lib/hq-client.js`** (Cloud Run HQ proxy with margin stripping). Never call SAP B1 directly from Patrol.
 - **Vienovo brand (DSM/RSM/CEO screens):** Navy `#004D71`, Blue `#00A6CE`, Green `#95C93D`, Gold `#F1B11D`
 - **Messenger-hybrid (TSR screens):** White background, `#00A6CE` accent, system fonts, health dots
 
 ---
 
-*CLAUDE.md v3.0 · April 2026 · Vienovo Philippines Inc.*
-*Stack: Next.js 14 + Express 5 + Drizzle + Cloud SQL + Cloud Run + Vercel*
+## APPENDIX — Original Build Order (historical, do not re-execute)
+
+The Phase A–G / Phase 0 plans that previously lived in Sections 15 and 19 are
+preserved in git history. They shipped over the April–May 2026 cycle:
+
+- Phase A — Offline Queue (Dexie `PatrolOffline` v2, retry+eject policy)
+- Phase B — Photo Upload (Supabase Storage `patrol-photos`, browser-side
+  compression — NOT the originally-planned GCS bucket)
+- Phase C — Store/Farm Assignment (`#page-assign` + `js/assign.js`)
+- Phase D — Excel/PDF Export — partial; still on backlog for admin surfaces
+- Phase E — PWA + Custom Domain (`manifest.json`, `sw.js`, `patrol.vienovo.ph`)
+- Phase F — UX Polish (ongoing; tracked in `PRODUCT.md`)
+
+Current authoritative status: `docs/AGENT_HANDOFF.md` + `PRODUCT.md`.
+
+---
+
+*CLAUDE.md v3.1 · May 2026 · Vienovo Philippines Inc.*
+*Stack: static HTML + vanilla JS PWA + Supabase + Vercel APIs + Cloud Run HQ proxy for SAP*
 *UX: Messenger-hybrid (TSR) + Vienovo executive (DSM/RSM/CEO)*

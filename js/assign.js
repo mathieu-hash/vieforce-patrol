@@ -8,6 +8,10 @@ var _assignFarmsAssigned = [];
 var _assignMode = 'stores';
 var _selectedTSR = null;
 
+function _assignT(key, vars) {
+  return typeof window.t === 'function' ? window.t(key, vars || {}) : key;
+}
+
 function _farmTypeLabel(type) {
   var labels = { hog: 'Hog', poultry: 'Manok', gamefowl: 'Gamefowl', aqua: 'Aqua', dairy: 'Dairy', mixed: 'Mixed', other: 'Other' };
   return labels[type] || type || 'Farm';
@@ -23,17 +27,17 @@ function setAssignMode(mode) {
   if (storesBtn) storesBtn.classList.toggle('active', mode === 'stores');
   if (farmsBtn) farmsBtn.classList.toggle('active', mode === 'farms');
   var title = document.getElementById('assign-page-title');
-  if (title) title.textContent = mode === 'farms' ? 'I-assign ang Bukid' : 'I-assign ang Stores';
+  if (title) title.textContent = mode === 'farms' ? _assignT('assign.title_farms') : _assignT('assign.title_stores');
   var unassignedLabel = document.getElementById('assign-unassigned-label');
   if (unassignedLabel) {
-    unassignedLabel.textContent = mode === 'farms' ? 'Mga Unassigned Bukid' : 'Mga Unassigned Stores';
+    unassignedLabel.textContent = mode === 'farms' ? _assignT('assign.unassigned_farms') : _assignT('assign.unassigned_stores');
   }
   var search = document.getElementById('assign-search-input');
   if (search) {
-    search.placeholder = mode === 'farms' ? 'Hanapin ang bukid...' : 'Hanapin ang store...';
+    search.placeholder = mode === 'farms' ? _assignT('assign.search_farms') : _assignT('assign.search_stores');
   }
   var label = document.getElementById('assign-selected-label');
-  if (label) label.textContent = 'Pumili muna ng TSR';
+  if (label) label.textContent = _assignT('assign.select_tsr');
   initAssignPage();
 }
 
@@ -154,12 +158,15 @@ function updateAssignStats() {
   var unassignedCount = _assignMode === 'farms'
     ? _assignFarmsUnassigned.length
     : _assignStoresUnassigned.length;
-  var entityLabel = _assignMode === 'farms' ? 'farms' : 'stores';
+  var entityLabel = _assignMode === 'farms' ? _assignT('assign.entity_farms') : _assignT('assign.entity_stores');
 
   el.innerHTML =
-    '<span style="font-weight:700;color:#004D71">' + _assignTSRs.length + '</span> TSRs' +
-    ' &middot; <span style="font-weight:700;color:#95C93D">' + totalAssigned + '</span> assigned' +
-    ' &middot; <span style="font-weight:700;color:#F7B928">' + unassignedCount + '</span> unassigned ' + entityLabel;
+    _assignT('assign.stats', {
+      tsrs: '<span style="font-weight:700;color:#004D71">' + _assignTSRs.length + '</span>',
+      assigned: '<span style="font-weight:700;color:#95C93D">' + totalAssigned + '</span>',
+      unassigned: '<span style="font-weight:700;color:#F7B928">' + unassignedCount + '</span>',
+      entity: entityLabel
+    });
 }
 
 // ── Render TSR List (left column) ──
@@ -169,7 +176,7 @@ function renderTSRList() {
   if (!container) return;
 
   if (_assignTSRs.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#888;padding:24px;font-size:13px">Walang TSR sa district na ito</div>';
+    container.innerHTML = '<div style="text-align:center;color:#888;padding:24px;font-size:13px">' + _assignEsc(_assignT('assign.no_tsrs')) + '</div>';
     return;
   }
 
@@ -215,7 +222,7 @@ async function selectTSR(tsrId) {
   // Update selected TSR label
   var label = document.getElementById('assign-selected-label');
   if (label) {
-    label.textContent = _selectedTSR ? 'I-assign kay: ' + _selectedTSR.name : 'Pumili muna ng TSR';
+    label.textContent = _selectedTSR ? _assignT('assign.assign_to', { name: _selectedTSR.name }) : _assignT('assign.select_tsr');
   }
 
   // Load assigned stores/farms for this TSR
@@ -252,7 +259,7 @@ function renderUnassignedStores() {
 
   if (list.length === 0) {
     container.innerHTML = '<div style="text-align:center;color:#888;padding:24px;font-size:13px">' +
-      (isFarm ? 'Lahat ng bukid ay na-assign na' : 'Lahat ng stores ay na-assign na') +
+      _assignEsc(isFarm ? _assignT('assign.all_farms_assigned') : _assignT('assign.all_stores_assigned')) +
       '</div>';
     return;
   }
@@ -301,15 +308,17 @@ function renderAssignedStores() {
 
   var isFarm = _assignMode === 'farms';
   var list = isFarm ? _assignFarmsAssigned : _assignStoresAssigned;
-  var entityWord = isFarm ? 'bukid' : 'stores';
+  var entityWord = isFarm ? _assignT('assign.entity_farms') : _assignT('assign.entity_stores');
 
   if (list.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:#888;padding:12px;font-size:12px">Walang assigned ' + entityWord + ' kay ' + _assignEsc(_selectedTSR.name) + '</div>';
+    container.innerHTML = '<div style="text-align:center;color:#888;padding:12px;font-size:12px">' +
+      _assignEsc(_assignT('assign.none_assigned_to', { entity: entityWord, name: _selectedTSR.name })) +
+      '</div>';
     return;
   }
 
   var html = '<div style="font-size:11px;font-weight:700;color:#004D71;text-transform:uppercase;padding:8px 12px;border-bottom:1px solid #eee">' +
-    'Assigned kay ' + _assignEsc(_selectedTSR.name) + ' (' + list.length + ')</div>';
+    _assignEsc(_assignT('assign.assigned_to_count', { name: _selectedTSR.name, count: list.length })) + '</div>';
 
   if (isFarm) {
     for (var f = 0; f < list.length; f++) {

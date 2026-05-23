@@ -24,6 +24,9 @@ var ExportModule = (function() {
   async function exportVisits() {
     showExportStatus('Ginagawa ang file... sandali lang');
     try {
+      if (typeof window.ensureManagerExportAssets === 'function') {
+        await window.ensureManagerExportAssets();
+      }
       var session = getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -100,6 +103,9 @@ var ExportModule = (function() {
   async function exportStores() {
     showExportStatus('Ginagawa ang file... sandali lang');
     try {
+      if (typeof window.ensureManagerExportAssets === 'function') {
+        await window.ensureManagerExportAssets();
+      }
       var session = getSession();
       if (!session) throw new Error('Not authenticated');
 
@@ -186,6 +192,9 @@ var ExportModule = (function() {
   async function exportSummary() {
     showExportStatus('Ginagawa ang file... sandali lang');
     try {
+      if (typeof window.ensureManagerExportAssets === 'function') {
+        await window.ensureManagerExportAssets();
+      }
       var session = getSession();
       if (!session) throw new Error('Not authenticated');
 

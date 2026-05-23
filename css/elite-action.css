@@ -743,6 +743,36 @@
   transform: scale(0.97);
 }
 
+#page-home-dsm .dsm-skeleton {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.16), rgba(148, 163, 184, 0.34), rgba(148, 163, 184, 0.16));
+  background-size: 220% 100%;
+  animation: dsm-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+#page-home-dsm .dsm-skeleton.kpi {
+  height: 72px;
+  border-radius: 16px;
+}
+#page-home-dsm .dsm-skeleton.line {
+  height: 13px;
+}
+#page-home-dsm .dsm-skeleton.line.w80 { width: 80%; }
+#page-home-dsm .dsm-skeleton.line.w60 { width: 60%; }
+#page-home-dsm .dsm-skeleton.line.w40 { width: 40%; }
+#page-home-dsm .dsm-skeleton-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-soft, #e5e7eb);
+  background: var(--bg-elevated, #fff);
+}
+@keyframes dsm-skeleton-shimmer {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
 /* ============================================================
    TINDAHAN COMPONENTS (Phase 4.7)
    ============================================================ */
