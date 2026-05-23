@@ -59,8 +59,8 @@
 
 ## Application Version
 
-- **`package.json`:** `"version": "3.1.0-beta.1"`.
-- **`config.js`:** `VERSION: '3.1.0-beta.1'`, `RELEASE_CHANNEL: 'beta'`.
+- **`package.json`:** `"version": "3.2.0-beta.1"`.
+- **`config.js`:** `VERSION: '3.2.0-beta.1'`, `RELEASE_CHANNEL: 'beta'`.
 
 ## Configuration
 

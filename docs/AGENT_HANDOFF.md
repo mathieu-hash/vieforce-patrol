@@ -6,7 +6,7 @@ Use this document when handing the project to an agent outside Cursor. It is mea
 
 Repository: `vieforce-patrol`  
 Production: `https://vieforce-patrol.vercel.app`  
-Current release: `3.1.0-beta.1`  
+Current release: `3.2.0-beta.1` (post-6-waves pilot baseline)
 Current branch at handoff: `main`
 
 Before changing code, read these files in order:

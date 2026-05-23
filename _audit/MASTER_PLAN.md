@@ -2,7 +2,32 @@
 
 **Date:** 2026-05-21
 **Audit basis:** 7 parallel read-only audit agents (`_audit/AUDIT_A_*.md` through `AUDIT_G_*.md`)
-**Verdict:** **NOT pilot-safe as of today.** Documentation says "pilot-ready"; code says otherwise.
+**Initial verdict (start of day):** NOT pilot-safe. Documentation said "pilot-ready"; code said otherwise.
+
+---
+
+## ✅ SHIPPED — End-of-day status (2026-05-21)
+
+All 6 waves executed via parallel multi-agent orchestration. **20 agents across 6 waves**, each in its own git worktree, integration-merged sequentially.
+
+| Wave | Agents | Verdict |
+|---|---|---|
+| W0 — Docs + headers | 4 parallel | ✅ Shipped (commit a36e8f2) |
+| W1 — Auth/security | 5 parallel | ✅ Shipped + Edge Function v4 + RLS migration applied |
+| W2 — Offline-first | 4 parallel | ✅ Shipped (commit c885ff0) |
+| W3 — TSR non-negotiables | 3 parallel | ✅ Shipped (commit 788bd97) |
+| W4 — Test gates | 4 parallel | ✅ Shipped + uncovered 2 latent bugs (folded into W5) |
+| W5 — Polish | 4 parallel | ✅ Shipped (commit 654c99a) |
+
+**Tests:** 121 → 244 (+123). All P0 closed. Majority of P1 closed.
+**Version bumped:** 3.1.0-beta.1 → 3.2.0-beta.1.
+**Release:** `v3.2.0-beta.1` tag pushed on `main`.
+
+See `docs/SESSION_HANDOFF_2026-05-21-shipped.md` for the post-waves state.
+
+The rest of this document is the original plan (kept for historical reference).
+
+---
 
 ---
 
