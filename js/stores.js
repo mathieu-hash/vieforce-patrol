@@ -606,11 +606,17 @@ async function renderTindahan(externalFilter) {
   var tit = document.getElementById('tindahanTitle');
   if (tit) tit.textContent = t('tindahan.page_title');
 
-  var synced = typeof navigator !== 'undefined' && navigator.onLine;
+  // W2-SyncTruthBadge: delegate to canonical PatrolSyncBadge. The previous
+  // logic derived "synced" from navigator.onLine alone, which lied when
+  // offline (showed "Syncing…" instead of "Offline") — Audit A top-must-fix
+  // #2 and Audit D O6. The badge consumes the real queue state.
   var pill = document.getElementById('tindahanSyncPill');
-  if (pill) {
-    pill.textContent = synced ? t('tindahan.sync_synced') : t('tindahan.sync_syncing');
-    pill.classList.toggle('syncing', !synced);
+  if (pill && typeof PatrolSyncBadge !== 'undefined') {
+    if (!pill._patrolBadge) {
+      pill._patrolBadge = PatrolSyncBadge.mount(pill, { mode: 'pill' });
+    } else {
+      pill._patrolBadge.refresh();
+    }
   }
 
   var secPri = document.getElementById('tindahanSectionPriority');

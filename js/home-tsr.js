@@ -294,10 +294,6 @@
     };
   }
 
-  async function checkSyncStatus() {
-    return !!navigator.onLine;
-  }
-
   function renderTsrRoute(stops) {
     var host = document.getElementById('tsrRouteList');
     if (!host) return;
@@ -460,10 +456,16 @@
         session.region ||
         'Vienovo Philippines';
     }
+    // W2-SyncTruthBadge: delegate to canonical PatrolSyncBadge so the pill
+    // tells the truth (Rule 7). Mount once and let the badge keep itself
+    // in sync via offline.js event source / polling fallback.
     var syncEl = document.getElementById('tsrSyncPill');
-    var synced = await checkSyncStatus();
-    if (syncEl) {
-      syncEl.textContent = synced ? _t('sync.synced') : _t('sync.syncing');
+    if (syncEl && typeof PatrolSyncBadge !== 'undefined') {
+      if (!syncEl._patrolBadge) {
+        syncEl._patrolBadge = PatrolSyncBadge.mount(syncEl, { mode: 'pill' });
+      } else {
+        syncEl._patrolBadge.refresh();
+      }
     }
 
     var av = document.getElementById('tsrHeaderAvatar');

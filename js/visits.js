@@ -468,34 +468,29 @@ function initVisitRowDelegation() {
 //   _syncInProgress — prevents concurrent / recursive syncPending calls
 //   _syncSafetyId   — forces exit from "Syncing..." after 10s if stuck
 
-var _syncInProgress = false;
+// W2-SyncTruthBadge: rendering lives in PatrolSyncBadge (js/_util/sync-badge.js).
+// This block keeps the trigger/safety-timeout machinery but no longer duplicates
+// state-derived class/text painting. Window-scoped flags so the badge module can
+// read them via its legacy-synthesis path (until W2-RetryClassify exports a
+// proper getSyncState()/event source).
+if (typeof window._syncInProgress === 'undefined') window._syncInProgress = false;
 var _syncSafetyId = null;
 
 function _clearSyncSafety() {
   if (_syncSafetyId) { clearTimeout(_syncSafetyId); _syncSafetyId = null; }
 }
 
-function _syncBarRefs() {
-  return {
-    bar:  document.getElementById('global-sync-bar'),
-    icon: document.getElementById('sync-bar-icon'),
-    text: document.getElementById('sync-bar-text'),
-    btn:  document.getElementById('sync-bar-btn')
-  };
-}
-
-function _flashSyncedThenHide() {
-  var r = _syncBarRefs();
-  if (!r.bar) return;
-  r.bar.className = 'sync-bar sync-ok';
-  if (r.icon) r.icon.textContent = '\u2713\u2713';
-  if (r.text) r.text.textContent = T.synced || 'Naka-sync na';
-  if (r.btn)  r.btn.style.display = 'none';
-  setTimeout(function () { if (r.bar) r.bar.className = 'sync-bar sync-hidden'; }, 1500);
+function _refreshGlobalSyncBadge() {
+  var bar = document.getElementById('global-sync-bar');
+  if (!bar || typeof PatrolSyncBadge === 'undefined') return;
+  if (!bar._patrolBadge) {
+    bar._patrolBadge = PatrolSyncBadge.mount(bar, { mode: 'bar' });
+  } else {
+    bar._patrolBadge.refresh();
+  }
 }
 
 async function enhancedSyncStatus() {
-  var r = _syncBarRefs();
   var homeSyncSection = document.getElementById('home-sync-section');
   var syncNowBtn = document.getElementById('btn-sync-now');
 
@@ -504,61 +499,51 @@ async function enhancedSyncStatus() {
     var pending = status.pending || 0;
     var ejected = status.ejected || 0;
 
+    // Hint cache for PatrolSyncBadge's legacy-synthesis path. Once
+    // W2-RetryClassify exports getSyncState()/event source this becomes a
+    // no-op (badge reads the real source instead).
+    window._patrolSyncCache = {
+      pending: pending,
+      quarantined: ejected,
+      ts: Date.now()
+    };
+
     if (homeSyncSection) homeSyncSection.style.display = pending > 0 ? 'block' : 'none';
     if (syncNowBtn && pending > 0) {
       syncNowBtn.innerHTML = '&#8635; ' + T.syncNow + ' (' + T.pending(pending) + ')';
     }
 
-    // Offline — orange bar with pending count, no auto-sync
+    // Single render path - badge derives label/class from real state.
+    _refreshGlobalSyncBadge();
+
+    // Offline - no auto-sync. Badge paints offline+pending state.
+    // Critical Rule-7 invariant: NEVER green when navigator.onLine===false.
     if (!navigator.onLine) {
       _clearSyncSafety();
-      _syncInProgress = false;
-      if (r.bar) {
-        r.bar.className = 'sync-bar sync-offline';
-        if (r.icon) r.icon.textContent = '\u25cb';
-        if (r.text) r.text.textContent = T.offline + (pending > 0 ? ' \u00b7 ' + T.pending(pending) : '');
-        if (r.btn)  { r.btn.style.display = pending > 0 ? 'inline-block' : 'none'; r.btn.textContent = T.syncNow; }
-      }
+      window._syncInProgress = false;
+      _refreshGlobalSyncBadge();
       return;
     }
 
-    // Online + no pending — flash synced then hide
+    // Online + nothing pending - badge shows green tick. Done.
     if (pending === 0) {
       _clearSyncSafety();
-      _syncInProgress = false;
-      _flashSyncedThenHide();
+      window._syncInProgress = false;
+      _refreshGlobalSyncBadge();
       return;
     }
 
-    // Online + pending — show working bar (only start a sync if one isn't running)
-    if (r.bar) {
-      r.bar.className = 'sync-bar sync-working';
-      if (r.icon) r.icon.textContent = '\u21bb';
-      if (r.text) r.text.textContent = T.syncing;
-      if (r.btn)  r.btn.style.display = 'none';
-    }
-    if (_syncInProgress) return;
-    _syncInProgress = true;
+    // Online + pending - kick off sync. Flip flag BEFORE refresh so the
+    // badge paints "Syncing..." not "Sync next attempt".
+    if (window._syncInProgress) return;
+    window._syncInProgress = true;
+    _refreshGlobalSyncBadge();
 
-    // Safety timeout — force-exit syncing state if something hangs
+    // Safety timeout - force-exit syncing state if something hangs.
     _clearSyncSafety();
-    _syncSafetyId = setTimeout(async function () {
-      _syncInProgress = false;
-      try {
-        var st = await getSyncStatus();
-        if ((st.pending || 0) === 0) {
-          _flashSyncedThenHide();
-        } else if (r.bar) {
-          r.bar.className = 'sync-bar sync-error';
-          if (r.icon) r.icon.textContent = '\u2717';
-          var errMsg = (T.syncError || 'Sync still pending') + ' (' + st.pending + ')';
-          if ((st.ejected || 0) > 0) errMsg += ' \u00b7 ' + (st.ejected) + ' dropped';
-          if (r.text) r.text.textContent = errMsg;
-          if (r.btn) { r.btn.style.display = 'inline-block'; r.btn.textContent = T.retry || 'Retry'; }
-        }
-      } catch (e) {
-        _flashSyncedThenHide();
-      }
+    _syncSafetyId = setTimeout(function () {
+      window._syncInProgress = false;
+      _refreshGlobalSyncBadge();
     }, 10000);
 
     try {
@@ -567,24 +552,20 @@ async function enhancedSyncStatus() {
       console.warn('syncPending:', e);
     }
     _clearSyncSafety();
-    _syncInProgress = false;
+    window._syncInProgress = false;
 
-    // Re-check pending; if still stuck, show retry state instead of re-entering sync loop
+    // Re-paint with post-sync state (pending / quarantined may have changed).
     var after = await getSyncStatus();
-    if ((after.pending || 0) === 0) {
-      _flashSyncedThenHide();
-    } else if (r.bar) {
-      r.bar.className = 'sync-bar sync-error';
-      if (r.icon) r.icon.textContent = '\u2717';
-      var failMsg = (T.syncError || 'Sync failed') + ' (' + after.pending + ')';
-      if ((after.ejected || 0) > 0) failMsg += ' \u00b7 ' + after.ejected + ' dropped';
-      if (r.text) r.text.textContent = failMsg;
-      if (r.btn)  { r.btn.style.display = 'inline-block'; r.btn.textContent = T.retry || 'Retry'; }
-    }
+    window._patrolSyncCache = {
+      pending: after.pending || 0,
+      quarantined: after.ejected || 0,
+      ts: Date.now()
+    };
+    _refreshGlobalSyncBadge();
   } catch (e) {
     _clearSyncSafety();
-    _syncInProgress = false;
-    if (r.bar) r.bar.className = 'sync-bar sync-hidden';
+    window._syncInProgress = false;
+    _refreshGlobalSyncBadge();
   }
 }
 
