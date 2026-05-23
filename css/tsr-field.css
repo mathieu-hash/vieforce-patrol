@@ -78,3 +78,33 @@ body.role-tsr .fab-pick-btn,
 body.role-champion .fab-pick-btn {
   min-height: 64px;
 }
+
+/* ===== TSR SKELETON VARIANT (CLAUDE.md Rule 7) =====
+ * Taller rows and higher-contrast shimmer for sunlight readability + calloused
+ * hands. Applied automatically to .skeleton-row when the body role is TSR or
+ * Champion; falls back to the global .skeleton-row in patrol.css otherwise.
+ */
+body.role-tsr .skeleton-row,
+body.role-champion .skeleton-row,
+.skeleton-row-tsr {
+  min-height: 84px;
+  padding: 18px 16px;
+}
+body.role-tsr .skeleton,
+body.role-champion .skeleton,
+.skeleton-row-tsr .skeleton {
+  /* Higher-contrast shimmer for outdoor sunlight. */
+  background: linear-gradient(90deg, #D6D9DE 25%, #E8EAEE 50%, #D6D9DE 75%);
+  background-size: 200% 100%;
+}
+body.role-tsr .skeleton-circle,
+body.role-champion .skeleton-circle,
+.skeleton-row-tsr .skeleton-circle {
+  width: 56px;
+  height: 56px;
+}
+body.role-tsr .skeleton-line,
+body.role-champion .skeleton-line,
+.skeleton-row-tsr .skeleton-line {
+  height: 16px;
+}

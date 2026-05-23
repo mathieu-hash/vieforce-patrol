@@ -182,10 +182,10 @@
       <div class="tsr-greeting-sub" id="tsrGreetingSub">Vienovo Philippines</div>
       <div class="tsr-sync-pill" id="tsrSyncPill" role="status" aria-live="polite">● Naka-sync na</div>
     </div>
-    <!-- NBA HERO -->
-    <div class="nba-hero" id="tsrNbaHero">
+    <!-- NBA HERO (CLAUDE.md Rule 7: skeleton, no "Loading..." text) -->
+    <div class="nba-hero" id="tsrNbaHero" aria-busy="true">
       <div class="nba-label" id="tsrNbaLabel"></div>
-      <div class="nba-title" id="tsrNbaTitle" data-i18n="tsr.nba_loading">Nilo-load ang susunod na aksyon…</div>
+      <div class="nba-title" id="tsrNbaTitle"><span class="skeleton skeleton-line w80" style="display:inline-block;height:18px;min-width:160px"></span></div>
       <div class="nba-meta" id="tsrNbaMeta"></div>
       <div class="nba-reason" id="tsrNbaReason"></div>
       <div class="nba-actions">
@@ -1316,6 +1316,7 @@
 <!-- SCRIPTS                                   -->
 <!-- ========================================= -->
 <script src="js/_util/escape.js?v=1"></script>
+<script src="js/_util/skeleton.js?v=1"></script>
 <script src="js/_util/sync-badge.js?v=1"></script>
 <script src="js/theme-switcher.js?v=1"></script>
 <script src="js/labels-v2.js?v=19"></script>
@@ -1896,12 +1897,35 @@
     window._currentStoreId = storeId;
     nav('page-store-detail');
 
-    // Set loading state
-    document.getElementById('detail-store-name').textContent = 'Loading...';
-    document.getElementById('detail-store-meta').textContent = '--';
+    // Set skeleton loading state (CLAUDE.md Rule 7: no spinners / no "Loading…" text for TSRs).
+    var nameEl = document.getElementById('detail-store-name');
+    if (nameEl) {
+      nameEl.innerHTML = '<span class="skeleton skeleton-line w60" style="display:inline-block;height:18px;min-width:140px" aria-label="' + ((typeof T !== 'undefined' && T.loading) ? T.loading : 'Loading') + '"></span>';
+    }
+    var metaEl = document.getElementById('detail-store-meta');
+    if (metaEl) {
+      metaEl.innerHTML = '<span class="skeleton skeleton-line w40" style="display:inline-block;height:11px;min-width:80px"></span>';
+    }
 
     var msgs = document.getElementById('detail-messages');
-    if (msgs) msgs.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>';
+    if (msgs && window.PatrolSkeleton && typeof PatrolSkeleton.renderSkeletonRows === 'function') {
+      PatrolSkeleton.renderSkeletonRows(msgs, 3);
+    } else if (msgs) {
+      msgs.innerHTML =
+        '<div class="skeleton-row"><div class="skeleton skeleton-circle"></div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;gap:6px">' +
+        '<div class="skeleton skeleton-line w60"></div>' +
+        '<div class="skeleton skeleton-line w80"></div>' +
+        '<div class="skeleton skeleton-line w40"></div></div></div>' +
+        '<div class="skeleton-row"><div class="skeleton skeleton-circle"></div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;gap:6px">' +
+        '<div class="skeleton skeleton-line w80"></div>' +
+        '<div class="skeleton skeleton-line w60"></div></div></div>' +
+        '<div class="skeleton-row"><div class="skeleton skeleton-circle"></div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;gap:6px">' +
+        '<div class="skeleton skeleton-line w40"></div>' +
+        '<div class="skeleton skeleton-line w60"></div></div></div>';
+    }
 
     try {
       var store = await getStoreById(storeId);
@@ -2050,12 +2074,17 @@
 
       if (msgs) {
         msgs.innerHTML = html;
+        msgs.removeAttribute('aria-busy');
         msgs.scrollTop = msgs.scrollHeight;
       }
 
     } catch (err) {
-      document.getElementById('detail-store-name').textContent = 'Error';
-      document.getElementById('detail-store-meta').textContent = err.message;
+      var errName = document.getElementById('detail-store-name');
+      if (errName) errName.textContent = 'Error';
+      var errMeta = document.getElementById('detail-store-meta');
+      if (errMeta) errMeta.textContent = err.message;
+      var errMsgs = document.getElementById('detail-messages');
+      if (errMsgs) errMsgs.removeAttribute('aria-busy');
     }
   }
 
