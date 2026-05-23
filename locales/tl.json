@@ -200,5 +200,9 @@
   "admin.resetPin.confirmLabel": "Ulitin ang PIN",
   "admin.resetPin.submit": "I-save ang bagong PIN",
   "admin.resetPin.success": "Na-reset ang PIN. I-text o tawagan ang user ng bagong PIN.",
-  "admin.resetPin.mismatch": "Hindi pareho ang dalawang PIN."
+  "admin.resetPin.mismatch": "Hindi pareho ang dalawang PIN.",
+  "leaderboard.yourRank": "Ikaw",
+  "leaderboard.keepGoing": "Tuluy-tuloy! 💪",
+  "leaderboard.topPerformers": "Top performers ngayong linggo",
+  "leaderboard.moreHidden": "+{n} pa"
 }
