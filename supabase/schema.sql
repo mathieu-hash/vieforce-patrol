@@ -133,95 +133,306 @@ insert into public.users (phone, pin_hash, name, role, region, district, territo
 on conflict (phone) do nothing;
 
 -- ============================================================
--- 8. ROW LEVEL SECURITY POLICIES
--- Run after seed data. Safe to re-run (uses IF NOT EXISTS pattern).
+-- 8. ROW LEVEL SECURITY POLICIES (consolidated — Wave 1 hardening)
+-- Authoritative migration: 20260521120000_rls_hardening_w1.sql
+-- Depends on W1-AuthCore Edge Function stamping auth.jwt() with
+-- app_metadata.role / region / district / patrol_user_id and using
+-- users.id as the JWT sub. Safe to re-run.
 -- ============================================================
 
--- Enable RLS on all tables
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.stores ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.store_products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.store_competitors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.visits ENABLE ROW LEVEL SECURITY;
+-- Helper functions (read claims from the AuthCore-stamped JWT)
+CREATE OR REPLACE FUNCTION public.patrol_role() RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT COALESCE((auth.jwt() -> 'app_metadata' ->> 'role')::text, '')
+$$;
 
--- USERS: own record (select) + admin full access
-DROP POLICY IF EXISTS "Users read own record" ON public.users;
-CREATE POLICY "Users read own record" ON public.users
-  FOR SELECT USING (true);
-  -- Note: PIN auth is via Edge Function, not RLS. Allow read for login flow.
+CREATE OR REPLACE FUNCTION public.patrol_is_admin() RETURNS boolean
+LANGUAGE sql STABLE AS $$
+  SELECT public.patrol_role() IN ('admin', 'ceo', 'evp', 'marketing')
+$$;
 
-DROP POLICY IF EXISTS "Admins manage users" ON public.users;
-CREATE POLICY "Admins manage users" ON public.users
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.users u WHERE u.id::text = auth.uid()::text AND u.role = 'admin')
-  );
+CREATE OR REPLACE FUNCTION public.patrol_is_manager() RETURNS boolean
+LANGUAGE sql STABLE AS $$
+  SELECT public.patrol_role() IN ('dsm', 'rsm', 'exec', 'ceo', 'evp', 'admin')
+$$;
 
--- STORES: TSR sees own created + assigned, managers see all
-DROP POLICY IF EXISTS "TSR sees own stores" ON public.stores;
-CREATE POLICY "TSR sees own stores" ON public.stores
+CREATE OR REPLACE FUNCTION public.patrol_jwt_region() RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'region')::text, '')
+$$;
+
+CREATE OR REPLACE FUNCTION public.patrol_jwt_district() RETURNS text
+LANGUAGE sql STABLE AS $$
+  SELECT NULLIF((auth.jwt() -> 'app_metadata' ->> 'district')::text, '')
+$$;
+
+-- Enable RLS on every Patrol-managed table
+ALTER TABLE public.users               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stores              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.store_products      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.store_competitors   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.visits              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.farms               ENABLE ROW LEVEL SECURITY;
+
+-- USERS: self + admin SELECT/UPDATE; admin INSERT/DELETE only.
+DROP POLICY IF EXISTS users_self_or_admin_select ON public.users;
+DROP POLICY IF EXISTS users_self_or_admin_update ON public.users;
+DROP POLICY IF EXISTS users_admin_insert        ON public.users;
+DROP POLICY IF EXISTS users_admin_delete        ON public.users;
+
+CREATE POLICY users_self_or_admin_select ON public.users
+  FOR SELECT USING (auth.uid() = id OR public.patrol_is_admin());
+
+CREATE POLICY users_self_or_admin_update ON public.users
+  FOR UPDATE
+  USING      (auth.uid() = id OR public.patrol_is_admin())
+  WITH CHECK (auth.uid() = id OR public.patrol_is_admin());
+
+CREATE POLICY users_admin_insert ON public.users
+  FOR INSERT WITH CHECK (public.patrol_is_admin());
+
+CREATE POLICY users_admin_delete ON public.users
+  FOR DELETE USING (public.patrol_is_admin());
+
+-- STORES: TSR own/assigned; manager scoped by region OR district; admin all.
+DROP POLICY IF EXISTS stores_select_scoped ON public.stores;
+DROP POLICY IF EXISTS stores_insert_auth   ON public.stores;
+DROP POLICY IF EXISTS stores_update_scoped ON public.stores;
+DROP POLICY IF EXISTS stores_delete_admin  ON public.stores;
+
+CREATE POLICY stores_select_scoped ON public.stores
   FOR SELECT USING (
-    created_by::text = auth.uid()::text
-    OR assigned_tsr::text = auth.uid()::text
-    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id::text = auth.uid()::text AND u.role IN ('dsm','rsm','admin'))
+    public.patrol_is_admin()
+    OR (
+      public.patrol_is_manager() AND (
+        public.patrol_jwt_region() IS NULL
+        OR public.patrol_jwt_region() = stores.region
+        OR public.patrol_jwt_district() = stores.district
+      )
+    )
+    OR stores.assigned_tsr = auth.uid()
+    OR stores.created_by = auth.uid()
   );
 
-DROP POLICY IF EXISTS "TSR inserts stores" ON public.stores;
-CREATE POLICY "TSR inserts stores" ON public.stores
-  FOR INSERT WITH CHECK (created_by::text = auth.uid()::text);
+CREATE POLICY stores_insert_auth ON public.stores
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
-DROP POLICY IF EXISTS "TSR updates own stores" ON public.stores;
-CREATE POLICY "TSR updates own stores" ON public.stores
-  FOR UPDATE USING (
-    created_by::text = auth.uid()::text
-    OR assigned_tsr::text = auth.uid()::text
-    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id::text = auth.uid()::text AND u.role IN ('dsm','rsm','admin'))
+CREATE POLICY stores_update_scoped ON public.stores
+  FOR UPDATE
+  USING (
+    public.patrol_is_admin()
+    OR public.patrol_is_manager()
+    OR stores.assigned_tsr = auth.uid()
+    OR stores.created_by = auth.uid()
+  )
+  WITH CHECK (
+    public.patrol_is_admin()
+    OR public.patrol_is_manager()
+    OR stores.assigned_tsr = auth.uid()
+    OR stores.created_by = auth.uid()
   );
 
--- STORE_PRODUCTS: inherit store access
-DROP POLICY IF EXISTS "Store products inherit access" ON public.store_products;
-CREATE POLICY "Store products inherit access" ON public.store_products
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.stores s WHERE s.id = store_id)
-  );
+CREATE POLICY stores_delete_admin ON public.stores
+  FOR DELETE USING (public.patrol_is_admin());
 
--- STORE_COMPETITORS: inherit store access
-DROP POLICY IF EXISTS "Store competitors inherit access" ON public.store_competitors;
-CREATE POLICY "Store competitors inherit access" ON public.store_competitors
-  FOR ALL USING (
-    EXISTS (SELECT 1 FROM public.stores s WHERE s.id = store_id)
-  );
+-- STORE_PRODUCTS: inherit access from parent store; admin override.
+DROP POLICY IF EXISTS store_products_select_via_store ON public.store_products;
+DROP POLICY IF EXISTS store_products_mutate_via_store ON public.store_products;
 
--- VISITS: TSR sees own, managers see all
-DROP POLICY IF EXISTS "TSR sees own visits" ON public.visits;
-CREATE POLICY "TSR sees own visits" ON public.visits
+CREATE POLICY store_products_select_via_store ON public.store_products
   FOR SELECT USING (
-    tsr_id::text = auth.uid()::text
-    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id::text = auth.uid()::text AND u.role IN ('dsm','rsm','admin'))
+    public.patrol_is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = store_products.store_id
+        AND (public.patrol_is_manager()
+             OR s.assigned_tsr = auth.uid()
+             OR s.created_by = auth.uid())
+    )
   );
 
-DROP POLICY IF EXISTS "TSR inserts own visits" ON public.visits;
-CREATE POLICY "TSR inserts own visits" ON public.visits
-  FOR INSERT WITH CHECK (tsr_id::text = auth.uid()::text);
+CREATE POLICY store_products_mutate_via_store ON public.store_products
+  FOR ALL
+  USING (
+    public.patrol_is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = store_products.store_id
+        AND (public.patrol_is_manager()
+             OR s.assigned_tsr = auth.uid()
+             OR s.created_by = auth.uid())
+    )
+  )
+  WITH CHECK (
+    public.patrol_is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = store_products.store_id
+        AND (public.patrol_is_manager()
+             OR s.assigned_tsr = auth.uid()
+             OR s.created_by = auth.uid())
+    )
+  );
 
--- FARMS: same pattern as stores
-ALTER TABLE public.farms ENABLE ROW LEVEL SECURITY;
+-- STORE_COMPETITORS: same pattern as store_products.
+DROP POLICY IF EXISTS store_competitors_select_via_store ON public.store_competitors;
+DROP POLICY IF EXISTS store_competitors_mutate_via_store ON public.store_competitors;
 
-DROP POLICY IF EXISTS "TSR sees own farms" ON public.farms;
-CREATE POLICY "TSR sees own farms" ON public.farms
+CREATE POLICY store_competitors_select_via_store ON public.store_competitors
   FOR SELECT USING (
-    created_by::text = auth.uid()::text
-    OR assigned_tsr::text = auth.uid()::text
-    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id::text = auth.uid()::text AND u.role IN ('dsm','rsm','admin'))
+    public.patrol_is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = store_competitors.store_id
+        AND (public.patrol_is_manager()
+             OR s.assigned_tsr = auth.uid()
+             OR s.created_by = auth.uid())
+    )
   );
 
-DROP POLICY IF EXISTS "TSR inserts farms" ON public.farms;
-CREATE POLICY "TSR inserts farms" ON public.farms
-  FOR INSERT WITH CHECK (created_by::text = auth.uid()::text);
-
-DROP POLICY IF EXISTS "TSR updates own farms" ON public.farms;
-CREATE POLICY "TSR updates own farms" ON public.farms
-  FOR UPDATE USING (
-    created_by::text = auth.uid()::text
-    OR assigned_tsr::text = auth.uid()::text
-    OR EXISTS (SELECT 1 FROM public.users u WHERE u.id::text = auth.uid()::text AND u.role IN ('dsm','rsm','admin'))
+CREATE POLICY store_competitors_mutate_via_store ON public.store_competitors
+  FOR ALL
+  USING (
+    public.patrol_is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = store_competitors.store_id
+        AND (public.patrol_is_manager()
+             OR s.assigned_tsr = auth.uid()
+             OR s.created_by = auth.uid())
+    )
+  )
+  WITH CHECK (
+    public.patrol_is_admin()
+    OR EXISTS (
+      SELECT 1 FROM public.stores s
+      WHERE s.id = store_competitors.store_id
+        AND (public.patrol_is_manager()
+             OR s.assigned_tsr = auth.uid()
+             OR s.created_by = auth.uid())
+    )
   );
+
+-- VISITS: TSR own; manager any; admin all. UPDATE limited to 24h for TSR.
+DROP POLICY IF EXISTS visits_select_scoped      ON public.visits;
+DROP POLICY IF EXISTS visits_insert_self        ON public.visits;
+DROP POLICY IF EXISTS visits_update_self_or_mgr ON public.visits;
+DROP POLICY IF EXISTS visits_delete_admin       ON public.visits;
+
+CREATE POLICY visits_select_scoped ON public.visits
+  FOR SELECT USING (
+    public.patrol_is_admin()
+    OR public.patrol_is_manager()
+    OR visits.tsr_id = auth.uid()
+  );
+
+CREATE POLICY visits_insert_self ON public.visits
+  FOR INSERT WITH CHECK (
+    auth.uid() IS NOT NULL AND visits.tsr_id = auth.uid()
+  );
+
+CREATE POLICY visits_update_self_or_mgr ON public.visits
+  FOR UPDATE
+  USING (
+    public.patrol_is_admin()
+    OR public.patrol_is_manager()
+    OR (visits.tsr_id = auth.uid()
+        AND visits.visited_at >= (now() - interval '24 hours'))
+  )
+  WITH CHECK (
+    public.patrol_is_admin()
+    OR public.patrol_is_manager()
+    OR (visits.tsr_id = auth.uid()
+        AND visits.visited_at >= (now() - interval '24 hours'))
+  );
+
+CREATE POLICY visits_delete_admin ON public.visits
+  FOR DELETE USING (public.patrol_is_admin());
+
+-- FARMS: same pattern as stores.
+DROP POLICY IF EXISTS farms_select_scoped ON public.farms;
+DROP POLICY IF EXISTS farms_insert_auth   ON public.farms;
+DROP POLICY IF EXISTS farms_update_scoped ON public.farms;
+DROP POLICY IF EXISTS farms_delete_admin  ON public.farms;
+
+CREATE POLICY farms_select_scoped ON public.farms
+  FOR SELECT USING (
+    public.patrol_is_admin()
+    OR (
+      public.patrol_is_manager() AND (
+        public.patrol_jwt_region() IS NULL
+        OR public.patrol_jwt_region() = farms.region
+      )
+    )
+    OR farms.assigned_tsr = auth.uid()
+    OR farms.created_by = auth.uid()
+  );
+
+CREATE POLICY farms_insert_auth ON public.farms
+  FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY farms_update_scoped ON public.farms
+  FOR UPDATE
+  USING (
+    public.patrol_is_admin()
+    OR public.patrol_is_manager()
+    OR farms.assigned_tsr = auth.uid()
+    OR farms.created_by = auth.uid()
+  )
+  WITH CHECK (
+    public.patrol_is_admin()
+    OR public.patrol_is_manager()
+    OR farms.assigned_tsr = auth.uid()
+    OR farms.created_by = auth.uid()
+  );
+
+CREATE POLICY farms_delete_admin ON public.farms
+  FOR DELETE USING (public.patrol_is_admin());
+
+-- SAP_ACCOUNTS: manager-read only; deny mutations (service-role syncs).
+ALTER TABLE public.sap_accounts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS sap_accounts_manager_read ON public.sap_accounts;
+
+CREATE POLICY sap_accounts_manager_read ON public.sap_accounts
+  FOR SELECT USING (public.patrol_is_manager());
+
+-- STORE_SAP_MATCHES: manager read, admin mutate.
+ALTER TABLE public.store_sap_matches ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS store_sap_matches_manager_read ON public.store_sap_matches;
+DROP POLICY IF EXISTS store_sap_matches_admin_mutate ON public.store_sap_matches;
+
+CREATE POLICY store_sap_matches_manager_read ON public.store_sap_matches
+  FOR SELECT USING (public.patrol_is_manager());
+
+CREATE POLICY store_sap_matches_admin_mutate ON public.store_sap_matches
+  FOR ALL
+  USING      (public.patrol_is_admin())
+  WITH CHECK (public.patrol_is_admin());
+
+-- PATROL_ORG_* (regions / districts / territories): any authenticated user reads,
+-- admin mutates.
+ALTER TABLE public.patrol_org_regions     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patrol_org_districts   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.patrol_org_territories ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS patrol_org_regions_auth_read       ON public.patrol_org_regions;
+DROP POLICY IF EXISTS patrol_org_regions_admin_mutate    ON public.patrol_org_regions;
+DROP POLICY IF EXISTS patrol_org_districts_auth_read     ON public.patrol_org_districts;
+DROP POLICY IF EXISTS patrol_org_districts_admin_mutate  ON public.patrol_org_districts;
+DROP POLICY IF EXISTS patrol_org_territories_auth_read   ON public.patrol_org_territories;
+DROP POLICY IF EXISTS patrol_org_territories_admin_mutate ON public.patrol_org_territories;
+
+CREATE POLICY patrol_org_regions_auth_read ON public.patrol_org_regions
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY patrol_org_regions_admin_mutate ON public.patrol_org_regions
+  FOR ALL USING (public.patrol_is_admin()) WITH CHECK (public.patrol_is_admin());
+
+CREATE POLICY patrol_org_districts_auth_read ON public.patrol_org_districts
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY patrol_org_districts_admin_mutate ON public.patrol_org_districts
+  FOR ALL USING (public.patrol_is_admin()) WITH CHECK (public.patrol_is_admin());
+
+CREATE POLICY patrol_org_territories_auth_read ON public.patrol_org_territories
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+CREATE POLICY patrol_org_territories_admin_mutate ON public.patrol_org_territories
+  FOR ALL USING (public.patrol_is_admin()) WITH CHECK (public.patrol_is_admin());
