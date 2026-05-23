@@ -686,3 +686,40 @@ body.admin-page .admin-empty {
     flex: 1 1 calc(50% - 8px);
   }
 }
+
+/* --- Admin page utility classes (Audit B P2 §13 — inline style cleanup) ---
+   These replace inline style="..." attrs that were scattered through admin.html. */
+body.admin-page .top-bar .back-btn { text-decoration: none; }
+body.admin-page .top-bar-title { flex: 1; }
+
+/* Compact "PIN policy" / "SAP vs Patrol" callout shown under admin-intro. */
+.admin-callout {
+  display: block;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #4a5568;
+}
+
+/* Cross-link inside admin-intro / admin-callout text (e.g. "Region / District / Territory"). */
+.admin-inline-link {
+  color: var(--blue, #00a6ce);
+  font-weight: 700;
+}
+
+/* Tight first paragraph inside the hierarchy guide aside. */
+.admin-hierarchy-guide .admin-guide-lead {
+  margin: 0 0 6px;
+}
+
+/* Secondary label hint inside a <label> (e.g. "(for Google sign-in)", "(optional)"). */
+.admin-label-hint {
+  font-weight: 400;
+  color: #718096;
+}
+.admin-label-hint--strong {
+  font-weight: 600;
+  color: #718096;
+}

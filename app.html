@@ -21,17 +21,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/tokens.css?v=1">
 <link rel="stylesheet" href="css/patrol.css?v=38">
-<link rel="stylesheet" href="css/rsm.css?v=1">
 <link rel="stylesheet" href="css/dsm-rsm-mobile.css?v=12">
-<link rel="stylesheet" href="css/density-pass.css?v=10">
+<link rel="stylesheet" href="css/density-pass.css?v=11">
 <link rel="stylesheet" href="css/activity-feed.css?v=3">
-<link rel="stylesheet" href="css/phase4-social.css?v=2">
-<link rel="stylesheet" href="css/phase3-sales-stores.css?v=2">
 <link rel="stylesheet" href="css/elite-components.css?v=2">
 <link rel="stylesheet" href="css/elite-action.css?v=8">
 <link rel="stylesheet" href="css/visits-page.css?v=5">
 <link rel="stylesheet" href="css/tsr-field.css?v=1">
-<!-- sales-tab-v2.css injected for manager roles only (see role-check block) -->
+<!--
+  Manager-only CSS lazy-loaded on-demand to keep TSR cold load under the
+  CLAUDE.md Rule 2 / 500KB data budget. Together these three files weigh
+  ~32 KB (rsm.css 12.6 KB, phase4-social.css 10.4 KB, phase3-sales-stores.css 9.8 KB).
+  They are injected via window.ensureManagerRsmAssets / ensureManagerSocialAssets /
+  ensureManagerStoresAssets in the route handlers below (DSM home, RSM dashboard,
+  Stores tab, Sales tab). sales-tab-v2.css is injected by ensureManagerSalesAssets.
+-->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#004D71">
 <link rel="apple-touch-icon" href="icons/icon-192.png?v=2">
@@ -1558,7 +1562,9 @@
   }
 
   function _loadCssOnce(href) {
-    var existing = document.querySelector('link[href="' + href + '"]');
+    // Match the file regardless of ?v=N cache-bust so we never double-inject.
+    var base = href.split('?')[0];
+    var existing = document.querySelector('link[href^="' + base + '"]');
     if (existing) return Promise.resolve();
     return new Promise(function (resolve, reject) {
       var l = document.createElement('link');
@@ -1570,11 +1576,38 @@
     });
   }
 
+  window._patrolCssLoaded = window._patrolCssLoaded || {};
+
   window.ensureManagerSalesAssets = function () {
     return Promise.all([
       _loadCssOnce('css/sales-tab-v2.css?v=1'),
+      _loadCssOnce('css/phase3-sales-stores.css?v=2'),
       _loadScriptOnce('https://cdn.jsdelivr.net/npm/chart.js@4.4.1', 'Chart')
-    ]);
+    ]).then(function () { window._patrolCssLoaded.sales = true; });
+  };
+
+  // RSM dashboard: rsm.css is scoped to #page-rsm-home; phase4-social.css is
+  // needed for the feed-top-chrome injected at RSM landing.
+  window.ensureManagerRsmAssets = function () {
+    if (window._patrolCssLoaded.rsm) return Promise.resolve();
+    return Promise.all([
+      _loadCssOnce('css/rsm.css?v=1'),
+      _loadCssOnce('css/phase4-social.css?v=2')
+    ]).then(function () { window._patrolCssLoaded.rsm = true; });
+  };
+
+  // DSM home + squad feed chrome (.feed-top-chrome, leaderboards, profile).
+  window.ensureManagerSocialAssets = function () {
+    if (window._patrolCssLoaded.social) return Promise.resolve();
+    return _loadCssOnce('css/phase4-social.css?v=2')
+      .then(function () { window._patrolCssLoaded.social = true; });
+  };
+
+  // Stores tab reskin (hero KPI, tab-bar, store FAB) — DSM/RSM/CEO only.
+  window.ensureManagerStoresAssets = function () {
+    if (window._patrolCssLoaded.stores) return Promise.resolve();
+    return _loadCssOnce('css/phase3-sales-stores.css?v=2')
+      .then(function () { window._patrolCssLoaded.stores = true; });
   };
 
   window.ensureManagerExportAssets = function () {
@@ -1625,7 +1658,12 @@
 
     if (landingPageId === 'page-rsm-home') {
       landingLabel = 'Region';
-      landingInit = function () { if (typeof initRsmHome === 'function') initRsmHome(); };
+      landingInit = function () {
+        if (typeof window.ensureManagerRsmAssets === 'function') {
+          window.ensureManagerRsmAssets();
+        }
+        if (typeof initRsmHome === 'function') initRsmHome();
+      };
       var periodLabel = document.getElementById('rsm-period-label');
       if (periodLabel) {
         periodLabel.textContent = new Date().toLocaleString('en-US', { month: 'short', year: 'numeric' });
@@ -1637,11 +1675,21 @@
       }
     } else if (landingPageId === 'page-dashboard') {
       landingLabel = 'Dashboard';
-      landingInit = function () { if (typeof initDashboard === 'function') initDashboard(); };
+      landingInit = function () {
+        if (typeof window.ensureManagerSocialAssets === 'function') {
+          window.ensureManagerSocialAssets();
+        }
+        if (typeof initDashboard === 'function') initDashboard();
+      };
     } else if (landingPageId === 'page-home-tsr') {
       landingInit = function () { if (typeof renderTsrHome === 'function') renderTsrHome(); };
     } else if (landingPageId === 'page-home-dsm') {
-      landingInit = function () { if (typeof renderDsmHome === 'function') renderDsmHome(); };
+      landingInit = function () {
+        if (typeof window.ensureManagerSocialAssets === 'function') {
+          window.ensureManagerSocialAssets();
+        }
+        if (typeof renderDsmHome === 'function') renderDsmHome();
+      };
     } else if (landingPageId === 'page-home') {
       landingInit = function () {
         if (typeof initActivityFeed !== 'function') return;
@@ -2973,12 +3021,22 @@
       renderTsrHome();
     }
     if (pageId === 'page-home-dsm' && typeof renderDsmHome === 'function') {
+      if (typeof window.ensureManagerSocialAssets === 'function') {
+        window.ensureManagerSocialAssets();
+      }
       renderDsmHome();
     }
     if (pageId === 'page-mapa-tsr' && typeof renderMapaTsr === 'function') {
       renderMapaTsr();
     }
     if (pageId === 'page-stores') {
+      // phase3-sales-stores.css covers the manager stores reskin (hero KPI,
+      // tab-bar, store FAB). TSRs never trigger this — body:not(.role-*) hides
+      // the .store-fab — but loading it here is harmless for TSR and keeps the
+      // CSS off the cold-load critical path per CLAUDE.md Rule 2.
+      if (typeof window.ensureManagerStoresAssets === 'function') {
+        window.ensureManagerStoresAssets();
+      }
       _bootstrapStoresPage();
       if (_storesBootstrapped && window.__patrolTindahanHydratedOnce && typeof renderStoreList === 'function') {
         renderStoreList();
@@ -3005,6 +3063,9 @@
       renderTeamPage();
     }
     if (pageId === 'page-rsm-home' && typeof initRsmHome === 'function') {
+      if (typeof window.ensureManagerRsmAssets === 'function') {
+        window.ensureManagerRsmAssets();
+      }
       initRsmHome();
     }
     if (pageId === 'pg-sales' && typeof initSalesTab === 'function') {
@@ -3043,7 +3104,12 @@
 
   // If we land directly on these pages for any role flow, bootstrap immediately.
   var _activeOnLoad = document.querySelector('.page.active');
-  if (_activeOnLoad && _activeOnLoad.id === 'page-stores') _bootstrapStoresPage();
+  if (_activeOnLoad && _activeOnLoad.id === 'page-stores') {
+    if (typeof window.ensureManagerStoresAssets === 'function') {
+      window.ensureManagerStoresAssets();
+    }
+    _bootstrapStoresPage();
+  }
   if (_activeOnLoad && _activeOnLoad.id === 'page-visits') _bootstrapVisitsPage();
   if (_activeOnLoad && _activeOnLoad.id === 'pg-sales' && typeof initSalesTab === 'function') {
     if (typeof window.ensureManagerSalesAssets === 'function') {
