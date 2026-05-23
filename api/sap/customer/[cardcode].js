@@ -1,17 +1,25 @@
 // GET /api/sap/customer/:cardcode
 // Proxies HQ /api/customer?id=<cardcode> — HQ handles scope gate via scope=user:<uuid>.
-// Phase D (2026-04-19): refactored onto callHqProxy.
-// Patrol-side RBAC removed — HQ returns 403/404/is_empty for out-of-scope customers.
-const { verifySession, unauthorized } = require('../../_lib/auth');
+//
+// Wave 1 (W1-ApiGates): role-gated to managers + admins (HQ still enforces 403
+// OUT_OF_SCOPE on top, but Patrol gates first to deny the call cheaply).
+const { requireRole } = require('../../_lib/api-auth');
 const { callHqProxy } = require('../../_lib/hq-client');
 const { stripMarginsIfNeeded, wrapPatrolMeta } = require('../../_lib/scope');
+
+const SAP_ROLES = ['dsm', 'rsm', 'exec', 'ceo', 'evp', 'admin'];
 
 module.exports = async function (req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'private, max-age=30');
 
-  const session = await verifySession(req);
-  if (!session) return unauthorized(res);
+  let session;
+  try {
+    session = await requireRole(req, SAP_ROLES);
+  } catch (err) {
+    const status = (err && err.status) || 401;
+    return res.status(status).json({ error: err.code || 'UNAUTHORIZED', message: err.message });
+  }
 
   const cardcode = req.query && req.query.cardcode;
   if (!cardcode || typeof cardcode !== 'string' || cardcode.length > 64) {
@@ -20,16 +28,20 @@ module.exports = async function (req, res) {
 
   const params = { id: cardcode };
 
-  const { status, body } = await callHqProxy('/api/customer', session, params);
-  if (status === 403) return res.status(403).json(body || { error: 'OUT_OF_SCOPE' });
-  if (status === 404) return res.status(404).json(body || { error: 'NOT_FOUND' });
-  if (status >= 400) {
-    return res.status(status === 504 ? 504 : 502).json({
-      error: (body && body.error) || 'HQ upstream error',
-      hq_status: status
-    });
+  try {
+    const { status, body } = await callHqProxy('/api/customer', session, params);
+    if (status === 403) return res.status(403).json(body || { error: 'OUT_OF_SCOPE' });
+    if (status === 404) return res.status(404).json(body || { error: 'NOT_FOUND' });
+    if (status >= 400) {
+      return res.status(status === 504 ? 504 : 502).json({
+        error: (body && body.error) || 'HQ upstream error',
+        hq_status: status
+      });
+    }
+    const wrapped = wrapPatrolMeta(stripMarginsIfNeeded(body, session), session, params);
+    return res.status(200).json(wrapped);
+  } catch (err) {
+    console.error('[api/sap/customer] HQ call crashed:', (err && err.message) || err);
+    return res.status(502).json({ error: 'HQ_UNREACHABLE', message: 'HQ proxy failed' });
   }
-
-  const wrapped = wrapPatrolMeta(stripMarginsIfNeeded(body, session), session, params);
-  return res.status(200).json(wrapped);
 };

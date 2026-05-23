@@ -8,21 +8,42 @@
 //   2. Vercel egress IPs aren't in the Azure NSG allowlist for the SAP server.
 // The fix is to proxy through HQ Cloud Run (which IS allowlisted) using the
 // same callHqProxy pattern as api/sap/sales.js, api/sap/ar.js, etc.
-const { verifySession, unauthorized } = require('../../_lib/auth');
+//
+// Wave 1 (W1-ApiGates, Audit C P0-S5): added the missing
+// stripMarginsIfNeeded() call. The hand-mapped reshape only picked
+// `volume_bags` from each row but forwarded HQ's `scope`, `whitespace`, and
+// `at_risk` arrays untouched — which could carry margin keys. The README
+// margin contract requires every /api/sap/* response payload to be
+// margin-stripped, regardless of role.
+const { requireRole } = require('../../_lib/api-auth');
 const { callHqProxy } = require('../../_lib/hq-client');
-const { wrapPatrolMeta } = require('../../_lib/scope');
+const { stripMarginsIfNeeded, wrapPatrolMeta } = require('../../_lib/scope');
+
+const SAP_ROLES = ['dsm', 'rsm', 'exec', 'ceo', 'evp', 'admin'];
 
 module.exports = async function (req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'private, max-age=30');
 
-  const session = await verifySession(req);
-  if (!session) return unauthorized(res);
+  let session;
+  try {
+    session = await requireRole(req, SAP_ROLES);
+  } catch (err) {
+    const status = (err && err.status) || 401;
+    return res.status(status).json({ error: err.code || 'UNAUTHORIZED', message: err.message });
+  }
 
   const period = (req.query && req.query.period) || 'MTD';
   const params = { period: period, include: 'whitespace,at_risk' };
 
-  const { status, body } = await callHqProxy('/api/sales', session, params);
+  let status, body;
+  try {
+    ({ status, body } = await callHqProxy('/api/sales', session, params));
+  } catch (err) {
+    console.error('[api/sap/sales/all] HQ call crashed:', (err && err.message) || err);
+    return res.status(502).json({ error: 'HQ_UNREACHABLE', message: 'HQ proxy failed' });
+  }
+
   if (status >= 400) {
     return res.status(status === 504 ? 504 : 502).json({
       error: (body && body.error) || 'HQ upstream error',
@@ -33,12 +54,12 @@ module.exports = async function (req, res) {
     });
   }
 
-  // Re-shape HQ payload into the shape patrol's Sales tab UI expects.
+  // Re-shape HQ payload into the shape patrol's Sales tab UI consumes.
   // HQ returns:
   //   { kpis: { volume_bags, volume_mt, ... },
   //     by_brand: [{ brand, volume_bags, ... }],
   //     top_customers: [{ customer_code, customer_name, volume_bags, ... }],
-  //     whitespace: [{ cardcode, name, phone }],   // only if include= sent
+  //     whitespace: [{ cardcode, name, phone }],
   //     at_risk:    [{ cardcode, name, last_date, days_since_last_order, tier }] }
   const total_bags = (body.kpis && body.kpis.volume_bags) || 0;
 
@@ -57,20 +78,21 @@ module.exports = async function (req, res) {
     };
   });
 
-  // whitespace + at_risk pass through unchanged — HQ returns them in the
-  // exact shape the UI consumes (designed in 2026-04-28 HQ change).
   const whitespace = body.whitespace || [];
   const at_risk    = body.at_risk    || [];
 
-  // Forward HQ scope so wrapPatrolMeta can populate patrol_meta.hq_scope + is_empty.
-  const wrapped = wrapPatrolMeta({
+  // Margin-strip the assembled payload (Audit C P0-S5 fix).
+  // stripMarginsIfNeeded mutates in place and returns the same reference.
+  const payload = {
     kpis: { bags: total_bags },
     by_brand: by_brand,
     by_customer: by_customer,
     whitespace: whitespace,
     at_risk: at_risk,
     scope: body.scope
-  }, session, { period: period });
+  };
+  stripMarginsIfNeeded(payload, session);
 
+  const wrapped = wrapPatrolMeta(payload, session, { period: period });
   return res.status(200).json(wrapped);
 };

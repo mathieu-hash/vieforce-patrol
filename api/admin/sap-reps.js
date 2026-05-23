@@ -1,13 +1,14 @@
 // GET /api/admin/sap-reps
 // Proxies HQ /api/admin/sap-reps — active OSLP reps merged with Supabase users.
-// Patrol gate: User Admin roles only — ceo | admin | evp | marketing.
+//
+// Wave 1 (W1-ApiGates): role-gated via requireRole(['admin','ceo','evp','marketing']).
+// Replaces inline role allowlist (Audit C P2-1: kill duplicate).
 
-const { verifySession, unauthorized } = require('../_lib/auth');
+const { requireRole } = require('../_lib/api-auth');
 const { callHqProxy } = require('../_lib/hq-client');
 const { applyPatrolCors } = require('../_lib/patrol-cors');
 
-// Matches Patrol User Admin gate: CEO, Sales Admin (admin), EVP Sales (evp), Marketing Manager (marketing).
-const USER_ADMIN_ROLES = new Set(['ceo', 'admin', 'evp', 'marketing']);
+const ADMIN_ROLES = ['admin', 'ceo', 'evp', 'marketing'];
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -17,17 +18,19 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const session = await verifySession(req);
-  if (!session) return unauthorized(res);
-
-  const role = String(session.role || '').toLowerCase();
-  if (!USER_ADMIN_ROLES.has(role)) {
-    return res.status(403).json({
-      error: 'Forbidden',
-      message: 'User Admin access required (CEO, Sales Admin, EVP Sales, Marketing Manager)'
-    });
+  let session;
+  try {
+    session = await requireRole(req, ADMIN_ROLES);
+  } catch (err) {
+    const status = (err && err.status) || 401;
+    return res.status(status).json({ error: err.code || 'UNAUTHORIZED', message: err.message });
   }
 
-  const { status, body } = await callHqProxy('/api/admin/sap-reps', session, {});
-  return res.status(status).json(body);
+  try {
+    const { status, body } = await callHqProxy('/api/admin/sap-reps', session, {});
+    return res.status(status).json(body);
+  } catch (err) {
+    console.error('[api/admin/sap-reps] HQ call crashed:', (err && err.message) || err);
+    return res.status(502).json({ error: 'HQ_UNREACHABLE', message: 'HQ proxy failed' });
+  }
 };
