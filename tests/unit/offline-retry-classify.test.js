@@ -148,6 +148,61 @@ test('classifyError: message-shaped permanent (constraint phrasing) → permanen
 });
 
 // ──────────────────────────────────────────────────────────────────────
+// W5-ClassifierFix: PGRST204 phrasing + wrapped-error code preservation
+// W4-OfflineE2E discovered that js/db.js was throwing `new Error(fn + ': '
+// + err.message)` and stripping err.code, so classifyError fell back to
+// the message-regex branch — but that regex didn't match Supabase's
+// PGRST204 phrasing. These cases lock the fix in place.
+// ──────────────────────────────────────────────────────────────────────
+test('classifyError: Supabase PGRST204 phrasing (schema cache wording) → permanent', () => {
+  const ctx = buildCtx();
+  // This is the EXACT shape Supabase returns when posting to a column
+  // that doesn't exist on the table. Pre-W5, the regex
+  // `/column .* does not exist/` did NOT match this string, so a
+  // wrapped-error with no .code fell through to the transient default.
+  assert.equal(
+    ctx.classifyError({ message: "Could not find the 'foo' column of 'stores' in the schema cache" }),
+    'permanent'
+  );
+});
+
+test('classifyError: PGRST204 with code preserved → permanent (primary path)', () => {
+  const ctx = buildCtx();
+  // Code-based detection is the primary defense (cheaper than regex).
+  // _wrapSupabaseError in js/db.js now preserves err.code so this branch
+  // fires whether or not the message regex would have matched.
+  assert.equal(
+    ctx.classifyError({ code: 'PGRST204', message: 'whatever — message irrelevant when code is present' }),
+    'permanent'
+  );
+});
+
+test('classifyError: db.js-wrapped error with preserved code → permanent', () => {
+  const ctx = buildCtx();
+  // Simulates exactly what _wrapSupabaseError produces in js/db.js: a
+  // plain Error subclass whose .code/.status survive the wrap. Without
+  // the fix, this Error would lack .code and the regex would miss.
+  const supabaseErr = {
+    code: 'PGRST204',
+    message: "Could not find the 'offline_id' column of 'visits' in the schema cache",
+    details: null,
+  };
+  const wrapped = new Error('createVisit: ' + supabaseErr.message);
+  wrapped.code = supabaseErr.code;
+  wrapped.details = supabaseErr.details;
+  wrapped.cause = supabaseErr;
+  assert.equal(ctx.classifyError(wrapped), 'permanent');
+});
+
+test('classifyError: plain Error (no code) with PGRST204 phrasing → permanent (regex fallback)', () => {
+  const ctx = buildCtx();
+  // Defense-in-depth: if some future caller wraps without preserving
+  // code, the extended message regex still catches Supabase's wording.
+  const wrapped = new Error("createVisit: Could not find the 'offline_id' column of 'visits' in the schema cache");
+  assert.equal(ctx.classifyError(wrapped), 'permanent');
+});
+
+// ──────────────────────────────────────────────────────────────────────
 // Backoff schedule
 // ──────────────────────────────────────────────────────────────────────
 test('_nextBackoffMs: schedule increments 5s, 15s, 30s, 1m, 5m...', () => {
