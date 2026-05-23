@@ -257,7 +257,14 @@ function classifyError(err) {
   if (/timeout|timed out|econnreset|enotfound|socket hang up/.test(fallbackMsg)) {
     return 'transient';
   }
-  if (/duplicate key|violates|not-null|check constraint|column .* does not exist/.test(fallbackMsg)) {
+  // W5-ClassifierFix: defense-in-depth — match BOTH Postgres-native
+  // "column ... does not exist" AND Supabase PostgREST PGRST204 phrasing
+  // "Could not find the '<col>' column of '<table>' in the schema cache".
+  // Primary detection is still err.code === 'PGRST204' above (preserved by
+  // _wrapSupabaseError in db.js); this message regex catches plain Error
+  // shapes that lost the code on the way through. fallbackMsg is already
+  // lowercased above, so case is normalized.
+  if (/duplicate key|violates|not-null|check constraint|column .* does not exist|could not find the .* column/.test(fallbackMsg)) {
     return 'permanent';
   }
 

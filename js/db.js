@@ -1,5 +1,24 @@
 // Database Module — all Supabase CRUD queries
 
+// ── Error wrapping ─────────────────────────────────────────────────────
+// W5-ClassifierFix: preserve err.code / err.status / err.details when
+// rewrapping a Supabase error. The previous `throw new Error(fn + ': ' +
+// err.message)` pattern dropped err.code, so classifyError() in offline.js
+// fell back to its message-regex branch — but that regex did not match
+// Supabase's actual PGRST204 phrasing ("Could not find the '<col>' column
+// of '<table>' in the schema cache"). Result: real PGRST204 errors
+// classified as transient and the sync loop retried forever instead of
+// quarantining. Keep the metadata so the code-based branch can detect it.
+function _wrapSupabaseError(fnName, err) {
+  var wrapped = new Error(fnName + ': ' + (err && err.message ? err.message : String(err)));
+  if (err && err.code) wrapped.code = err.code;
+  if (err && err.status) wrapped.status = err.status;
+  if (err && err.statusCode) wrapped.statusCode = err.statusCode;
+  if (err && err.details) wrapped.details = err.details;
+  if (err) wrapped.cause = err; // preserve original for telemetry
+  return wrapped;
+}
+
 // ── SAP Proxy fetch helper ─────────────────────────────────────────────
 // AGENT 3: Review this helper. Added by Agent 1 during Day 1
 // Patrol-as-hub backend sprint.
@@ -88,7 +107,7 @@ async function getStores(filters) {
       var cached = await getCachedStores();
       if (cached && cached.length) return cached;
     }
-    throw new Error('getStores: ' + error.message);
+    throw _wrapSupabaseError('getStores', error);
   }
   var rows = data || [];
   if (rows.length && typeof cacheStores === 'function') {
@@ -130,7 +149,7 @@ async function createStore(storeData) {
     .select()
     .single();
 
-  if (error) throw new Error('createStore: ' + error.message);
+  if (error) throw _wrapSupabaseError('createStore', error);
   return data;
 }
 
@@ -142,7 +161,7 @@ async function updateStore(id, data) {
     .select()
     .single();
 
-  if (error) throw new Error('updateStore: ' + error.message);
+  if (error) throw _wrapSupabaseError('updateStore', error);
   return updated;
 }
 
@@ -183,7 +202,7 @@ async function getStoreById(id) {
     .eq('id', id)
     .single();
 
-  if (error) throw new Error('getStoreById: ' + error.message);
+  if (error) throw _wrapSupabaseError('getStoreById', error);
 
   // Fetch related data
   var { data: products } = await supabaseClient
@@ -219,7 +238,7 @@ async function upsertStoreProducts(storeId, products) {
     .insert(rows)
     .select();
 
-  if (error) throw new Error('upsertStoreProducts: ' + error.message);
+  if (error) throw _wrapSupabaseError('upsertStoreProducts', error);
   return data || [];
 }
 
@@ -238,7 +257,7 @@ async function upsertStoreCompetitors(storeId, competitors) {
     .insert(rows)
     .select();
 
-  if (error) throw new Error('upsertStoreCompetitors: ' + error.message);
+  if (error) throw _wrapSupabaseError('upsertStoreCompetitors', error);
   return data || [];
 }
 
@@ -251,7 +270,7 @@ async function createVisit(visitData) {
     .select()
     .single();
 
-  if (error) throw new Error('createVisit: ' + error.message);
+  if (error) throw _wrapSupabaseError('createVisit', error);
   return data;
 }
 
@@ -262,7 +281,7 @@ async function getVisitsByStore(storeId) {
     .eq('store_id', storeId)
     .order('visited_at', { ascending: false });
 
-  if (error) throw new Error('getVisitsByStore: ' + error.message);
+  if (error) throw _wrapSupabaseError('getVisitsByStore', error);
   return data || [];
 }
 
@@ -276,7 +295,7 @@ async function getVisitsByTSR(tsrId, dateFrom) {
   if (dateFrom) query = query.gte('visited_at', dateFrom);
 
   var { data, error } = await query;
-  if (error) throw new Error('getVisitsByTSR: ' + error.message);
+  if (error) throw _wrapSupabaseError('getVisitsByTSR', error);
   return data || [];
 }
 
@@ -293,7 +312,7 @@ async function getVisitsForManagerTeam(managerId) {
     .select('*')
     .in('tsr_id', ids)
     .order('visited_at', { ascending: false });
-  if (res.error) throw new Error('getVisitsForManagerTeam: ' + res.error.message);
+  if (res.error) throw _wrapSupabaseError('getVisitsForManagerTeam', res.error);
   return res.data || [];
 }
 
@@ -319,7 +338,7 @@ async function getRecentTeamActivity(managerId, limit) {
       .in('tsr_id', ids)
       .order('visited_at', { ascending: false })
       .limit(maxRows);
-    if (visitRes.error) throw new Error('getRecentTeamActivity visits: ' + visitRes.error.message);
+    if (visitRes.error) throw _wrapSupabaseError('getRecentTeamActivity visits', visitRes.error);
     var visits = visitRes.data || [];
     if (!visits || !visits.length) return [];
 
@@ -371,7 +390,7 @@ async function getUsers() {
     )
     .order('name', { ascending: true });
 
-  if (error) throw new Error('getUsers: ' + error.message);
+  if (error) throw _wrapSupabaseError('getUsers', error);
   return (data || []).map(function (u) {
     var row = Object.assign({}, u);
     row.has_pin = !!(row.pin_hash && String(row.pin_hash).length > 0);
@@ -392,7 +411,7 @@ async function getUsersForAdmin() {
     )
     .order('name', { ascending: true });
 
-  if (error) throw new Error('getUsersForAdmin: ' + error.message);
+  if (error) throw _wrapSupabaseError('getUsersForAdmin', error);
   return (data || []).map(function (u) {
     var row = Object.assign({}, u);
     row.has_pin = !!(row.pin_hash && String(row.pin_hash).length > 0);
@@ -407,7 +426,7 @@ async function createUser(userData) {
     .select()
     .single();
 
-  if (error) throw new Error('createUser: ' + error.message);
+  if (error) throw _wrapSupabaseError('createUser', error);
   return data;
 }
 
@@ -419,7 +438,7 @@ async function updateUser(id, data) {
     .select()
     .single();
 
-  if (error) throw new Error('updateUser: ' + error.message);
+  if (error) throw _wrapSupabaseError('updateUser', error);
   return updated;
 }
 
@@ -565,7 +584,7 @@ async function getTSRsByDistrict(district) {
   if (district) query = query.eq('district', district);
 
   var { data, error } = await query;
-  if (error) throw new Error('getTSRsByDistrict: ' + error.message);
+  if (error) throw _wrapSupabaseError('getTSRsByDistrict', error);
   return data || [];
 }
 
@@ -579,7 +598,7 @@ async function getUnassignedStores(district) {
   if (district) query = query.eq('region', district);
 
   var { data, error } = await query;
-  if (error) throw new Error('getUnassignedStores: ' + error.message);
+  if (error) throw _wrapSupabaseError('getUnassignedStores', error);
   return data || [];
 }
 
@@ -590,7 +609,7 @@ async function getStoresByTSR(tsrId) {
     .eq('assigned_tsr', tsrId)
     .order('name', { ascending: true });
 
-  if (error) throw new Error('getStoresByTSR: ' + error.message);
+  if (error) throw _wrapSupabaseError('getStoresByTSR', error);
   return data || [];
 }
 
@@ -606,7 +625,7 @@ async function getTSRsByRegion(region) {
   if (region) query = query.eq('region', region);
 
   var { data, error } = await query;
-  if (error) throw new Error('getTSRsByRegion: ' + error.message);
+  if (error) throw _wrapSupabaseError('getTSRsByRegion', error);
   return data || [];
 }
 
@@ -636,7 +655,7 @@ async function getStoresForTerritoryMap() {
 
     var res = await supabaseClient.from('stores').select('*').or(orClause).order('name', { ascending: true });
 
-    if (res.error) throw new Error('getStoresForTerritoryMap: ' + res.error.message);
+    if (res.error) throw _wrapSupabaseError('getStoresForTerritoryMap', res.error);
 
     var rows = res.data || [];
     var seen = {};
@@ -681,7 +700,7 @@ async function getFarmsForTerritoryMap() {
       .select('*')
       .or('created_by.eq.' + session.id + ',assigned_tsr.eq.' + session.id)
       .order('name', { ascending: true });
-    if (r0.error) throw new Error('getFarmsForTerritoryMap: ' + r0.error.message);
+    if (r0.error) throw _wrapSupabaseError('getFarmsForTerritoryMap', r0.error);
     return r0.data || [];
   }
 
@@ -696,7 +715,7 @@ async function getFarmsForTerritoryMap() {
       'assigned_tsr.in.(' + idListD.join(',') + '),' + 'created_by.in.(' + idListD.join(',') + ')';
 
     var r1 = await supabaseClient.from('farms').select('*').or(orD).order('name', { ascending: true });
-    if (r1.error) throw new Error('getFarmsForTerritoryMap: ' + r1.error.message);
+    if (r1.error) throw _wrapSupabaseError('getFarmsForTerritoryMap', r1.error);
 
     var rowsD = r1.data || [];
     var seenD = {};
@@ -731,12 +750,12 @@ async function getFarmsForTerritoryMap() {
       .select('*')
       .eq('region', session.region)
       .order('name', { ascending: true });
-    if (rr.error) throw new Error('getFarmsForTerritoryMap: ' + rr.error.message);
+    if (rr.error) throw _wrapSupabaseError('getFarmsForTerritoryMap', rr.error);
     return rr.data || [];
   }
 
   var rAll = await supabaseClient.from('farms').select('*').order('name', { ascending: true });
-  if (rAll.error) throw new Error('getFarmsForTerritoryMap: ' + rAll.error.message);
+  if (rAll.error) throw _wrapSupabaseError('getFarmsForTerritoryMap', rAll.error);
   return rAll.data || [];
 }
 
@@ -752,7 +771,7 @@ async function _rawAssignStores(storeIds, tsrId) {
     .update({ assigned_tsr: tsrId, updated_at: new Date().toISOString() })
     .in('id', storeIds);
 
-  if (error) throw new Error('assignStores: ' + error.message);
+  if (error) throw _wrapSupabaseError('assignStores', error);
 }
 
 async function _rawUnassignStores(storeIds) {
@@ -763,7 +782,7 @@ async function _rawUnassignStores(storeIds) {
     .update({ assigned_tsr: null, updated_at: new Date().toISOString() })
     .in('id', storeIds);
 
-  if (error) throw new Error('unassignStores: ' + error.message);
+  if (error) throw _wrapSupabaseError('unassignStores', error);
 }
 
 // Public helpers — queue per-row so a flaky link doesn't lose work.
@@ -790,7 +809,7 @@ async function getAssignmentCounts() {
     .not('assigned_tsr', 'is', null)
     .limit(1000);
 
-  if (error) throw new Error('getAssignmentCounts: ' + error.message);
+  if (error) throw _wrapSupabaseError('getAssignmentCounts', error);
 
   var counts = {};
   for (var i = 0; i < (data || []).length; i++) {
@@ -812,7 +831,7 @@ async function getUnassignedFarms(district) {
   if (district) query = query.eq('region', district);
 
   var { data, error } = await query;
-  if (error) throw new Error('getUnassignedFarms: ' + error.message);
+  if (error) throw _wrapSupabaseError('getUnassignedFarms', error);
   return data || [];
 }
 
@@ -823,7 +842,7 @@ async function getFarmsByTSR(tsrId) {
     .eq('assigned_tsr', tsrId)
     .order('name', { ascending: true });
 
-  if (error) throw new Error('getFarmsByTSR: ' + error.message);
+  if (error) throw _wrapSupabaseError('getFarmsByTSR', error);
   return data || [];
 }
 
@@ -835,7 +854,7 @@ async function _rawAssignFarms(farmIds, tsrId) {
     .update({ assigned_tsr: tsrId, updated_at: new Date().toISOString() })
     .in('id', farmIds);
 
-  if (error) throw new Error('assignFarms: ' + error.message);
+  if (error) throw _wrapSupabaseError('assignFarms', error);
 }
 
 async function _rawUnassignFarms(farmIds) {
@@ -846,7 +865,7 @@ async function _rawUnassignFarms(farmIds) {
     .update({ assigned_tsr: null, updated_at: new Date().toISOString() })
     .in('id', farmIds);
 
-  if (error) throw new Error('unassignFarms: ' + error.message);
+  if (error) throw _wrapSupabaseError('unassignFarms', error);
 }
 
 async function assignFarms(farmIds, tsrId) {
@@ -870,7 +889,7 @@ async function getFarmAssignmentCounts() {
     .not('assigned_tsr', 'is', null)
     .limit(1000);
 
-  if (error) throw new Error('getFarmAssignmentCounts: ' + error.message);
+  if (error) throw _wrapSupabaseError('getFarmAssignmentCounts', error);
 
   var counts = {};
   for (var i = 0; i < (data || []).length; i++) {
@@ -894,7 +913,7 @@ async function getChampionTeam(district) {
   if (district) query = query.eq('district', district);
 
   var { data: tsrs, error: tErr } = await query;
-  if (tErr) throw new Error('getChampionTeam: ' + tErr.message);
+  if (tErr) throw _wrapSupabaseError('getChampionTeam', tErr);
   tsrs = tsrs || [];
 
   if (tsrs.length === 0) return [];
@@ -916,7 +935,7 @@ async function getChampionTeam(district) {
     .in('tsr_id', tsrIds)
     .gte('visited_at', weekStart);
 
-  if (vErr) throw new Error('getChampionTeam visits: ' + vErr.message);
+  if (vErr) throw _wrapSupabaseError('getChampionTeam visits', vErr);
   visits = visits || [];
 
   // Count visits per TSR
@@ -954,7 +973,7 @@ async function getWeeklyLeaderboard(currentUserId) {
     .eq('role', 'tsr')
     .eq('is_active', true);
 
-  if (tErr) throw new Error('getWeeklyLeaderboard: ' + tErr.message);
+  if (tErr) throw _wrapSupabaseError('getWeeklyLeaderboard', tErr);
   tsrs = tsrs || [];
 
   // Week start (Monday)
@@ -970,7 +989,7 @@ async function getWeeklyLeaderboard(currentUserId) {
     .select('tsr_id')
     .gte('visited_at', weekStart);
 
-  if (vErr) throw new Error('getWeeklyLeaderboard visits: ' + vErr.message);
+  if (vErr) throw _wrapSupabaseError('getWeeklyLeaderboard visits', vErr);
   visits = visits || [];
 
   // Count per TSR
