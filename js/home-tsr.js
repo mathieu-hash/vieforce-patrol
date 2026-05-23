@@ -481,8 +481,16 @@
     var nbaSkip = document.getElementById('tsrNbaBtnSkip');
     if (nbaSkip) nbaSkip.textContent = _t('tsr.nba_btn_skip');
 
+    // CLAUDE.md Rule 7: render skeleton instead of "Loading…" text while NBA
+    // computes. _tsrNbaTitleSkeleton matches the inline skeleton in app.html so
+    // re-renders (after returning to the home page) stay consistent.
     var nbaTitleLoading = document.getElementById('tsrNbaTitle');
-    if (nbaTitleLoading) nbaTitleLoading.textContent = _t('tsr.nba_loading');
+    if (nbaTitleLoading) {
+      nbaTitleLoading.innerHTML =
+        '<span class="skeleton skeleton-line w80" style="display:inline-block;height:18px;min-width:160px"></span>';
+    }
+    var nbaHeroEl = document.getElementById('tsrNbaHero');
+    if (nbaHeroEl) nbaHeroEl.setAttribute('aria-busy', 'true');
 
     var searchBtn = document.getElementById('tsrHomeSearchBtn');
     if (searchBtn) searchBtn.setAttribute('aria-label', _t('tsr.search_aria'));
@@ -492,6 +500,7 @@
     var nba = await computeNextBestAction(session.id);
     var nbaEl = document.getElementById('tsrNbaHero');
     if (nbaEl) {
+      nbaEl.removeAttribute('aria-busy');
       if (!nba) {
         nbaEl.style.display = 'none';
       } else {

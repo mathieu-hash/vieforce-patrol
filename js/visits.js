@@ -319,22 +319,33 @@ async function renderVisitList(filter) {
 // ── Subtitle ──
 
 function updateVisitSubtitle(count, isWeek) {
+  // CLAUDE.md Rule 7 (no "Loading\u2026" text on TSR-visible surfaces): while count
+  // is still loading, render a skeleton chip in the pill rather than text.
+  var loading = (typeof count === 'undefined');
   var line = '';
-  if (typeof count === 'undefined') {
-    line = (typeof T !== 'undefined' && T.loading) ? T.loading : 'Loading...';
-  } else if (typeof T !== 'undefined' && typeof T.visitsSubtitle === 'function') {
-    line = T.visitsSubtitle(count, !!isWeek);
-  } else {
-    line = count + ' visit' + (count !== 1 ? 's' : '');
-    if (isWeek) line += ' this week';
+  if (!loading) {
+    if (typeof T !== 'undefined' && typeof T.visitsSubtitle === 'function') {
+      line = T.visitsSubtitle(count, !!isWeek);
+    } else {
+      line = count + ' visit' + (count !== 1 ? 's' : '');
+      if (isWeek) line += ' this week';
+    }
   }
   var el = document.getElementById('visits-subtitle');
   if (el) el.textContent = line;
   var pill = document.getElementById('visits-head-pill');
   if (pill) {
-    var online = typeof navigator !== 'undefined' && navigator.onLine;
-    pill.textContent = (online ? '\u25cf ' : '\u25cb ') + line;
-    pill.classList.toggle('syncing', !online);
+    if (loading) {
+      pill.innerHTML =
+        '<span class="skeleton skeleton-line w60" style="display:inline-block;height:10px;min-width:60px;vertical-align:middle"></span>';
+      pill.setAttribute('aria-busy', 'true');
+      pill.classList.remove('syncing');
+    } else {
+      var online = typeof navigator !== 'undefined' && navigator.onLine;
+      pill.textContent = (online ? '\u25cf ' : '\u25cb ') + line;
+      pill.removeAttribute('aria-busy');
+      pill.classList.toggle('syncing', !online);
+    }
   }
 }
 
