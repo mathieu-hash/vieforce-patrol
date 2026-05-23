@@ -18,11 +18,15 @@ async function sapFetch(endpoint) {
       : JSON.parse(localStorage.getItem('patrol_session') || 'null');
     if (!session || !session.id) throw new Error('No session');
 
+    // W1-AuthCore: send Supabase Auth Bearer JWT (api/_lib/auth.js validates it).
+    var bearer = (typeof window.getAuthBearer === 'function') ? await window.getAuthBearer() : null;
+    if (!bearer) throw new Error('No auth token');
+
     var res = await fetch(endpoint, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'x-session-id': session.id
+        Authorization: 'Bearer ' + bearer
       },
       credentials: 'include'
     });
@@ -151,11 +155,15 @@ async function createFarm(farmData) {
   // Ensure heads is integer (chatbot text input arrives as string)
   if (farmData.heads) farmData.heads = parseInt(farmData.heads, 10) || 0;
 
+  // W1-AuthCore: Bearer JWT replaces x-session-id.
+  var bearer = (typeof window.getAuthBearer === 'function') ? await window.getAuthBearer() : null;
+  if (!bearer) throw new Error('createFarm: no auth token');
+
   var res = await fetch('/api/farms', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-session-id': session.id
+      Authorization: 'Bearer ' + bearer
     },
     body: JSON.stringify(farmData)
   });

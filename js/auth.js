@@ -215,6 +215,34 @@ function patchPatrolSession(partial) {
 
 window.patchPatrolSession = patchPatrolSession;
 
+/**
+ * W1-AuthCore: returns the current Supabase Auth access token, or null.
+ * Callers send it as `Authorization: Bearer <jwt>` on Patrol API requests.
+ * Replaces the legacy `x-session-id: <uuid>` header pattern.
+ */
+async function getAuthBearer() {
+  try {
+    if (!window.supabaseClient || !supabaseClient.auth) return null;
+    var r = await supabaseClient.auth.getSession();
+    var s = r && r.data && r.data.session;
+    return (s && s.access_token) ? s.access_token : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Convenience: returns the Authorization header object for a fetch() call.
+ * Returns {} if no session — callers should treat that as "skip the call".
+ */
+async function authHeaders() {
+  var token = await getAuthBearer();
+  return token ? { Authorization: 'Bearer ' + token } : {};
+}
+
+window.getAuthBearer = getAuthBearer;
+window.authHeaders = authHeaders;
+
 async function getManagerUserByEmail(email) {
   if (!window.supabaseClient) return null;
   var cleanEmail = normalizeEmail(email);
@@ -302,6 +330,40 @@ async function login(phone, pin) {
 
     if (res.ok && data && data.id) {
       resetLoginAttempts();
+
+      // W1-AuthCore: verify-pin now returns a Supabase Auth session along
+      // with the Patrol identity fields. Hand the access/refresh pair to
+      // supabase-js so subsequent supabase.from(...) calls run AS the user
+      // (auth.uid() = patrol_user_id → RLS works) and so api calls can send
+      // `Authorization: Bearer <access_token>` validated by api/_lib/auth.js.
+      if (data.access_token && data.refresh_token && window.supabaseClient && supabaseClient.auth) {
+        try {
+          var setRes = await supabaseClient.auth.setSession({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token
+          });
+          if (setRes && setRes.error) {
+            console.error('[auth] setSession failed:', setRes.error.message);
+            return { success: false, error: T.submitFail };
+          }
+          // Sanity check — the call above persists to localStorage under the
+          // key supabase-js manages; verify it stuck.
+          var getRes = await supabaseClient.auth.getSession();
+          if (!getRes || !getRes.data || !getRes.data.session) {
+            console.error('[auth] setSession returned but getSession is empty');
+            return { success: false, error: T.submitFail };
+          }
+        } catch (eSet) {
+          console.error('[auth] setSession threw:', eSet);
+          return { success: false, error: T.submitFail };
+        }
+      } else {
+        // Safety net: edge function returned identity without tokens.
+        // Refuse rather than fall back to the legacy x-session-id model.
+        console.error('[auth] verify-pin response missing access_token/refresh_token');
+        return { success: false, error: T.submitFail };
+      }
+
       var session = createSessionFromUser(data, 'pin', cleanPhone);
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       // Verify write landed before returning success
