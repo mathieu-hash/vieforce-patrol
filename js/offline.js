@@ -61,6 +61,22 @@ offlineDb.version(3).stores({
   cachedStores:         'id, updated_at'
 });
 
+// v4: 1h cache for DSM home aggregates (Wave 3 — Audit A #3).
+// Key = DSM user id (string). Stores the full team-metrics payload so
+// js/home-dsm.js can render warm cached data instantly and refresh in
+// the background, instead of falling back to fabricated mock data.
+offlineDb.version(4).stores({
+  pendingVisits:        '++id, offline_id, created_at',
+  pendingStores:        '++id, offline_id, created_at',
+  pendingFarms:         '++id, offline_id, created_at',
+  pendingStoreUpdates:  '++id, offline_id, created_at',
+  pendingAssignments:   '++id, offline_id, created_at',
+  pendingVisitTouches:  '++id, offline_id, created_at',
+  pendingProfileEdits:  '++id, offline_id, created_at',
+  cachedStores:         'id, updated_at',
+  cachedDsmMetrics:     'id, updated_at'
+});
+
 async function queueVisit(visitData) {
   visitData.offline_id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   visitData.created_at = new Date().toISOString();
