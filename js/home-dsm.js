@@ -1,9 +1,29 @@
 /**
- * DSM home — Phase 4.6 v3: action dashboard + read-only squad visit feed + i18n.
- * Action layout: docs/elite-dashboards-mockup.html · Social: PatrolElite patterns.
+ * DSM home — Wave 3 (Audit A #3): real Supabase aggregates replacing
+ * seed % 11 fabricated data. Previous mock layer kept behind the
+ * PATROL_DSM_USE_MOCKS feature flag (default false, dev-only).
+ *
+ * Real data path:
+ *   - getDsmTeamMetrics(dsmId): { stores, visited_month, tsrs[], overdue }
+ *       where tsrs[] is per-TSR { id, name, visits_week, visits_month,
+ *       conversions_month, score, active_pct, last_active_days, ... }
+ *       aggregated from `visits` + `stores` (RLS already scopes per Wave 1).
+ *   - getDsmRecentActivity(dsmId, limit): wraps existing
+ *       window.getRecentTeamActivity (already real Supabase joins).
+ *
+ * Cache: results stored in offlineDb.cachedDsmMetrics (1h TTL, keyed by
+ * DSM user id). On query failure we serve the last good cache; if no
+ * cache exists we render the empty state — never fabricated data.
+ *
+ * Dev fallback: set `window.PATROL_DSM_USE_MOCKS = true` in DevTools to
+ * temporarily restore the seed % 11 path (debugging only, not for prod).
  */
 (function () {
   'use strict';
+
+  // 1h TTL for cached DSM metrics — matches MASTER_PLAN.md §4 mitigations row
+  // "Wave 3 real DSM aggregates are slow on first cold-load".
+  var DSM_METRICS_TTL_MS = 60 * 60 * 1000;
 
   function _t(key, vars) {
     return typeof window.t === 'function' ? window.t(key, vars) : key;
@@ -33,7 +53,43 @@
     return null;
   }
 
-  async function getMyTsrsWithActivity(dsmId) {
+  function _useMocks() {
+    return !!window.PATROL_DSM_USE_MOCKS;
+  }
+
+  function _isoDaysAgo(days) {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - days);
+    return d.toISOString();
+  }
+
+  function _isoStartOfMonth() {
+    var d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+  }
+
+  function _isoStartOfWeek() {
+    var now = new Date();
+    var dow = now.getDay(); // 0=Sun
+    var mondayOffset = dow === 0 ? 6 : dow - 1;
+    var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    return monday.toISOString();
+  }
+
+  function _daysBetween(iso, refMs) {
+    if (!iso) return 99;
+    var t = Date.parse(iso);
+    if (!isFinite(t)) return 99;
+    return Math.floor((refMs - t) / 86400000);
+  }
+
+  /**
+   * MOCK (kept behind PATROL_DSM_USE_MOCKS for dev fallback only).
+   * Production code path uses _fetchDsmTeamMetricsReal below.
+   */
+  async function _getMockTsrsWithActivity(dsmId) {
     var rows = [];
     try {
       if (typeof window.getDirectReports !== 'function') return rows;
@@ -70,71 +126,315 @@
     return rows;
   }
 
-  async function getOverdueStoresInScope() {
-    return [];
+  /**
+   * Real DSM team metrics aggregator. Returns null on hard failure so
+   * the caller can decide between serving cache or rendering the empty
+   * state — never falls back to fake data.
+   *
+   * Shape:
+   *   { stores, visited_month, tsrs: [...per-TSR rows], overdue }
+   *
+   * Source tables (RLS-scoped to DSM district by Wave 1 migration):
+   *   - users (manager_id = dsmId, role in tsr|champion)
+   *   - stores (assigned_tsr in team OR district = session.district)
+   *   - visits (tsr_id in team, visited_at >= start of week/month)
+   */
+  async function _fetchDsmTeamMetricsReal(dsmId) {
+    var client = window.supabaseClient;
+    if (!client || typeof window.getDirectReports !== 'function') return null;
+
+    // 1. Direct reports (TSRs + champions only).
+    var reps;
+    try {
+      reps = await window.getDirectReports(dsmId);
+    } catch (e) {
+      console.warn('[dsm-real] getDirectReports failed:', e && e.message);
+      return null;
+    }
+    var team = [];
+    for (var i = 0; i < (reps || []).length; i++) {
+      var rl = (reps[i].role || '').toLowerCase();
+      if (rl === 'tsr' || rl === 'champion') team.push(reps[i]);
+    }
+    if (!team.length) {
+      return { stores: 0, visited_month: 0, tsrs: [], overdue: 0 };
+    }
+    var tsrIds = team.map(function (t) { return t.id; });
+
+    // 2. Aggregate windows.
+    var weekStart = _isoStartOfWeek();
+    var monthStart = _isoStartOfMonth();
+    var overdueCutoff = _isoDaysAgo(14);
+    var nowMs = Date.now();
+
+    // 3. Per-TSR visits in current week + month — pull only the columns
+    // we aggregate to keep payload light (CLAUDE.md Rule 2).
+    var monthVisitsRes = await client
+      .from('visits')
+      .select('tsr_id, store_id, visited_at, order_taken')
+      .in('tsr_id', tsrIds)
+      .gte('visited_at', monthStart);
+    if (monthVisitsRes.error) {
+      console.warn('[dsm-real] visits query failed:', monthVisitsRes.error.message);
+      return null;
+    }
+    var monthVisits = monthVisitsRes.data || [];
+
+    // 4. Team store count + visited-this-month derived from the same
+    // visit rows (a store counts once even if visited multiple times).
+    var teamStoresRes = await client
+      .from('stores')
+      .select('id', { count: 'exact', head: true })
+      .in('assigned_tsr', tsrIds);
+    if (teamStoresRes.error) {
+      console.warn('[dsm-real] stores count failed:', teamStoresRes.error.message);
+      return null;
+    }
+    var storesCount = teamStoresRes.count || 0;
+
+    // 5. Overdue stores in scope: assigned to team AND last_visit_at older
+    // than 14 days (or null). Two queries because PostgREST can't OR
+    // null + lt in one filter cleanly.
+    var overdueOld = 0;
+    var overdueNever = 0;
+    try {
+      var oldRes = await client
+        .from('stores')
+        .select('id', { count: 'exact', head: true })
+        .in('assigned_tsr', tsrIds)
+        .lt('last_visit_at', overdueCutoff);
+      if (!oldRes.error) overdueOld = oldRes.count || 0;
+      var neverRes = await client
+        .from('stores')
+        .select('id', { count: 'exact', head: true })
+        .in('assigned_tsr', tsrIds)
+        .is('last_visit_at', null);
+      if (!neverRes.error) overdueNever = neverRes.count || 0;
+    } catch (eOverdue) { /* non-fatal */ }
+    var overdue = overdueOld + overdueNever;
+
+    // 6. Roll up per-TSR.
+    var perTsr = {};
+    for (var ti = 0; ti < team.length; ti++) {
+      perTsr[team[ti].id] = {
+        id: team[ti].id,
+        name: team[ti].name || 'TSR',
+        first_name: _firstName(team[ti].name || ''),
+        initials: _initials(team[ti].name || 'TSR'),
+        visits_week: 0,
+        visits_month: 0,
+        prospects_week: 0,
+        prospects_month: 0,
+        conversions_month: 0,
+        score: 0,
+        score_delta: 0,
+        active_pct: 0,
+        last_active_days: 99,
+        _last_visit_ms: 0,
+      };
+    }
+    var visitedStores = {};
+    var weekStartMs = Date.parse(weekStart);
+    for (var vi = 0; vi < monthVisits.length; vi++) {
+      var v = monthVisits[vi];
+      var row = perTsr[v.tsr_id];
+      if (!row) continue;
+      row.visits_month++;
+      if (v.order_taken) row.conversions_month++;
+      var vms = Date.parse(v.visited_at || '');
+      if (isFinite(vms)) {
+        if (vms >= weekStartMs) row.visits_week++;
+        if (vms > row._last_visit_ms) row._last_visit_ms = vms;
+      }
+      if (v.store_id) visitedStores[v.store_id] = 1;
+    }
+
+    // 7. Derive score + activity from real counts. Same scale the UI
+    // already renders (~0–10). Active_pct = % of weekdays MTD with at
+    // least one visit, capped at 100.
+    var weekdaysMtd = _weekdaysSinceMonthStart();
+    var teamAvgVisitsMonth = 0;
+    var tsrsArr = [];
+    for (var pk in perTsr) {
+      if (!Object.prototype.hasOwnProperty.call(perTsr, pk)) continue;
+      var r = perTsr[pk];
+      r.active_pct = weekdaysMtd > 0
+        ? Math.min(100, Math.round((r.visits_month / weekdaysMtd) * 100))
+        : 0;
+      r.last_active_days = r._last_visit_ms > 0
+        ? Math.max(0, Math.floor((nowMs - r._last_visit_ms) / 86400000))
+        : 99;
+      r.score = Math.min(10, Math.round(((r.visits_month * 0.7) + (r.conversions_month * 1.5)) * 10) / 10);
+      r.last_seen_text = r.last_active_days === 0
+        ? 'Active'
+        : (r.last_active_days < 99 ? r.last_active_days + 'd' : '--');
+      r.time_since = '';
+      delete r._last_visit_ms;
+      tsrsArr.push(r);
+      teamAvgVisitsMonth += r.visits_month;
+    }
+    teamAvgVisitsMonth = tsrsArr.length ? teamAvgVisitsMonth / tsrsArr.length : 0;
+    // Score delta = this TSR's visits_month vs. team avg, scaled.
+    for (var di = 0; di < tsrsArr.length; di++) {
+      tsrsArr[di].score_delta = Math.round((tsrsArr[di].visits_month - teamAvgVisitsMonth) * 10) / 10;
+    }
+
+    return {
+      stores: storesCount,
+      visited_month: Object.keys(visitedStores).length,
+      tsrs: tsrsArr,
+      overdue: overdue,
+    };
   }
 
-  async function getFeedPostsForUserIds(ids) {
-    var feed =
-      typeof window.PATROL_MOCK_FEED_POSTS === 'object' && window.PATROL_MOCK_FEED_POSTS
-        ? window.PATROL_MOCK_FEED_POSTS
-        : [];
-    if (ids == null) return feed.slice(0, 25);
-    var idset = {};
-    for (var i = 0; i < ids.length; i++) idset[String(ids[i])] = true;
+  function _weekdaysSinceMonthStart() {
+    var d = new Date();
+    var n = 0;
+    for (var day = 1; day <= d.getDate(); day++) {
+      var dd = new Date(d.getFullYear(), d.getMonth(), day).getDay();
+      if (dd !== 0 && dd !== 6) n++;
+    }
+    return n;
+  }
+
+  /**
+   * Read cached metrics for a DSM. Returns { value, age_ms } or null.
+   * Cache miss + Dexie unavailable both return null without throwing.
+   */
+  async function _readCachedDsmMetrics(dsmId) {
+    try {
+      if (!window.offlineDb || !window.offlineDb.cachedDsmMetrics) return null;
+      var row = await window.offlineDb.cachedDsmMetrics.get(String(dsmId));
+      if (!row || !row.payload) return null;
+      var ageMs = Date.now() - Date.parse(row.updated_at || '');
+      if (!isFinite(ageMs) || ageMs < 0) ageMs = Infinity;
+      return { value: row.payload, age_ms: ageMs };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function _writeCachedDsmMetrics(dsmId, payload) {
+    try {
+      if (!window.offlineDb || !window.offlineDb.cachedDsmMetrics) return;
+      await window.offlineDb.cachedDsmMetrics.put({
+        id: String(dsmId),
+        payload: payload,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) { /* non-fatal */ }
+  }
+
+  /**
+   * Public API: real DSM team metrics with cache + fallback policy.
+   * Returns { value, source, cached_at } where source is one of
+   * 'live' | 'cache_warm' | 'cache_stale' | 'empty'.
+   * Renderers use `source === 'empty'` to show the empty state.
+   */
+  async function getDsmTeamMetrics(dsmId) {
+    if (!dsmId) return { value: null, source: 'empty', cached_at: null };
+
+    // Dev-only mock path.
+    if (_useMocks()) {
+      var mockTsrs = await _getMockTsrsWithActivity(dsmId);
+      return {
+        value: {
+          stores: mockTsrs.length ? Math.min(140, mockTsrs.length * 17 + 12) : 0,
+          visited_month: 47,
+          tsrs: mockTsrs,
+          overdue: 0,
+        },
+        source: 'live',
+        cached_at: new Date().toISOString(),
+      };
+    }
+
+    var cached = await _readCachedDsmMetrics(dsmId);
+
+    // Warm cache (< TTL): serve immediately, but kick off a background
+    // refresh so the next render sees fresh data.
+    if (cached && cached.age_ms < DSM_METRICS_TTL_MS) {
+      _refreshDsmMetricsInBackground(dsmId);
+      return {
+        value: cached.value,
+        source: 'cache_warm',
+        cached_at: new Date(Date.now() - cached.age_ms).toISOString(),
+      };
+    }
+
+    // No warm cache: try a live fetch.
+    var live = null;
+    try {
+      live = await _fetchDsmTeamMetricsReal(dsmId);
+    } catch (e) {
+      console.warn('[dsm-real] live fetch threw:', e && e.message);
+      live = null;
+    }
+    if (live) {
+      await _writeCachedDsmMetrics(dsmId, live);
+      return { value: live, source: 'live', cached_at: new Date().toISOString() };
+    }
+
+    // Live failed — serve stale cache if we have one, else empty.
+    if (cached && cached.value) {
+      return {
+        value: cached.value,
+        source: 'cache_stale',
+        cached_at: new Date(Date.now() - cached.age_ms).toISOString(),
+      };
+    }
+    return { value: null, source: 'empty', cached_at: null };
+  }
+
+  function _refreshDsmMetricsInBackground(dsmId) {
+    // Fire-and-forget. Errors swallowed; next foreground fetch will retry.
+    Promise.resolve()
+      .then(function () { return _fetchDsmTeamMetricsReal(dsmId); })
+      .then(function (fresh) {
+        if (fresh) return _writeCachedDsmMetrics(dsmId, fresh);
+      })
+      .catch(function () { /* swallow */ });
+  }
+
+  /**
+   * Public API: real squad-feed activity. Thin wrapper around the
+   * already-real getRecentTeamActivity in js/db.js.
+   */
+  async function getDsmRecentActivity(dsmId, limit) {
+    if (!dsmId) return [];
+    if (_useMocks()) {
+      // Dev-only: still pull real activity but allow override.
+      if (window.PATROL_MOCK_FEED_POSTS && window.PATROL_MOCK_FEED_POSTS.length) {
+        return window.PATROL_MOCK_FEED_POSTS.slice(0, limit || 15);
+      }
+    }
+    if (typeof window.getRecentTeamActivity !== 'function') return [];
+    try {
+      var rows = await window.getRecentTeamActivity(dsmId, limit || 15);
+      return rows || [];
+    } catch (e) {
+      console.warn('[dsm-real] getRecentTeamActivity failed:', e && e.message);
+      return [];
+    }
+  }
+
+  // Internal: convert team metrics into the per-TSR row array consumed
+  // by renderDsmTsrTable / computeCoachingMoments / computeAttentionItems.
+  async function getMyTsrsWithActivity(dsmId) {
+    var metrics = await getDsmTeamMetrics(dsmId);
+    if (!metrics.value || !metrics.value.tsrs) return [];
+    return metrics.value.tsrs;
+  }
+
+  async function getOverdueStoresInScope(userId) {
+    if (!userId) return [];
+    var metrics = await getDsmTeamMetrics(userId);
+    if (!metrics.value) return [];
+    // Synthesize an array of length `overdue` so existing length checks work.
+    var n = Math.max(0, parseInt(metrics.value.overdue, 10) || 0);
     var out = [];
-    for (var j = 0; j < feed.length; j++) {
-      var p = feed[j];
-      var uid = p.user && p.user.id != null ? String(p.user.id) : '';
-      if (!uid || !idset[uid]) continue;
-      if (p.type === 'achievement') continue;
-      out.push(p);
-    }
+    for (var i = 0; i < n; i++) out.push({ id: 'overdue_' + i });
     return out;
-  }
-
-  function renderDsmPostSnippet(post, idx) {
-    var body = String(post.body || '').replace(/<[^>]+>/g, ' ');
-    if (body.length > 220) body = body.slice(0, 217) + '\u2026';
-    var nm = post.user && post.user.name ? post.user.name : 'Squad';
-    return (
-      '<article class="post" data-dsm-post="' +
-      idx +
-      '">' +
-      '<div class="post-head">' +
-      '<div class="avatar sm">' +
-      _escapeHtml(_initials(nm)) +
-      '</div>' +
-      '<div class="post-author">' +
-      '<div class="post-author-name">' +
-      _escapeHtml(nm) +
-      '</div>' +
-      '<div class="post-author-meta">' +
-      _escapeHtml(post.user && (post.user.roleLabel || post.user.role || '')) +
-      ' \u00b7 ' +
-      _escapeHtml(post.time || '') +
-      '</div>' +
-      '</div>' +
-      '</div>' +
-      '<div class="post-body">' +
-      _escapeHtml(body) +
-      '</div>' +
-      '</article>'
-    );
-  }
-
-  function renderDsmSquadFeed(posts) {
-    var host = document.getElementById('dsmSquadFeed');
-    if (!host) return;
-    if (!posts.length) {
-      renderDsmSquadFeedEmpty(host);
-      return;
-    }
-    var h = '';
-    for (var i = 0; i < posts.length; i++) {
-      h += renderDsmPostSnippet(posts[i], i);
-    }
-    host.innerHTML = h;
   }
 
   function _relativeVisitTime(iso) {
@@ -231,15 +531,21 @@
     return tsrs.length;
   }
 
+  // Real team store count — derived from getDsmTeamMetrics. Returns 0 (not
+  // a hardcoded 87) when the DSM has no team yet or the query fails.
   async function getMyTeamStoreCount(userId) {
-    var tsrs = await getMyTsrsWithActivity(userId);
-    if (!tsrs.length) return 87;
-    return Math.min(140, tsrs.length * 17 + 12);
+    var metrics = await getDsmTeamMetrics(userId);
+    if (!metrics.value) return 0;
+    return parseInt(metrics.value.stores, 10) || 0;
   }
 
+  // Distinct stores in scope visited at least once this month — derived
+  // from the same `visits` rollup used for the per-TSR table. No more
+  // hardcoded 47.
   async function getStoresVisitedThisMonth(userId) {
-    void userId;
-    return 47;
+    var metrics = await getDsmTeamMetrics(userId);
+    if (!metrics.value) return 0;
+    return parseInt(metrics.value.visited_month, 10) || 0;
   }
 
   async function computeDsmKpis(userId) {
@@ -642,11 +948,9 @@
       }
     }
 
+    // Squad feed: real recent visits from district team (no mock feed).
     try {
-      var rows = [];
-      if (typeof window.getRecentTeamActivity === 'function') {
-        rows = await window.getRecentTeamActivity(session.id, 15);
-      }
+      var rows = await getDsmRecentActivity(session.id, 15);
       renderDsmSquadActivity(rows || []);
     } catch (eFeed) {
       var squadHost = document.getElementById('dsmSquadFeed');
@@ -663,10 +967,75 @@
       var root = document.getElementById('page-home-dsm');
       if (root) window.applyI18nLabels(root);
     }
+
+    // Wave 3: surface cache freshness + empty-state hint so a DSM
+    // who sees no data understands whether to retry online vs wait
+    // for their team to log visits. Never hides skeletons over fake
+    // data — feature flag PATROL_DSM_USE_MOCKS bypasses this entirely.
+    try {
+      var headerMetrics = await getDsmTeamMetrics(session.id);
+      _renderDsmDataState(headerMetrics);
+    } catch (eState) { /* non-fatal */ }
+  }
+
+  /**
+   * Insert (or hide) the empty-state / cache-stale banner inside the
+   * #page-host-dsm header. Pure DOM — safe to call after renderDsmHome.
+   */
+  function _renderDsmDataState(metrics) {
+    var page = document.getElementById('page-home-dsm');
+    if (!page) return;
+    var node = document.getElementById('dsmDataStateBanner');
+    var source = metrics && metrics.source ? metrics.source : 'empty';
+    var hasData = metrics && metrics.value && (
+      (metrics.value.tsrs && metrics.value.tsrs.length) ||
+      metrics.value.stores > 0 || metrics.value.visited_month > 0
+    );
+
+    if (source === 'live' && hasData) {
+      if (node) node.style.display = 'none';
+      return;
+    }
+    if (!node) {
+      node = document.createElement('div');
+      node.id = 'dsmDataStateBanner';
+      node.style.cssText =
+        'margin:8px;padding:14px 16px;border-radius:14px;' +
+        'background:var(--bg-elevated,#fff);border:1px solid var(--border-soft,#e5e7eb);' +
+        'color:var(--text-secondary,#64748b);font-size:13px;line-height:1.45;';
+      var anchor = document.getElementById('dsmKpiGrid');
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(node, anchor);
+      else page.insertBefore(node, page.firstChild);
+    }
+    node.style.display = 'block';
+
+    var msg;
+    if (!hasData) {
+      msg = _t('dsm.emptyState');
+    } else if (source === 'cache_warm') {
+      msg = _t('dsm.cachedAt', { time: _shortTime(metrics.cached_at) });
+    } else if (source === 'cache_stale') {
+      msg = _t('dsm.cachedAt', { time: _shortTime(metrics.cached_at) }) + ' · ' + _t('dsm.refreshHint');
+    } else {
+      msg = _t('dsm.refreshHint');
+    }
+    node.textContent = msg;
+  }
+
+  function _shortTime(iso) {
+    if (!iso) return '--';
+    try {
+      return new Date(iso).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' });
+    } catch (e) {
+      return '--';
+    }
   }
 
   window.renderDsmHome = renderDsmHome;
   window.renderDsmSkeletons = renderDsmSkeletons;
+  // Wave 3: real-data helpers exposed for tests + future call sites.
+  window.getDsmTeamMetrics = getDsmTeamMetrics;
+  window.getDsmRecentActivity = getDsmRecentActivity;
 
   window.addEventListener('patrol:locale-changed', function () {
     var ap = document.querySelector('.page.active');
