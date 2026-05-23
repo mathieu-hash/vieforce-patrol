@@ -4,10 +4,9 @@
 
 // ── Escape helper ──
 
+// Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
 function _champEsc(str) {
-  var div = document.createElement('div');
-  div.appendChild(document.createTextNode(str || ''));
-  return div.innerHTML;
+  return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(str) : (str == null ? '' : String(str));
 }
 
 // ── Initialize both widgets ──

@@ -15,10 +15,9 @@
     return ((p[0] || '?').charAt(0) + (p[1] ? p[1].charAt(0) : '')).toUpperCase();
   }
 
+  // Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
   function _escapeHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s == null ? '' : String(s);
-    return d.innerHTML;
+    return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : (s == null ? '' : String(s));
   }
 
   function _daysSince(iso) {

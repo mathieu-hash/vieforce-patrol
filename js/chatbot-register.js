@@ -2,11 +2,9 @@
 // Drives both new-store and new-farm registration via a flow spec.
 
 (function () {
+  // Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
   function esc(s) {
-    if (s == null) return '';
-    var d = document.createElement('div');
-    d.textContent = String(s);
-    return d.innerHTML;
+    return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : (s == null ? '' : String(s));
   }
 
   function ChatbotWizard(opts) {

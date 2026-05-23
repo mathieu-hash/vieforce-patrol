@@ -438,8 +438,8 @@ async function submitVisit() {
         var timeNow = new Date().toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'});
         newBubble.innerHTML = '<div><div class="bubble out gradient">' +
           outcomeEmoji + ' ' + (T.ordered || 'Na-log') + amountText +
-          (previewPhotoUrl ? '<div class="visit-bubble-photo-wrap"><img class="visit-bubble-photo" src="' + previewPhotoUrl + '" alt="Visit selfie"></div>' : '') +
-          (_visitData.notes ? '<br><span style="opacity:0.85;font-size:13px">' + _visitData.notes.substring(0, 80) + '</span>' : '') +
+          (previewPhotoUrl ? '<div class="visit-bubble-photo-wrap"><img class="visit-bubble-photo" src="' + PatrolEscape.escapeAttr(previewPhotoUrl) + '" alt="Visit selfie"></div>' : '') +
+          (_visitData.notes ? '<br><span style="opacity:0.85;font-size:13px">' + PatrolEscape.escapeHtml(_visitData.notes.substring(0, 80)) + '</span>' : '') +
           '</div><div class="msg-time out">' + timeNow + ' <span style="color:rgba(255,255,255,0.7)">\u2713</span></div></div>';
         msgs.appendChild(newBubble);
         msgs.scrollTop = msgs.scrollHeight;

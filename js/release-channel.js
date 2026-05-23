@@ -82,8 +82,9 @@
     foot.textContent = 'v' + ver + ' (beta) — Vienovo Philippines Inc.';
   }
 
+  // Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
   function escapeHtml(s) {
-    return String(s)
+    return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : String(s)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')

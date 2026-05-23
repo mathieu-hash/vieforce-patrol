@@ -14,11 +14,9 @@ function formatCurrency(amount) {
   return '\u20b1' + Math.round(n);
 }
 
+// Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
 function _ddEsc(s) {
-  if (s == null) return '';
-  var d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
+  return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : (s == null ? '' : String(s));
 }
 
 function _ddInitials(name) {

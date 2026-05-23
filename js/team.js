@@ -2,11 +2,9 @@
 // Sprint B-DSM upgrade: attention strip + KPI tiles + coaching + forecast + audit flags.
 // TSR drill-down (page-tsr-scorecard) kept in place unchanged.
 
+// Delegates to canonical PatrolEscape.escapeHtml (js/_util/escape.js).
 function _teamEsc(s) {
-  if (s == null) return '';
-  var d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
+  return (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeHtml(s) : (s == null ? '' : String(s));
 }
 
 function _initials(name) {
