@@ -1,0 +1,53 @@
+{
+  "description": "Happy path — @vienovo.ph DSM whose users.email matches the Google identity.",
+  "supabaseSession": {
+    "access_token": "synthetic.dsm.access.jwt",
+    "refresh_token": "synthetic.dsm.refresh.jwt",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": 9999999999,
+    "user": {
+      "id": "20000000-0000-4000-a000-000000000001",
+      "aud": "authenticated",
+      "role": "authenticated",
+      "email": "dsm.test@vienovo.ph",
+      "app_metadata": {
+        "provider": "google",
+        "providers": ["google"],
+        "role": "dsm",
+        "patrol_user_id": "20000000-0000-4000-a000-000000000001"
+      },
+      "user_metadata": {
+        "email": "dsm.test@vienovo.ph",
+        "email_verified": true,
+        "full_name": "E2E DSM Manager",
+        "name": "E2E DSM Manager",
+        "provider_id": "google-dsm-001"
+      },
+      "identities": [
+        {
+          "provider": "google",
+          "identity_data": {
+            "email": "dsm.test@vienovo.ph",
+            "email_verified": true,
+            "name": "E2E DSM Manager"
+          }
+        }
+      ]
+    }
+  },
+  "patrolUserRow": {
+    "id": "20000000-0000-4000-a000-000000000001",
+    "name": "E2E DSM Manager",
+    "phone": "09170000001",
+    "email": "dsm.test@vienovo.ph",
+    "role": "dsm",
+    "region": "Visayas",
+    "district": "CEBU-SOUTH",
+    "territory": null,
+    "is_active": true,
+    "is_champion": false,
+    "auth_type": "google",
+    "language": "tl"
+  }
+}
