@@ -847,7 +847,7 @@
 .tindahan-filter-icon.ar     { background: linear-gradient(135deg, #FF8A3D, #FA383E); }
 .tindahan-filter-icon.visit-late { background: linear-gradient(135deg, #FF8A3D, #FA383E); }
 .tindahan-filter-icon.target { background: linear-gradient(135deg, #97D700, #00B847); }
-.tindahan-filter-icon.promo  { background: linear-gradient(135deg, #4DA0FF, #2D7FF9); }
+.tindahan-filter-icon.promo  { background: linear-gradient(135deg, #4DA0FF, #00A6CE); }
 .tindahan-filter-icon.vip    { background: linear-gradient(135deg, #C065FF, #8B3FCC); }
 .tindahan-filter-item.active .tindahan-filter-icon {
   box-shadow: 0 0 0 3px var(--bg-elevated), 0 0 0 5px var(--accent), var(--shadow-md);
@@ -912,7 +912,7 @@
 .tindahan-avatar.c-gold   { background: linear-gradient(135deg, #FFC72C, #FA9E1B); }
 .tindahan-avatar.c-orange { background: linear-gradient(135deg, #FF8A3D, #FA383E); }
 .tindahan-avatar.c-teal   { background: linear-gradient(135deg, #2DD4BF, #0D9488); }
-.tindahan-avatar.c-blue   { background: linear-gradient(135deg, #4DA0FF, #2D7FF9); }
+.tindahan-avatar.c-blue   { background: linear-gradient(135deg, #4DA0FF, #00A6CE); }
 .tindahan-avatar.c-green  { background: linear-gradient(135deg, #97D700, #00B847); }
 .tindahan-avatar.c-purple { background: linear-gradient(135deg, #C065FF, #8B3FCC); }
 .tindahan-avatar.c-red    { background: linear-gradient(135deg, #FF6B6B, #E0413F); }

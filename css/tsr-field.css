@@ -205,3 +205,27 @@ body.role-champion .skeleton-line,
 .skeleton-row-tsr .skeleton-line {
   height: 16px;
 }
+
+/* ============================================================
+ * WCAG 2.3.3 — prefers-reduced-motion accessibility guard
+ * (TSR / Champion scope). Mirrors patrol.css; reinforces the
+ * rule so the TSR skeleton variant also honors gentle shimmer.
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body.role-tsr *,
+  body.role-tsr *::before,
+  body.role-tsr *::after,
+  body.role-champion *,
+  body.role-champion *::before,
+  body.role-champion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  body.role-tsr .skeleton,
+  body.role-champion .skeleton,
+  .skeleton-row-tsr .skeleton {
+    animation-duration: 3s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
