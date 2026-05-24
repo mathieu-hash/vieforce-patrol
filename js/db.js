@@ -174,16 +174,22 @@ async function createFarm(farmData) {
   // Ensure heads is integer (chatbot text input arrives as string)
   if (farmData.heads) farmData.heads = parseInt(farmData.heads, 10) || 0;
 
-  // W1-AuthCore: Bearer JWT replaces x-session-id.
+  // Hybrid auth (post W1.4 rollback 2026-05-24): prefer Bearer JWT (OAuth
+  // managers), fall back to x-session-id (TSR PIN sessions). api/_lib/auth.js
+  // accepts both via requireUser(). Pre-fix this threw on PIN sessions and the
+  // offline queue retried forever (R6 P0 — getAuthBearer returns null without
+  // a Supabase Auth session).
   var bearer = (typeof window.getAuthBearer === 'function') ? await window.getAuthBearer() : null;
-  if (!bearer) throw new Error('createFarm: no auth token');
+  var headers = { 'Content-Type': 'application/json' };
+  if (bearer) {
+    headers['Authorization'] = 'Bearer ' + bearer;
+  } else {
+    headers['x-session-id'] = session.id;
+  }
 
   var res = await fetch('/api/farms', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + bearer
-    },
+    headers: headers,
     body: JSON.stringify(farmData)
   });
 

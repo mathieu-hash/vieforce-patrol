@@ -4,7 +4,7 @@ module.exports = function(req, res) {
   res.setHeader('Cache-Control', 'no-cache');
   res.status(200).json({
     status: 'ok',
-    version: '3.2.0-beta.1',
+    version: '3.2.0-beta.2',
     domain: 'patrol.vienovo.ph',
     timestamp: new Date().toISOString()
   });
