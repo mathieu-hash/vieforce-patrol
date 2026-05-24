@@ -28,11 +28,11 @@
     document.addEventListener('click', function (ev) {
       var t = ev.target;
       if (!t || !t.closest) return;
-      var btn = t.closest('[data-sales-see-all]');
-      if (btn) {
-        console.log('TODO: expand sales section —', btn.getAttribute('data-sales-see-all'));
-        return;
-      }
+      // R2 Track 2B (F-P1): "See all ›" buttons are stubs — handler used to
+      // only console.log. Buttons are now also rendered with `disabled` +
+      // `title="Coming soon"` (see _renderSalesV2Hero markup) so clicks
+      // shouldn't reach here; bail silently if they do.
+      if (t.closest('[data-sales-see-all]')) return;
       var btn2 = t.closest('.sales-expand-btn');
       if (!btn2) return;
       var card = btn2.closest('.sales-card-d');
@@ -69,9 +69,11 @@
     }
     card.style.display = 'flex';
     title.textContent = n + ' customer' + (n === 1 ? '' : 's') + ' slowing down';
-    card.onclick = function () {
-      console.log('TODO: filter to at-risk');
-    };
+    // R2 Track 2B (F-P1): at-risk-card click filter is Phase-5 work
+    // (handler used to only console.log). Leave card visible as info-only;
+    // unbind any prior onclick so the card no longer pretends to be tappable.
+    card.onclick = null;
+    card.style.cursor = 'default';
   }
 
   function renderVelocityBars(dailyData) {
@@ -638,13 +640,15 @@
       '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>BREAKDOWN</span></div>' +
       '<div class="sales-v2-card" id="brandsCard"><div class="sales-v2-card-h">' +
       '<div class="sales-v2-card-title"><span>\ud83c\udff7\ufe0f</span> By brand</div>' +
-      '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="brand" ' +
-      'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;padding:0;">See all \u203a</button></div>' +
+      // R2 Track 2B (F-P1): "See all" controls are Phase-5 stubs (handler
+      // only console.log'd). Disabled + "Coming soon" tooltip until wired.
+      '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="brand" disabled title="Coming soon" ' +
+      'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:not-allowed;padding:0;opacity:0.5;">See all \u203a</button></div>' +
       '<div id="brandBars" aria-busy="true">' + brandSkeleton + '</div></div>' +
       '<div class="sales-v2-card" id="customersCard"><div class="sales-v2-card-h">' +
       '<div class="sales-v2-card-title"><span>\ud83d\udc65</span> By customer</div>' +
-      '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="customers" ' +
-      'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:pointer;padding:0;">See all \u203a</button></div>' +
+      '<button type="button" class="sales-see-all sales-v2-card-tag" data-sales-see-all="customers" disabled title="Coming soon" ' +
+      'style="font-size:11px;color:var(--accent);font-weight:700;background:none;border:none;cursor:not-allowed;padding:0;opacity:0.5;">See all \u203a</button></div>' +
       '<div id="customerRows" aria-busy="true">' + rowSkeleton + '</div></div></div>' +
       '<div class="sales-v2-section"><div class="sales-v2-section-hdr"><span>MORE MODULES</span></div>' +
       '<button type="button" class="sales-v2-module" data-sales-nav="pg-ar">' +
