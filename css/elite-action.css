@@ -12,7 +12,10 @@
 #page-home-tsr .tsr-greeting {
   background: var(--brand-navy);
   color: white;
-  padding: 16px 20px;
+  /* Polish 1: vertical padding 16px -> 12px (~25%) to compact the
+   * greeting band. Horizontal padding unchanged. Navy/white treatment
+   * preserved from Polish A. */
+  padding: 12px 20px;
 }
 #page-home-tsr .tsr-greeting-title {
   font-size: 22px;
@@ -584,6 +587,13 @@
   letter-spacing: 0.5px;
   margin-bottom: 4px;
   text-transform: uppercase;
+  /* Polish 1: leave room for the absolute-positioned .kpi-tile-trend pill
+   * (top:12px right:12px) so long labels don't paint UNDER the % badge.
+   * Single-line + ellipsis is fine: the label is "{icon} {short text}". */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 56px;
 }
 #page-home-dsm .kpi-tile-trend,
 .dsm-panel .kpi-tile-trend {

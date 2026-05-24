@@ -478,13 +478,17 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  min-height: 56px;
+  /* Polish 1: tightened vertical padding 8px -> 6px (~25%) so the home
+   * header chrome stops eating viewport. Horizontal padding unchanged. */
+  padding: 6px 12px;
+  min-height: 52px;
   flex-shrink: 0;
   z-index: 10;
 }
 .phase4-page.phase4-home .phase4-home-header.elite-shell-header {
-  min-height: 60px;
+  /* Polish 1: 60px -> 56px to match the tighter base. TSR-only 64px
+   * floor is enforced separately in tsr-field.css (body.role-tsr scope). */
+  min-height: 56px;
 }
 
 /* Compact gradient mark — replaces plain “VF” text */
@@ -516,8 +520,12 @@
   gap: 10px;
   background: var(--bg-hover, rgba(8, 24, 48, 0.06));
   border-radius: 100px;
-  padding: 10px 16px;
-  min-height: 48px;
+  /* Polish 1: tightened vertical padding 10px -> 8px and shrunk the
+   * min-height from 48px to 44px (still the accessibility touch-target
+   * floor). TSR override in css/tsr-field.css forces 64px under
+   * body.role-tsr — that override is intentionally NOT touched here. */
+  padding: 8px 16px;
+  min-height: 44px;
   font-size: 14px;
   color: var(--text-secondary, #4a5468);
   border: 1px solid transparent;
