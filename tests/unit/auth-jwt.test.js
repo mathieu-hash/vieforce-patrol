@@ -122,10 +122,13 @@ test('requireUser: expired / invalid JWT throws AuthError 401', async () => {
   }
 });
 
-test('requireUser: missing Authorization header throws 401', async () => {
+test('requireUser: missing both auth headers throws 401', async () => {
+  // Post W1.4 rollback: api/_lib/auth.js is HYBRID — accepts either
+  // x-session-id (legacy TSR PIN path) OR Authorization: Bearer JWT
+  // (Google OAuth managers). Missing BOTH headers = 401.
   const auth = loadAuth();
   installFetch(async () => {
-    throw new Error('fetch should not be called when Authorization is missing');
+    throw new Error('fetch should not be called when both auth headers are missing');
   });
 
   try {
@@ -134,7 +137,7 @@ test('requireUser: missing Authorization header throws 401', async () => {
   } catch (e) {
     assert.ok(e instanceof auth.AuthError);
     assert.equal(e.status, 401);
-    assert.match(e.message, /Missing Authorization/);
+    assert.match(e.message, /Missing x-session-id or Authorization/);
   } finally {
     restoreFetch();
   }
@@ -172,19 +175,21 @@ test('requireRole: wrong role throws 403', async () => {
   }
 });
 
-test('requireUser: legacy x-session-id header rejected with migration hint', async () => {
+test('requireUser: legacy x-session-id header is accepted (W1.4 hybrid)', async () => {
+  // Post W1.4 rollback: x-session-id is the legacy TSR PIN path.
+  // Validates the UUID by looking up the patrol_users row via service-role.
   const auth = loadAuth();
-  installFetch(async () => {
-    throw new Error('fetch should not be called for legacy header');
+  installFetch(async (url) => {
+    if (String(url).includes('/rest/v1/users')) {
+      return jsonResponse(200, [PATROL_USER_ROW]);
+    }
+    throw new Error('Unexpected fetch URL: ' + url);
   });
 
   try {
-    await auth.requireUser(makeReq({ 'x-session-id': PATROL_USER_ID }));
-    assert.fail('expected requireUser to throw');
-  } catch (e) {
-    assert.ok(e instanceof auth.AuthError);
-    assert.equal(e.status, 401);
-    assert.equal(e.extra && e.extra.migration_required, true);
+    const user = await auth.requireUser(makeReq({ 'x-session-id': PATROL_USER_ID }));
+    assert.equal(user.id, PATROL_USER_ID);
+    assert.equal(user.role, PATROL_USER_ROW.role);
   } finally {
     restoreFetch();
   }
