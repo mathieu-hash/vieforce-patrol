@@ -287,14 +287,45 @@ async function findOrCreateAuthUser(patrolUser: PatrolUserRow): Promise<string> 
     },
   });
   if (created.error) {
-    // If another concurrent login created it first, fall back to a phone lookup.
-    // @ts-ignore: listUsers accepts a filter in v2
-    const list = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-    const match = list?.data?.users?.find?.((u: any) => {
+    // W1.3 hotfix 2026-05-24: createUser commonly fails for two reasons:
+    //   (a) another concurrent login created the row first (race)
+    //   (b) the patrol user's email is ALREADY in auth.users from a prior
+    //       Google OAuth — in that case the existing auth.users.id is
+    //       Google-derived and !== patrol_user.id. We do NOT try to
+    //       force the IDs to match (auth.users.id is immutable post-
+    //       creation); instead we accept the existing row, stamp its
+    //       app_metadata with patrol_user_id, and return its id. The
+    //       JWT we sign will use THAT id as `sub`, and RLS policies
+    //       must read patrol_user_id from app_metadata rather than
+    //       relying on auth.uid() = users.id.
+    //
+    // Lookup order: by email, then by phone (managers may lack phone;
+    // TSRs may lack email).
+    const lookup = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
+    const users = lookup?.data?.users ?? [];
+    const byEmail = patrolUser.email
+      ? users.find?.((u: any) =>
+          String(u.email || "").toLowerCase() ===
+            String(patrolUser.email).toLowerCase()
+        )
+      : null;
+    const byPhone = users.find?.((u: any) => {
       const p = String(u.phone || "").replace(/\D/g, "");
-      return p === patrolUser.phone;
+      return p && p === patrolUser.phone;
     });
-    if (match?.id) return match.id;
+    const match = byEmail || byPhone;
+    if (match?.id) {
+      // Refresh app_metadata on the existing row so RLS / claims work.
+      await supabase.auth.admin.updateUserById(match.id, {
+        app_metadata: appMetadata,
+        user_metadata: {
+          name: patrolUser.name,
+          language: patrolUser.language ?? "en",
+          is_champion: !!patrolUser.is_champion,
+        },
+      });
+      return match.id;
+    }
     throw new Error(
       "auth.admin.createUser failed: " + (created.error.message || "unknown"),
     );
