@@ -918,11 +918,10 @@
 .tindahan-avatar.c-red    { background: linear-gradient(135deg, #FF6B6B, #E0413F); }
 .tindahan-row-content { flex: 1; min-width: 0; }
 .tindahan-row-name {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   font-family: 'Manrope', sans-serif;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -975,17 +974,14 @@
   height: 52px;
   font-size: 15px;
 }
-/* PRIORITY HIGHLIGHT (left edge accent) */
-.tindahan-row.priority::before {
-  content: "";
-  position: absolute;
-  left: 0; top: 8px; bottom: 8px;
-  width: 3px;
-  background: var(--accent);
-  border-radius: 0 3px 3px 0;
+/* PRIORITY HIGHLIGHT — DESIGN.md "Impeccable policy" bans left stripes.
+ * Replaced with an inset top shadow (3px) which conveys the same severity
+ * accent without the rejected left-border treatment. */
+.tindahan-row.priority {
+  box-shadow: inset 0 3px 0 var(--accent);
 }
-.tindahan-row.priority.warn::before { background: var(--warning); }
-.tindahan-row.priority.danger::before { background: var(--danger); }
+.tindahan-row.priority.warn { box-shadow: inset 0 3px 0 var(--warning); }
+.tindahan-row.priority.danger { box-shadow: inset 0 3px 0 var(--danger); }
 /* SEARCH BAR (inside Tindahan) */
 .tindahan-search {
   margin: 8px 0 0;
