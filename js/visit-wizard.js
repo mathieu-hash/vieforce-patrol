@@ -62,7 +62,9 @@ async function openVisitWizard(storeId, storeName) {
   document.getElementById('visit-extra-notes').value = '';
   document.getElementById('visit-submit-error').style.display = 'none';
   var submitBtn = document.getElementById('btn-visit-submit');
-  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '\ud83d\udce4 ' + T.submitVisit; submitBtn.className = 'sub-btn'; submitBtn.style.background = ''; }
+  if (submitBtn) { submitBtn.className = 'sub-btn'; submitBtn.style.background = ''; }
+  // Dynamic label is set by _updateVisitSubmitState() based on gate state.
+  _updateVisitSubmitState();
 
   // Populate store info bubble
   var infoBubble = document.getElementById('visit-store-info');
@@ -281,6 +283,14 @@ function _updateVisitSubmitState() {
   var hasOutcome = !!_visitData.outcome;
   var hasPhoto = !!(_visitData.photo || _visitData.photo_url);
   submitBtn.disabled = !(hasOutcome && hasPhoto);
+  // Dynamic CTA label tied to gate state so the TSR always sees the next step.
+  if (!hasOutcome) {
+    submitBtn.textContent = 'Piliin muna ang outcome';
+  } else if (!hasPhoto) {
+    submitBtn.textContent = (T && T.takePhoto) ? T.takePhoto : 'Kumuha ng litrato';
+  } else {
+    submitBtn.textContent = '📤 ' + ((T && T.submitVisit) || 'I-SUBMIT');
+  }
 }
 
 async function captureVisitPhoto() {

@@ -1423,7 +1423,8 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
   color: var(--status-ok);
 }
 .outcome.sel-g .out-check,
-.outcome.sel-b .out-check { transform: scale(1); }
+.outcome.sel-b .out-check,
+.outcome.sel-o .out-check { transform: scale(1); }
 
 /* Expandable form */
 .exp-form {
