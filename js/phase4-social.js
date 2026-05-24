@@ -383,11 +383,15 @@
 
     var pa = document.getElementById('profileActions');
     if (pa) {
+      // R2 Track 2B (F-P1): Edit / Follow / Message buttons are Phase 5 stubs —
+      // their handlers used to fire alert('TODO Phase 5'). Hidden via
+      // style="display:none" until Phase 5 wires real SAP/HR + social backend.
+      // The ⋯ More button stays visible; it scrolls to existing settings.
       pa.innerHTML = own
-        ? '<button type="button" class="prof-btn prof-btn-primary" onclick="patrolPhase4EditProfile()">Edit profile</button>' +
+        ? '<button type="button" class="prof-btn prof-btn-primary" style="display:none" onclick="patrolPhase4EditProfile()" aria-hidden="true" tabindex="-1">Edit profile</button>' +
           '<button type="button" class="prof-btn" onclick="patrolPhase4Logout()">Logout</button>'
-        : '<button type="button" class="prof-btn prof-btn-primary" onclick="patrolPhase4FollowStub()">+ Follow</button>' +
-          '<button type="button" class="prof-btn" onclick="patrolPhase4MessageStub()">💬 Message</button>' +
+        : '<button type="button" class="prof-btn prof-btn-primary" style="display:none" onclick="patrolPhase4FollowStub()" aria-hidden="true" tabindex="-1">+ Follow</button>' +
+          '<button type="button" class="prof-btn" style="display:none" onclick="patrolPhase4MessageStub()" aria-hidden="true" tabindex="-1">💬 Message</button>' +
           '<button type="button" class="prof-btn" onclick="patrolPhase4MoreStub()">⋯</button>';
     }
 
@@ -397,17 +401,21 @@
     renderUserActivity(uid);
   }
 
+  // R2 Track 2B (F-P1): Phase 5 stubs neutralized — buttons are also hidden
+  // via display:none above so these handlers should never fire from the UI.
+  // Kept as no-ops (with dev-only console.log) in case anything calls them
+  // programmatically; do NOT restore the alert() popups.
   window.patrolPhase4EditProfile = function () {
-    alert('Edit profile — TODO Phase 5 (SAP / HR master)');
+    console.log('Edit profile — TODO Phase 5 (SAP / HR master)');
   };
   window.patrolPhase4Logout = function () {
     if (typeof window.logout === 'function') window.logout();
   };
   window.patrolPhase4FollowStub = function () {
-    alert('Follow — TODO Phase 5 backend');
+    console.log('Follow — TODO Phase 5 backend');
   };
   window.patrolPhase4MessageStub = function () {
-    alert('Message — TODO Phase 5');
+    console.log('Message — TODO Phase 5');
   };
   window.patrolPhase4MoreStub = function () {
     var settings = document.getElementById('profileSettingsOwn');
