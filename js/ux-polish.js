@@ -222,7 +222,9 @@ function getEmptyStoreStateHTML() {
 var _syncToastShown = false;
 
 function _wrapSyncWithToast() {
+  if (window._syncPolishedWrapped) return; // idempotency — Q-P0-4
   if (typeof syncPending !== 'function') return;
+  window._syncPolishedWrapped = true;
   var _origSync = syncPending;
   syncPending = function () {
     return _origSync.apply(this, arguments).then(function (results) {
