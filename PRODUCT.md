@@ -73,9 +73,26 @@ Org fields on users drive dashboards, maps, and team scoping. Region/District sh
 
 ---
 
+## Recent (2026-05-24)
+
+Shipped today on top of the v3.2.0-beta.1 (6-waves) baseline:
+
+- **W1.3 hotfix** (`dcff776`) — `users` RLS loosened to handle the `auth.users.id` vs `public.users.id` collision; `verify-pin` Edge Function handles email-collision.
+- **W1.4 rollback** (`c03e4a3`) — `AuthCore` reverted entirely. Hand-signed HS256 JWTs never worked because this Supabase project uses asymmetric (JWKS) signing. Restored legacy `verify-pin` (returns user row directly), `js/auth.js` `localStorage` flow, and HYBRID `api/_lib/auth.js` that accepts `x-session-id` OR `Authorization: Bearer <jwt>`. See `CLAUDE.md` §21 for the lesson.
+- **W1.5 nuclear** (`0383726`) — Pre-W1 legacy policy on `users` had a self-referential subquery against the same table → `42P17` infinite recursion at PostgREST. Catch-all dropped every policy on 11 tables + disabled RLS entirely for triage.
+- **W1.6 + W1.6b** (`acae59f`) — RLS re-enabled with explicit scoping. `users_safe` VIEW (no `pin_hash`) is the anon-readable surface; base `users` REVOKE SELECT from anon. `sap_accounts` + `store_sap_matches` authenticated-only. `stores` / `visits` / `farms` anon-writable (offline-queue replay). `patrol_org_*` read-open.
+- **Polish waves** (commits `0303b3e` → `36dc04c`) — 14 polish items: UPPERCASE drop on Tindahan rows, `#00A6CE` rebase across 29 hex sweeps, sync-badge CSS finally shipped, `prefers-reduced-motion` honored, WCAG btn-reset-pin contrast fix, compact home/Tindahan headers + filter grid, KPI label overlap fix, visit-history photo thumbnails.
+- **R2 Track 1** (`d6be200`, `1cca873`) — `getAuthBearer()` restored, `js/export.js` scoped (no `pin_hash` leak in CSV), `ux-polish` idempotency, 2 final `Loading...` text leaks killed.
+
+Migrations applied today: `20260524093000_rls_hotfix_users_select`, `20260524104500_rollback_w1_rls`, `20260524110000_disable_rls_test_phase`, `20260524150000_w16_rls_scoping_hardening`, `20260524151500_w16_rls_users_view`.
+
+Validation snapshot (2026-05-24): `npm run test:unit` → 244/244 · `npm run check:locales` → 209 keys × 3.
+
+---
+
 ## UI quality backlog (audit — May 2026)
 
-*Last verified against code: 2026-05-21.*
+*Last verified against code: 2026-05-24.*
 
 Prioritized punch list from a full HTML-shell review. Mockups (`patrol-fb-mockup.html`, `prototype-demo-reference.html`, `docs/*`) are out of scope.
 
@@ -83,12 +100,12 @@ Prioritized punch list from a full HTML-shell review. Mockups (`patrol-fb-mockup
 
 | Theme | Severity | Notes (2026-05-21 snapshot) |
 |-------|----------|--------|
-| Trilingual gaps on first paint | P1 | Largely resolved on TSR shell; residual English on DSM header `Loading...` (`app.html:242`) and store-detail TSR path (`app.html:1898,1902`). |
-| TSR touch targets &lt; 64px | Closed (TSR) / P1 (manager) | TSR controls now enforce 64px via `css/tsr-field.css`. Manager `.hdr-btn` icons still render ~36px (no width/height set) — see C1 partial. |
+| Trilingual gaps on first paint | Closed | Wave 3 + R2 Track 1B killed remaining `Loading...` leaks; TSR + DSM headers seed trilingual at first paint. |
+| TSR touch targets &lt; 64px | Closed | TSR controls enforce 64px via `css/tsr-field.css`; manager `.hdr-btn` bumped to 48px in W5. |
 | TSR tab count &gt; 4 | Closed | Exactly 4 TSR bottom tabs (Home / POS / Mapa / Higit pa); Profile + Visits + Logout live in More sheet. |
 | Admin loading = text only | Closed | `admin-skeleton-wrap` blocks shipped on `admin-org.html` and `admin-users-sap.html`. |
 | CSS / token drift | P2 | Admin shells still skip `tokens.css`; 177-line inline `<style>` block remains in `app.html` for the assign page; ~10 inline `style="..."` attrs persist on admin pages. |
-| TSR bundle weight | P1 | `sales-tab-v2.css`, Chart.js, xlsx lazy-loaded. `rsm.css`, `phase4-social.css`, `phase3-sales-stores.css` still eager on TSR critical path (≈+50KB). |
+| TSR bundle weight | Closed | All manager-only CSS lazy-loaded (W5); ~32KB off TSR cold-load. |
 | `user-scalable=no` | Closed | No zoom lock in any in-scope shell (only the out-of-scope prototype carries it). |
 
 ### Phase A — Admin & auth (do first)
@@ -109,10 +126,10 @@ Prioritized punch list from a full HTML-shell review. Mockups (`patrol-fb-mockup
 |------|-------------|--------|
 | **B1 (P0)** | Audit TSR tap targets → **64px min** (`hdr-btn`, visit CTA, FAB, chips). | ✅ DONE |
 | **B2 (P0)** | Bottom nav: **4 tabs max** for TSR; fold Profile/More into one trilingual "Higit pa" sheet. | ✅ DONE |
-| **B3 (P0)** | Replace HTML `Loading...` / English placeholders with `data-i18n` or `T.*` at first paint. | ⚠️ PARTIAL — DSM header (`app.html:242`) and store-detail TSR path (`app.html:1898,1902`) still seed English. |
+| **B3 (P0)** | Replace HTML `Loading...` / English placeholders with `data-i18n` or `T.*` at first paint. | ✅ DONE — R2 Track 1B + Wave 3 killed remaining `Loading...` text leaks on TSR paths (commit `1cca873`). |
 | **B4** | Store empty state: trilingual + CTA matches visible control (FAB hidden for some TSR roles). | ✅ DONE |
 | **B5** | Remove "Loading from Supabase…" copy; user-facing trilingual sync status only. | ✅ DONE |
-| **B6** | Lazy-load manager-only CSS/JS (sales, assign, xlsx) off the TSR critical path. | ⚠️ PARTIAL — `sales-tab-v2.css` / Chart / xlsx lazy; `rsm.css`, `phase4-social.css`, `phase3-sales-stores.css` still eager. |
+| **B6** | Lazy-load manager-only CSS/JS (sales, assign, xlsx) off the TSR critical path. | ✅ DONE — W5 bundle work (commit `4774250`) lazy-loaded the 3 remaining manager CSS files; ~32KB off TSR cold-load. |
 | **B7** | Visit list: skeleton-only pattern (extend `js/stores.js` approach). | ✅ DONE |
 | **B8** | Submit visit: full-width Messenger blue, **64px** CTA. | ✅ DONE |
 
@@ -122,19 +139,21 @@ Prioritized punch list from a full HTML-shell review. Mockups (`patrol-fb-mockup
 
 | Item | Description | Status |
 |------|-------------|--------|
-| **C1** | Manager nav overflow + i18n labels; 48px+ targets. | ⚠️ PARTIAL — bottom-nav ≥52px shipped; manager `.hdr-btn` icons (`app.html:545,546,658,662`) still render ~36px. |
+| **C1** | Manager nav overflow + i18n labels; 48px+ targets. | ✅ DONE — W5 bumped manager `.hdr-btn` to 48px (commit `4774250` / merged `654c99a`). |
 | **C2** | Sales tab: skeleton KPI blocks instead of `.sales-sap-spinner`. | ✅ DONE |
 | **C3** | DSM Pulse / feed: skeleton-first in `js/home-dsm.js` / dashboard loaders. | ✅ DONE |
 | **C4** | Assign UI: localize stats bar and list placeholders. | ✅ DONE |
 | **C5** | Lazy-load Chart.js / xlsx when sales/export opens. | ✅ DONE |
-| **C6** | Leaderboard: top performers only (Filipino hiya rule — no public low ranks). | ❌ MISSING — `renderRankingsRest` / `renderRankingsTiered` in `js/phase4-social.js:1015-1115` still expose ranks 4..N. |
+| **C6** | Leaderboard: top performers only (Filipino hiya rule — no public low ranks). | ✅ DONE — hiya gate implemented at `js/phase4-social.js:1014-1092` (`_buildVisibleRanks` + `_shouldShowFullLeaderboard`); only admin-class roles (`ceo`, `admin`, `evp`, `marketing`) see ranks 4..N. Wave 3 commit `379b12c`. |
 
 ## **Pilot-blocking issues (from 2026-05-21 audit — see `_audit/MASTER_PLAN.md`)**
 
-- **C6 leaderboard hiya violation** — `js/phase4-social.js:1015-1115` (`renderRankingsRest` + `renderRankingsTiered`) renders every rank 4..N with name + bags + delta. Violates `CLAUDE.md` Rule 8 and `PRODUCT.md` C6. Cap to top 3–5 + render viewer's own rank separately.
-- **Store-detail "Loading..." text on TSR path** — `app.html:1898,1902` injects raw `Loading...` instead of skeleton on TSR navigation into a store. Violates `CLAUDE.md` Rule 7 (no spinners/loading text for TSRs).
-- **DSM home mock `seed % 11` data** — `js/home-dsm.js:37-72` produces deterministic mock figures rather than live SAP/Patrol data; flagged as pilot-blocking by Audit D.
-- **PIN visible in admin CSV** — `js/admin.js` includes raw PIN material in the CSV export path; must be redacted before pilot.
+All four 2026-05-21 pilot-blockers resolved over 6 waves + R2 Tracks (2026-05-21 → 2026-05-24):
+
+- ✅ **C6 leaderboard hiya** — fixed by Wave 3 commit `379b12c`; gate lives in `js/phase4-social.js:1014-1092`.
+- ✅ **Store-detail "Loading..." text on TSR path** — killed by Wave 3 (`051a97e`) + R2 Track 1B (`1cca873`).
+- ✅ **DSM home mock `seed % 11` data** — Wave 3 (`130c87a`) replaced mocks with real Supabase aggregates + 1h IDB cache.
+- ✅ **PIN visible in admin CSV** — scrubbed in Wave 1 + R2 Track 1A (`d6be200`) scoped `js/export.js` users SELECT so `pin_hash` is never read.
 
 *Full pilot-gate list lives in `_audit/MASTER_PLAN.md` §2.*
 
@@ -142,16 +161,16 @@ Prioritized punch list from a full HTML-shell review. Mockups (`patrol-fb-mockup
 
 | Rule | Status |
 |------|--------|
-| Offline first | ⚠️ Partial — `js/offline.js` queue shipped; some writes bypass the queue per Audit D. |
+| Offline first | ✅ Wave 2 routed `updateStore`, `assignStores/Farms`, `last_visit_at`, profile edits through the queue (Dexie v4). |
 | 64px touch (TSR) | ✅ `css/tsr-field.css` enforces 64px on all TSR controls. |
-| No spinners (TSR) | ❌ Store detail still injects `Loading...` text (`app.html:1898,1902`). |
-| Trilingual first-paint | ⚠️ Partial (B3) — DSM header + store-detail TSR path still seed English. |
+| No spinners (TSR) | ✅ Wave 3 + R2 Track 1B killed `Loading...` text on every TSR path. |
+| Trilingual first-paint | ✅ Wave 3 + R2 Track 1B closed the residual gaps. |
 | Messenger hybrid (TSR) | ✅ Production shell. |
 | Max 4 TSR tabs | ✅ Home / POS / Mapa / Higit pa. |
 | No swipe-only actions | ✅ Explicit buttons only; More sheet opens via tap. |
 | No `user-scalable=no` | ✅ None in any in-scope shell. |
-| Leaderboard hiya | ❌ C6 — ranks 4..N still exposed in `js/phase4-social.js`. |
+| Leaderboard hiya | ✅ `js/phase4-social.js:1014-1092` enforces top-3 + own-row only for non-admin viewers. |
 
 ---
 
-*Last updated: May 2026 — includes user-profile email for Google login and org-admin handoff.*
+*Last updated: 2026-05-24 — post-W1.6 RLS scoping + polish waves; backlog refreshed.*
