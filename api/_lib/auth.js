@@ -177,20 +177,55 @@ async function _restSingle(url) {
 
 /**
  * Returns the authenticated user object, or throws AuthError({status, message}).
- * Caller is responsible for catching and responding.
+ *
+ * Hybrid auth (post W1.4 rollback 2026-05-24):
+ *   - x-session-id header → legacy PIN-login path. Looks up user by UUID via
+ *     service-role REST. Cached 5s. This is what TSR clients send.
+ *   - Authorization: Bearer <jwt> → Supabase Auth session path. Validated
+ *     via /auth/v1/user. This is what Google OAuth managers send.
+ *
+ * The W1-AuthCore hand-signed-JWT approach was incompatible with this
+ * project's asymmetric JWT signing (JWKS). Reverted to dual-path until a
+ * proper magic-link / OTP flow is designed.
  */
 async function requireUser(req) {
-  // Reject legacy x-session-id callers cleanly with a migration hint.
-  const legacy = req && req.headers && (req.headers['x-session-id'] || req.headers['X-Session-Id']);
-  if (legacy) {
-    throw new AuthError(401, 'x-session-id is no longer supported — re-login to get a Bearer JWT', {
-      migration_required: true
-    });
+  const sessionId = req && req.headers && (req.headers['x-session-id'] || req.headers['X-Session-Id']);
+  if (sessionId && UUID_RE.test(String(sessionId))) {
+    if (!SERVICE_KEY) {
+      throw new AuthError(500, 'SUPABASE_SERVICE_ROLE_KEY missing — cannot verify session');
+    }
+    // Cache check (last-32 of the UUID is fine as a key)
+    const key = 'sid:' + _cacheKey(String(sessionId));
+    const cached = _userCache.get(key);
+    if (cached && (Date.now() - cached.ts) < USER_CACHE_TTL_MS) {
+      return cached.user;
+    }
+    const patrolUser = await _loadPatrolUserById(String(sessionId));
+    if (!patrolUser || patrolUser.is_active === false) {
+      throw new AuthError(401, 'Invalid or inactive session');
+    }
+    const normalised = {
+      id: patrolUser.id,
+      user_id: patrolUser.id,
+      role: patrolUser.role,
+      email: patrolUser.email || null,
+      name: patrolUser.name,
+      region: patrolUser.region,
+      district: patrolUser.district,
+      territory: patrolUser.territory,
+      is_active: patrolUser.is_active !== false,
+      language: patrolUser.language || 'en',
+      sap_slpcode: patrolUser.sap_slpcode || null,
+      sap_district_code: patrolUser.sap_district_code || null,
+      district_label: patrolUser.district_label || null
+    };
+    _userCache.set(key, { user: normalised, ts: Date.now() });
+    return normalised;
   }
 
   const jwt = _bearerToken(req);
   if (!jwt) {
-    throw new AuthError(401, 'Missing Authorization: Bearer header');
+    throw new AuthError(401, 'Missing x-session-id or Authorization: Bearer header');
   }
   return _validateAndLoad(jwt);
 }
