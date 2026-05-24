@@ -176,6 +176,52 @@ body.role-champion .theme-toggle button,
   padding: 12px 16px;
 }
 
+/* TSR greeting band — kill navy, mandate white per CLAUDE Rule 6 (Messenger-hybrid).
+ * Manager shells (DSM/RSM/CEO) keep their navy banding via the unscoped rule
+ * in elite-action.css; this override only fires under body.role-tsr / champion. */
+body.role-tsr #page-home-tsr .tsr-greeting,
+body.role-champion #page-home-tsr .tsr-greeting {
+  background: #ffffff;
+  color: var(--text-primary);
+}
+body.role-tsr #page-home-tsr .tsr-greeting-sub,
+body.role-champion #page-home-tsr .tsr-greeting-sub {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* Store-detail chat header — back (was 42px) + Call/Messenger/Map (were 36px). */
+body.role-tsr #page-store-detail .back,
+body.role-champion #page-store-detail .back {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
+}
+body.role-tsr #page-store-detail .chat-ico-btn,
+body.role-champion #page-store-detail .chat-ico-btn {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
+}
+
+/* Store-detail input bar — photo/notes/send (were 36px) under the visit thread. */
+body.role-tsr #page-store-detail .input-ico,
+body.role-champion #page-store-detail .input-ico {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
+}
+body.role-tsr #page-store-detail .send,
+body.role-champion #page-store-detail .send {
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  min-height: 64px;
+}
+
 /* ===== TSR SKELETON VARIANT (CLAUDE.md Rule 7) =====
  * Taller rows and higher-contrast shimmer for sunlight readability + calloused
  * hands. Applied automatically to .skeleton-row when the body role is TSR or
