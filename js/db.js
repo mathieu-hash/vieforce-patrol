@@ -383,20 +383,21 @@ window.getRecentTeamActivity = getRecentTeamActivity;
 // ── Users (Admin) ──
 
 async function getUsers() {
+  // W1.6b hardening: query the `users_safe` VIEW (no pin_hash column),
+  // not the base `users` table. The base table's anon SELECT was revoked
+  // in migration 20260524151500_w16_rls_users_view.sql so anon callers
+  // cannot SELECT it any longer. Authenticated callers still read this
+  // view (they don't need pin_hash here; admin UI uses getUsersForAdmin
+  // for that).
   var { data, error } = await supabaseClient
-    .from('users')
+    .from('users_safe')
     .select(
-      'id,name,phone,role,region,district,territory,is_active,is_champion,created_at,updated_at,pin_hash'
+      'id,name,phone,role,region,district,territory,is_active,is_champion,created_at,updated_at'
     )
     .order('name', { ascending: true });
 
   if (error) throw _wrapSupabaseError('getUsers', error);
-  return (data || []).map(function (u) {
-    var row = Object.assign({}, u);
-    row.has_pin = !!(row.pin_hash && String(row.pin_hash).length > 0);
-    delete row.pin_hash;
-    return row;
-  });
+  return data || [];
 }
 
 /**
