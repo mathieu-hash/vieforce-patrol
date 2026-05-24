@@ -214,10 +214,11 @@ var ExportModule = (function() {
       if (visitsRes.error) throw visitsRes.error;
       var visits = visitsRes.data || [];
 
-      // Fetch users (TSRs)
+      // Fetch users (TSRs) — explicit column whitelist; NEVER fetch pin_hash
+      // (Q-P0-2 fix: select('*') used to surface plaintext PINs into the CSV).
       var usersRes = await supabaseClient
         .from('users')
-        .select('*')
+        .select('id, name, phone, email, role, region, district, territory, is_active, is_champion, language, created_at, updated_at')
         .eq('role', 'tsr')
         .eq('is_active', true);
       var tsrs = (usersRes.data || []);

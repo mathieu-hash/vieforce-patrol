@@ -538,6 +538,33 @@ function requireAuth() {
 }
 
 /**
+ * Returns the Supabase Auth Bearer token for API requests when a manager
+ * is signed in via Google OAuth. TSR PIN sessions have no Bearer token
+ * (api/_lib/auth.js falls back to x-session-id for them). Returns null
+ * synchronously; callers that need the token MUST handle null.
+ *
+ * Note: this is the synchronous best-effort shape — the actual fresh
+ * token lives in supabaseClient.auth.getSession() which is async. For
+ * callers that need a guaranteed-fresh token, they should call
+ * supabaseClient.auth.getSession() directly.
+ */
+function getAuthBearer() {
+  try {
+    if (!window.supabaseClient || !supabaseClient.auth) return null;
+    // supabase-js v2 caches the current session synchronously on the client
+    // instance; use the internal accessor when present.
+    var s = (typeof supabaseClient.auth._currentSession === 'object' && supabaseClient.auth._currentSession)
+      ? supabaseClient.auth._currentSession
+      : null;
+    if (s && s.access_token) return s.access_token;
+    return null;
+  } catch (_e) {
+    return null;
+  }
+}
+window.getAuthBearer = getAuthBearer;
+
+/**
  * Clear Patrol + Supabase sessions, then go to login.
  * Must await Supabase signOut before navigating: index.html's maybeHandleGoogleLoginOnLoad()
  * restores manager sessions from persisted auth if tokens are still present (race otherwise).
