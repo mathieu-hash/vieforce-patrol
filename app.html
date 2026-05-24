@@ -1917,12 +1917,17 @@
               timeText: vTime
             });
           } else {
-            html += '<div class="msg-row">' +
-              '<div class="msg-av-small" style="background:' + grad + '">' + initials + '</div>' +
+            // Fallback path: same icon-row layout as renderVisitBubbleComponent
+            // (56x56 photo thumbnail on the left, placeholder when no photo).
+            var attrEsc = (typeof PatrolEscape !== 'undefined') ? PatrolEscape.escapeAttr : _esc;
+            var thumbFallback = v.photo_url
+              ? '<img class="visit-photo-thumb" src="' + attrEsc(v.photo_url) + '" alt="" loading="lazy">'
+              : '<div class="visit-photo-thumb-empty" aria-hidden="true">\ud83d\udcf7</div>';
+            html += '<div class="msg-row visit-row">' +
+              thumbFallback +
               '<div>' +
                 '<div class="bubble in visit-bubble-msg" onclick="showVisitDetail(\'' + vId + '\')">' +
                   _esc(outcomeLabel) +
-                  (v.photo_url ? '<div class="visit-bubble-photo-wrap"><img class="visit-bubble-photo" src="' + _esc(v.photo_url) + '" alt="Visit selfie"></div>' : '') +
                   (v.notes ? '<br><span class="visit-bubble-notes">' + _esc(v.notes.substring(0, 100)) + '</span>' : '') +
                 '</div>' +
                 '<div class="msg-time">' + vTime + ' <span class="ticks gray">\u2713\u2713</span></div>' +

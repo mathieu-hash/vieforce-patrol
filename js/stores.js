@@ -111,16 +111,21 @@ window.renderStoreRowComponent = renderStoreRowComponent;
 
 function renderVisitBubbleComponent(opts) {
   var o = opts || {};
-  var photoHtml = '';
+  // 56x56 photo thumbnail at the icon-row position (left of bubble).
+  // Falls through to camera-icon placeholder when visit.photo_url is absent.
+  // URL escaped via PatrolEscape.escapeAttr (canonical escape for attrs);
+  // loading="lazy" so a store with 50 visits doesn't blow the data budget.
+  var thumbHtml;
   if (o.photoUrl) {
-    photoHtml = '<div class="visit-bubble-photo-wrap"><img class="visit-bubble-photo" src="' + _esc(o.photoUrl) + '" alt="Visit selfie"></div>';
+    thumbHtml = '<img class="visit-photo-thumb" src="' + _escAttr(o.photoUrl) + '" alt="" loading="lazy">';
+  } else {
+    thumbHtml = '<div class="visit-photo-thumb-empty" aria-hidden="true">\ud83d\udcf7</div>';
   }
-  return '<div class="msg-row">' +
-    '<div class="msg-av-small" style="background:' + _esc(o.avatarBg || '#5F6B76') + '">' + _esc(o.initials || '') + '</div>' +
+  return '<div class="msg-row visit-row">' +
+    thumbHtml +
     '<div>' +
       '<div class="bubble in visit-bubble-msg" onclick="showVisitDetail(\'' + _esc(o.visitId || '') + '\')">' +
         _esc(o.outcomeLabel || '') +
-        photoHtml +
         (o.notes ? '<br><span class="visit-bubble-notes">' + _esc(o.notes) + '</span>' : '') +
       '</div>' +
       '<div class="msg-time">' + _esc(o.timeText || '') + ' <span class="ticks gray">\u2713\u2713</span></div>' +
