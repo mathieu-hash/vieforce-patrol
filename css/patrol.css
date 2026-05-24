@@ -19,11 +19,11 @@
   --bg-main: #FFFFFF;
   --bg-chat: #F0F2F5;
   --bg-bubble: #FFFFFF;
-  --accent: #0084FF;
+  --accent: #00A6CE;
   --accent-dark: #0070E0;
-  --fb-gradient: linear-gradient(135deg, #0084FF, #A855F7);
+  --fb-gradient: linear-gradient(135deg, #00A6CE, #A855F7);
   --fb-purple: #A855F7;
-  --fb-blue: #0084FF;
+  --fb-blue: #00A6CE;
   --fb-pink: #F43F5E;
   --fb-orange: #F97316;
   --fb-green: #22C55E;
@@ -31,7 +31,7 @@
   --status-ok: #31A24C;
   --status-warn: #F7B928;
   --status-crit: #FA383E;
-  --sync-done: #0084FF;
+  --sync-done: #00A6CE;
   --sync-pending: #F7B928;
   --sync-error: #FA383E;
   --text-primary: #050505;
@@ -127,7 +127,7 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
 /* ===== PHOTO CAPTURE HERO (visit sheet) ===== */
 .photo-capture-hero {
   margin: 12px 0;
-  background: linear-gradient(135deg, #0084FF, #A855F7);
+  background: linear-gradient(135deg, #00A6CE, #A855F7);
   border-radius: 16px;
   padding: 14px;
   cursor: pointer;
@@ -173,14 +173,14 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
 .merch-chip:active { transform: scale(0.95); }
 .merch-chip.on {
   background: rgba(0,132,255,0.08);
-  border-color: #0084FF;
-  color: #0084FF;
+  border-color: #00A6CE;
+  color: #00A6CE;
 }
 .merch-chip .merch-icon { font-size: 16px; line-height: 1; }
 .merch-chip .merch-check {
   opacity: 0;
   transition: opacity 0.15s;
-  color: #0084FF;
+  color: #00A6CE;
   font-weight: 800;
 }
 .merch-chip.on .merch-check { opacity: 1; }
@@ -356,7 +356,7 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
 /* ===== TSR SCORECARD HERO (TSR home) ===== */
 .scorecard-hero {
   margin: 12px 16px;
-  background: linear-gradient(135deg, #0084FF, #A855F7);
+  background: linear-gradient(135deg, #00A6CE, #A855F7);
   border-radius: 20px;
   padding: 16px;
   color: white;
@@ -395,7 +395,7 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
 #page-tsr-scorecard.active { display: flex !important; flex-direction: column; height: 100vh; overflow: hidden; padding-bottom: 60px; }
 .tsc-scorecard { padding: 12px 16px 80px; }
 .tsc-overall {
-  background: linear-gradient(135deg, #0084FF, #A855F7);
+  background: linear-gradient(135deg, #00A6CE, #A855F7);
   color: white;
   border-radius: 20px;
   padding: 24px;
@@ -808,7 +808,7 @@ body.role-ceo:not([data-patrol-active-page="page-stores"]) .store-fab {
 .filter-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
 .filter-chip.prospect { border-color: #A855F7; color: #A855F7; }
 .filter-chip.prospect.active {
-  background: linear-gradient(135deg, #0084FF, #A855F7);
+  background: linear-gradient(135deg, #00A6CE, #A855F7);
   color: white;
   border: none;
 }
@@ -3158,7 +3158,7 @@ body:has(#page-farm-new.active)  #fab-btn {
 /* ── 1. Hero metric ── */
 .dsm-dash .hero-metric {
   margin: 12px 16px;
-  background: linear-gradient(135deg, #0084FF, #A855F7);
+  background: linear-gradient(135deg, #00A6CE, #A855F7);
   border-radius: 24px;
   padding: 24px;
   color: white;
@@ -3260,10 +3260,10 @@ body:has(#page-farm-new.active)  #fab-btn {
 .dsm-dash .matrix-cell-num { font-size: 22px; font-weight: 900; line-height: 1; }
 .dsm-dash .matrix-cell-label { font-size: 9px; font-weight: 700; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
 .dsm-dash .matrix-cell.champion   { background: linear-gradient(135deg, #34D399, #10B981); color: white; }
-.dsm-dash .matrix-cell.grow-vol   { background: rgba(0,132,255,0.1);  color: #0084FF; }
+.dsm-dash .matrix-cell.grow-vol   { background: rgba(0,132,255,0.1);  color: #00A6CE; }
 .dsm-dash .matrix-cell.underperf  { background: linear-gradient(135deg, #FCA5A5, #FA383E); color: white; }
 .dsm-dash .matrix-cell.cross-sell { background: rgba(168,85,247,0.1); color: #A855F7; }
-.dsm-dash .matrix-cell.solid-mid  { background: rgba(0,132,255,0.1);  color: #0084FF; }
+.dsm-dash .matrix-cell.solid-mid  { background: rgba(0,132,255,0.1);  color: #00A6CE; }
 .dsm-dash .matrix-cell.nurture    { background: linear-gradient(135deg, #FCD34D, #F59E0B); color: white; }
 .dsm-dash .matrix-cell.goldmine   { background: linear-gradient(135deg, #FFC72C, #F59E0B); color: white; }
 .dsm-dash .matrix-cell.entry      { background: rgba(168,85,247,0.1); color: #A855F7; }
@@ -3324,7 +3324,7 @@ body:has(#page-farm-new.active)  #fab-btn {
 .dsm-dash .pen-bar-fill.hog      { background: linear-gradient(90deg, #F472B6, #EC4899); }
 .dsm-dash .pen-bar-fill.poultry  { background: linear-gradient(90deg, #FBBF24, #F59E0B); }
 .dsm-dash .pen-bar-fill.gamefowl { background: linear-gradient(90deg, #FB7185, #FA383E); }
-.dsm-dash .pen-bar-fill.aqua     { background: linear-gradient(90deg, #60A5FA, #0084FF); }
+.dsm-dash .pen-bar-fill.aqua     { background: linear-gradient(90deg, #60A5FA, #00A6CE); }
 .dsm-dash .pen-bar-fill.pet      { background: linear-gradient(90deg, #C084FC, #A855F7); }
 .dsm-dash .pen-bar-fill.dairy    { background: linear-gradient(90deg, #34D399, #10B981); }
 .dsm-dash .pen-stat { text-align: right; }
@@ -3387,7 +3387,7 @@ body:has(#page-farm-new.active)  #fab-btn {
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 .dsm-dash .lb-card .assign-cta {
-  background: linear-gradient(135deg, #0084FF, #A855F7);
+  background: linear-gradient(135deg, #00A6CE, #A855F7);
   color: #fff;
   border: none;
   padding: 8px 16px;
@@ -3474,7 +3474,7 @@ body:has(#page-farm-new.active)  #fab-btn {
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
   border: 1px solid #E4ECF5;
-  border-top: 4px solid #0084FF;
+  border-top: 4px solid #00A6CE;
 }
 .dsm-dash .team-cta:active {
   transform: scale(0.99);
@@ -3495,7 +3495,7 @@ body:has(#page-farm-new.active)  #fab-btn {
 }
 .dsm-dash .team-cta-arrow {
   font-size: 22px;
-  color: #0084FF;
+  color: #00A6CE;
   font-weight: 800;
 }
 
@@ -3528,7 +3528,7 @@ body:has(#page-farm-new.active)  #fab-btn {
 .dsm-dash .export-status {
   display: none;
   font-size: 12px;
-  color: #0084FF;
+  color: #00A6CE;
   text-align: center;
   padding: 6px 0;
   margin-bottom: 8px;
@@ -3602,5 +3602,27 @@ body:has(#page-farm-new.active)  #fab-btn {
   background: var(--bg-elevated);
   color: var(--text-primary);
   box-shadow: var(--shadow-sm);
+}
+
+/* ============================================================
+ * WCAG 2.3.3 — prefers-reduced-motion accessibility guard.
+ * Vestibular / motion-sensitive users: collapse animations and
+ * transitions to a single tick. Skeleton shimmer is preserved
+ * as a functional loading cue but slowed to 3s (gentle pace).
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Skeleton shimmer = loading cue; keep it visible but gentle. */
+  .skeleton {
+    animation-duration: 3s !important;
+    animation-iteration-count: infinite !important;
+  }
 }
 

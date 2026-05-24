@@ -14,7 +14,7 @@
   margin: 8px;
   padding: 20px 22px;
   border-radius: 20px;
-  background: var(--gradient-hero, linear-gradient(135deg, #002F45 0%, #004A64 50%, #2D7FF9 100%));
+  background: var(--gradient-hero, linear-gradient(135deg, #002F45 0%, #004A64 50%, #00A6CE 100%));
   color: white;
   overflow: hidden;
   box-shadow: var(--shadow-lg, 0 14px 30px rgba(8, 24, 48, 0.14));
@@ -127,7 +127,7 @@
 }
 .velocity-card-action {
   font-size: 12px;
-  color: var(--accent, #2D7FF9);
+  color: var(--accent, #00A6CE);
   font-weight: 700;
   background: none;
   border: none;
@@ -270,7 +270,7 @@
 /* AVATAR (used in rows + headers) */
 .elite-avatar {
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand-navy, #002F45), var(--accent, #2D7FF9));
+  background: linear-gradient(135deg, var(--brand-navy, #002F45), var(--accent, #00A6CE));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -501,7 +501,7 @@
   font-family: "Manrope", system-ui, sans-serif;
   letter-spacing: -0.06em;
   color: #fff;
-  background: linear-gradient(145deg, var(--brand-navy, #002f45), var(--accent, #2d7ff9));
+  background: linear-gradient(145deg, var(--brand-navy, #002f45), var(--accent, #00A6CE));
   box-shadow: var(--shadow-sm, 0 2px 4px rgba(8, 24, 48, 0.1));
   line-height: 1;
   user-select: none;
@@ -626,7 +626,7 @@
 }
 .tab-bar.phase4-tab-bar.elite-tab-bar .tab.active {
   background: transparent;
-  color: var(--accent, #2d7ff9);
+  color: var(--accent, #00A6CE);
 }
 .tab-bar.phase4-tab-bar.elite-tab-bar .tab.active::after {
   content: "";
@@ -635,7 +635,7 @@
   left: 12px;
   right: 12px;
   height: 3px;
-  background: linear-gradient(90deg, var(--accent, #2d7ff9), var(--brand-green, #97d700));
+  background: linear-gradient(90deg, var(--accent, #00A6CE), var(--brand-green, #97d700));
   border-radius: 3px 3px 0 0;
   box-shadow: 0 -2px 8px var(--accent-glow, rgba(45, 127, 249, 0.35));
 }

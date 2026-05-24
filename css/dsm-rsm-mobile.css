@@ -44,7 +44,7 @@ body.role-ceo #bottom-nav .nav-item {
 body.role-dsm #bottom-nav .nav-item.active,
 body.role-rsm #bottom-nav .nav-item.active,
 body.role-ceo #bottom-nav .nav-item.active {
-  color: var(--accent, #0084FF);
+  color: var(--accent, #00A6CE);
 }
 body.role-dsm #bottom-nav .nav-ico,
 body.role-rsm #bottom-nav .nav-ico,
@@ -175,7 +175,7 @@ body.role-ceo #bottom-nav .nav-badge {
   display: inline-block;
   margin-top: 22px;
   padding: 10px 20px;
-  background: #0084FF;
+  background: #00A6CE;
   color: #fff;
   border-radius: 10px;
   font-weight: 700;
@@ -185,7 +185,7 @@ body.role-ceo #bottom-nav .nav-badge {
 }
 .page-placeholder .placeholder-hint {
   margin-top: 20px;
-  color: #0084FF;
+  color: #00A6CE;
   font-weight: 600;
 }
 
@@ -447,7 +447,7 @@ body.role-ceo #bottom-nav .nav-badge {
   padding: 8px 16px;
   border: none;
   border-radius: 8px;
-  background: #0084ff;
+  background: #00A6CE;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
@@ -459,7 +459,7 @@ body.role-ceo #bottom-nav .nav-badge {
   text-align: center;
 }
 .sales-kpi-hero {
-  background: linear-gradient(135deg, #0084ff 0%, #00a6ce 100%);
+  background: linear-gradient(135deg, #00A6CE 0%, #00A6CE 100%);
   color: #fff;
   border-radius: 14px;
   padding: 18px 16px;
@@ -725,10 +725,10 @@ body.role-ceo #bottom-nav .nav-badge {
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 700;
-  color: #0084ff;
+  color: #00A6CE;
   text-decoration: none;
   padding: 4px 10px;
-  border: 1px solid #0084ff;
+  border: 1px solid #00A6CE;
   border-radius: 999px;
 }
 .sales-card-loading {
