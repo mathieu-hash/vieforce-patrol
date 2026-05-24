@@ -6,8 +6,10 @@ Use this document when handing the project to an agent outside Cursor. It is mea
 
 Repository: `vieforce-patrol`  
 Production: `https://vieforce-patrol.vercel.app`  
-Current release: `3.2.0-beta.1` (post-6-waves pilot baseline)
+Current release: `3.2.0-beta.2` (post-W1.6 RLS scoping + 2026-05-24 polish waves; on top of the 6-waves pilot baseline)
 Current branch at handoff: `main`
+
+**Important — read before touching auth:** On 2026-05-24 the W1.4 AuthCore JWT path was rolled back (commit `c03e4a3`). This Supabase project uses asymmetric (JWKS) signing — hand-signed HS256 sessions do not validate. The app is back on the legacy `verify-pin` + `localStorage` TSR flow; `api/_lib/auth.js` is HYBRID and accepts either `x-session-id` (legacy PIN) or `Authorization: Bearer <jwt>` (OAuth). RLS was nuked then re-scoped on the same day: anon SELECTs go through the `users_safe` VIEW (no `pin_hash`); see `CLAUDE.md` §21 NOTES and `docs/PATROL-OPS-RUNBOOK.md` → "Login broken after a Supabase auth migration" before designing any custom session/JWT work.
 
 Before changing code, read these files in order:
 

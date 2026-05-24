@@ -1,6 +1,6 @@
 # VieForce Patrol — CLAUDE.md
 ## Claude Code Project Brief · Vienovo Philippines Inc.
-### Version 3.1 — May 2026 · Stack-accurate · Messenger-Hybrid UX
+### Version 3.2 — May 2026 · Stack-accurate · Messenger-Hybrid UX · Post-W1.6 RLS
 
 ---
 
@@ -77,10 +77,11 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 **HQ proxy (SAP B1):** Cloud Run — `vieforce-hq-api-*.asia-southeast1.run.app`; Patrol talks to HQ only via `api/_lib/hq-client.js`
 
 ### What's Already Built ✅
-- Auth: PIN login (TSR, via Supabase Edge Function `verify-pin`) + Google OAuth (DSM/RSM/EVP/Admin) through Supabase Auth
+- Auth (legacy flow, restored 2026-05-24 W1.4 — see §21 NOTES): TSR PIN login via Supabase Edge Function `verify-pin` returns the user row directly; `js/auth.js` persists it in `localStorage`. Manager Google OAuth (DSM/RSM/EVP/Admin) goes through Supabase Auth and emits a real JWT. Server-side `api/_lib/auth.js` is HYBRID: accepts `x-session-id` (legacy PIN) OR `Authorization: Bearer <jwt>` (OAuth).
+- RLS scoped (W1.6 + W1.6b — 2026-05-24): `users_safe` VIEW exposes everything EXCEPT `pin_hash`; anon's SELECT on the base `users` table is revoked. `sap_accounts` + `store_sap_matches` are authenticated-only. `stores` / `visits` / `farms` remain anon-writable for offline-queue replay; `patrol_org_*` is read-open.
 - Stores: Registration, full POS visit form, detail pages
 - Farms: Registration, full farm visit form, detail pages
-- DSM Pulse: KPIs, alerts, TSR leaderboard, segment distribution
+- DSM Pulse: KPIs, alerts, TSR leaderboard (hiya-capped via `js/phase4-social.js:1014-1092`), segment distribution
 - Territory Map: Leaflet with GPS-plotted stores/farms
 - Offline queue: Dexie/IndexedDB queue (`js/offline.js` — `PatrolOffline`, stores `pendingVisits` / `pendingStores` / `pendingFarms`)
 - Photo upload: `js/camera.js` → Supabase Storage bucket `patrol-photos` (compressed 640px / JPEG q≈0.5)
@@ -88,6 +89,7 @@ RULE 8 — ADOPTION RULES (bake into UX, not just onboarding)
 - PWA: `manifest.json` + cache-first `sw.js` (registered from `index.html` / `app.html`; opt-out via `?nosw=1` or `localStorage.patrol_nosw=1`)
 - Admin surfaces: `admin.html`, `admin-org.html`, `admin-users-sap.html`
 - HQ/SAP read-through: `api/sap/*` calls Cloud Run HQ via `api/_lib/hq-client.js` with margin stripping
+- Polish waves (2026-05-24): UPPERCASE drop on Tindahan rows, `#00A6CE` rebase across 29 hex sweeps, `prefers-reduced-motion` honored, WCAG btn-reset-pin contrast fix, header/filter compactness, KPI label overlap fix, visit-history photo thumbnails, sync-badge CSS shipped.
 
 ### Backlog Still To Build 🔧
 See `PRODUCT.md` (UI quality backlog, May 2026) and `docs/AGENT_HANDOFF.md` for current phase status. Highlights:
@@ -963,6 +965,8 @@ renders the correct design system.
 - **All SAP B1 reads go through `api/_lib/hq-client.js`** (Cloud Run HQ proxy with margin stripping). Never call SAP B1 directly from Patrol.
 - **Vienovo brand (DSM/RSM/CEO screens):** Navy `#004D71`, Blue `#00A6CE`, Green `#95C93D`, Gold `#F1B11D`
 - **Messenger-hybrid (TSR screens):** White background, `#00A6CE` accent, system fonts, health dots
+- **Supabase JWT lesson (W1.4 rollback, 2026-05-24):** This project uses Supabase **asymmetric** JWT signing (JWKS-backed). Hand-signing HS256 with a `SUPABASE_JWT_SECRET` env var **never worked** — the project simply does not expose a shared secret because PostgREST validates via the JWKS endpoint. Before designing any custom session/JWT flow, run `npx supabase secrets list` and look at `SUPABASE_JWKS` vs `SUPABASE_JWT_SECRET`. If only `SUPABASE_JWKS` is set → asymmetric project → do NOT attempt hand-signed HS256; either use `supabase.auth.setSession()` end-to-end (real OAuth flow) or keep the legacy session pattern. The W1.4 commit `c03e4a3` is the reference rollback to legacy `verify-pin` + `localStorage` + HYBRID `api/_lib/auth.js`.
+- **RLS posture (post-W1.6, 2026-05-24):** Never SELECT from `public.users` as anon — use `public.users_safe` (no `pin_hash`). Server-side service-role reads of `users` are still fine (they bypass RLS). The pre-W1 self-referential policy on `users` triggered Postgres `42P17` infinite recursion under PostgREST; if you see that code, see `docs/PATROL-OPS-RUNBOOK.md` → "42P17 infinite recursion in policy".
 
 ---
 
@@ -983,6 +987,6 @@ Current authoritative status: `docs/AGENT_HANDOFF.md` + `PRODUCT.md`.
 
 ---
 
-*CLAUDE.md v3.1 · May 2026 · Vienovo Philippines Inc.*
+*CLAUDE.md v3.2 · May 2026 · Vienovo Philippines Inc.*
 *Stack: static HTML + vanilla JS PWA + Supabase + Vercel APIs + Cloud Run HQ proxy for SAP*
 *UX: Messenger-hybrid (TSR) + Vienovo executive (DSM/RSM/CEO)*

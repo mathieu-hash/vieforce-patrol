@@ -1,6 +1,6 @@
 # VieForce Patrol — Operations Runbook
 
-**Last reviewed:** 2026-05-21
+**Last reviewed:** 2026-05-24
 
 Concise playbook for production incidents and release verification. Pair with [`PRE-RELEASE-SMOKE-CHECKLIST.md`](./PRE-RELEASE-SMOKE-CHECKLIST.md).
 
@@ -83,6 +83,71 @@ Update in **both** of these (otherwise Patrol's SAP tab breaks):
    ```bash
    npm run fix:supabase-auth-url
    ```
+
+## Login broken after a Supabase auth migration
+
+**Symptoms:** TSR `verify-pin` returns 500, or `GET /rest/v1/users` returns 500, or a freshly-issued JWT is rejected as `invalid signature` by PostgREST. Frequently appears right after a custom-session experiment or a "modernize auth" patch.
+
+**Cause (this project, observed 2026-05-24 W1.4):** Supabase splits projects into two JWT signing modes:
+
+- **Symmetric (legacy)** — exposes `SUPABASE_JWT_SECRET`; you can hand-sign HS256.
+- **Asymmetric (current default)** — exposes `SUPABASE_JWKS` only; signing is done by Supabase via the JWKS endpoint. Hand-signed HS256 tokens are silently rejected.
+
+VieForce Patrol is **asymmetric**. Any auth design that tries to mint its own JWT from a shared secret will fail.
+
+**Check:**
+
+```bash
+npx supabase secrets list --project-ref yolxcmeoovztuindrglk
+```
+
+- If you see `SUPABASE_JWKS` but no `SUPABASE_JWT_SECRET` → asymmetric. Do **not** hand-sign. Use `supabase.auth.setSession({ access_token, refresh_token })` end-to-end (only works if Supabase Auth minted the token), or fall back to a legacy session pattern that does NOT pretend to be a Supabase JWT.
+
+**Rollback recipe (reference: commit `c03e4a3` — W1.4 AuthCore rollback, 2026-05-24):**
+
+1. Revert the Edge Function to the legacy `verify-pin` shape — return the user row directly, no JWT minting.
+2. Restore the `localStorage` session pattern in `js/auth.js`.
+3. Make `api/_lib/auth.js` **HYBRID**: accept `x-session-id` (legacy PIN) OR `Authorization: Bearer <jwt>` (real OAuth) and resolve via service-role lookup.
+4. If RLS is wedged from the migration, see the next playbook ("42P17 infinite recursion in policy").
+5. Hard refresh on every client (service worker bypass with `?nosw=1` once).
+
+---
+
+## 42P17 infinite recursion in policy
+
+**Symptoms:** Postgres / PostgREST returns SQLSTATE `42P17` with a message like *"infinite recursion detected in policy for relation X"*. Reads against the affected table return 500 with no rows.
+
+**Cause:** An RLS policy on table `X` references `X` itself in its `USING (...)` subquery. The classic anti-pattern is a `users` policy that says *"a user can read rows where their `district` matches one of the districts in `users`"* — Postgres has to evaluate the policy to evaluate the policy, ad infinitum. Observed 2026-05-24 on `public.users` (pre-W1 legacy policy left over after the W1.4 rollback).
+
+**Fix (the catch-all DO block used in migration `20260524110000_disable_rls_test_phase`):**
+
+```sql
+-- 1. Confirm which policies exist on the table
+SELECT polname, polrelid::regclass, polqual
+FROM pg_policy
+WHERE polrelid = 'public.users'::regclass;
+
+-- 2. Catch-all drop (idempotent)
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT polname, polrelid::regclass AS tbl
+    FROM pg_policy
+    WHERE polrelid = 'public.users'::regclass
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %s', r.polname, r.tbl);
+  END LOOP;
+END $$;
+
+-- 3. Re-enable with non-recursive policies — see migration
+--    20260524150000_w16_rls_scoping_hardening.sql + ..._users_view.sql
+--    (uses a users_safe VIEW for anon and self/admin-only on the base table).
+```
+
+**Do not** "fix" the recursion by adding `SECURITY DEFINER` shims unless you understand the privilege graph. The shipped fix is structural: anon goes through `public.users_safe` (no `pin_hash`); the base `public.users` table has its anon SELECT revoked.
+
+---
 
 ## Role mismatch / manager access
 

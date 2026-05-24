@@ -1,6 +1,6 @@
 # VieForce Patrol — Post-Waves Handoff
 
-**Date:** 2026-05-21 (end of day)
+**Date:** 2026-05-21 (end of day) — superseded for current state by the 2026-05-24 update below.
 **Branch:** `main`
 **Version:** `3.2.0-beta.1` (package.json, config.js, api/health.js)
 **Release channel:** `beta`
@@ -8,6 +8,20 @@
 **Production:** https://vieforce-patrol.vercel.app
 
 Supersedes: `docs/SESSION_HANDOFF_2026-05-21-complete.md` (pre-waves morning state).
+
+---
+
+## 2026-05-24 update — W1.3-W1.6 + polish waves shipped
+
+The post-waves §4 architecture description below ("Auth flow (W1)") is **stale**. The hand-signed HS256 JWT path described there was rolled back on 2026-05-24. Current state:
+
+- **Auth flow (current, post-W1.4 rollback — commit `c03e4a3`):** Supabase project uses **asymmetric JWT signing** (JWKS-backed); there is no `SUPABASE_JWT_SECRET` to hand-sign with. TSR PIN login goes back to legacy `verify-pin` (returns the user row directly) + `js/auth.js` `localStorage` session. Manager Google OAuth still emits a real Supabase JWT via `supabase.auth.setSession()`. `api/_lib/auth.js` is **HYBRID**: accepts `x-session-id` (legacy PIN) OR `Authorization: Bearer <jwt>` (OAuth). See `CLAUDE.md` §21 for the lesson and detection (`npx supabase secrets list`).
+- **RLS posture (W1.5 nuclear → W1.6 + W1.6b scoping):** Pre-W1 `users` policy had a self-referential subquery → Postgres `42P17` infinite recursion. W1.5 dropped every policy + disabled RLS for triage. W1.6 re-enabled RLS with explicit scoping: `users_safe` VIEW (no `pin_hash`) is the anon-readable surface; base `public.users` REVOKE SELECT from anon. `sap_accounts` + `store_sap_matches` authenticated-only. `stores` / `visits` / `farms` anon-writable (offline-queue replay). `patrol_org_*` read-open. Migrations: `20260524104500_rollback_w1_rls`, `20260524110000_disable_rls_test_phase`, `20260524150000_w16_rls_scoping_hardening`, `20260524151500_w16_rls_users_view`.
+- **Polish waves (14 items shipped today, commits `0303b3e` → `36dc04c`):** UPPERCASE drop on Tindahan rows, `#00A6CE` rebase (29 hex sweeps), sync-badge CSS shipped, `prefers-reduced-motion`, WCAG btn-reset-pin contrast fix, compact home/Tindahan headers + filter grid, KPI label overlap fix, visit-history photo thumbnails.
+- **R2 Track 1 (commits `d6be200`, `1cca873`):** `getAuthBearer()` restored, `js/export.js` scoped (no `pin_hash` in CSV), `ux-polish` idempotency, 2 last `Loading...` text leaks killed.
+- **Validation (2026-05-24):** `npm run test:unit` → 244/244 · `npm run check:locales` → 209 × 3.
+
+The rest of this document is preserved as a historical record of the 2026-05-21 6-waves push. For the current handoff posture, read this update block first, then `CLAUDE.md` §1 + §21 + `docs/AGENT_HANDOFF.md` + `PRODUCT.md` "Recent (2026-05-24)".
 
 ---
 
