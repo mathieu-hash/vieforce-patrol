@@ -244,7 +244,7 @@
   </div>
   <main class="app-content feed-container" id="dsmHomeMain">
     <div class="dsm-home-header-block">
-      <div style="font-size: 24px; font-weight: 800; font-family: 'Manrope', sans-serif; letter-spacing: -0.02em; color: var(--text-primary);" id="dsmHdrName">Loading...</div>
+      <div style="font-size: 24px; font-weight: 800; font-family: 'Manrope', sans-serif; letter-spacing: -0.02em; color: var(--text-primary);" id="dsmHdrName"><span class="skeleton skeleton-line w60" style="display:inline-block;height:18px;min-width:140px"></span></div>
       <div style="font-size: 13px; color: var(--text-secondary); margin-top: 2px; font-weight: 500;" id="dsmHdrMeta">DSM</div>
     </div>
     <div class="alert-strip" id="dsmAlerts" style="display: none;">
@@ -335,7 +335,9 @@
         <span id="assign-tsr-count">--</span>
       </div>
       <div class="assign-panel-body" id="assign-tsr-list">
-        <div style="text-align:center;color:#888;padding:24px;font-size:13px">Loading...</div>
+        <div class="skeleton-row"><div class="skeleton skeleton-circle"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w40"></div></div></div>
+        <div class="skeleton-row"><div class="skeleton skeleton-circle"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="skeleton skeleton-line w80"></div><div class="skeleton skeleton-line w40"></div></div></div>
+        <div class="skeleton-row"><div class="skeleton skeleton-circle"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w40"></div></div></div>
       </div>
       <!-- Assigned stores for selected TSR appear below -->
       <div id="assign-stores-assigned" style="border-top:2px solid #004D71;max-height:30vh;overflow-y:auto"></div>
