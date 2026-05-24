@@ -3604,6 +3604,77 @@ body:has(#page-farm-new.active)  #fab-btn {
   box-shadow: var(--shadow-sm);
 }
 
+/* === SYNC BADGE PILL (W2 contract — finalized 2026-05-24) ===
+ * Port of the 6-state pill mode from js/_util/sync-badge.js.
+ * Visual reference: docs/PATROL-TSR-ELITE-MOCKUP.html lines 274–310.
+ *
+ * Pill mode is the default render path for inline TSR/manager headers
+ * (e.g. .tsr-sync-pill on app.html:187). The badge JS strips the host
+ * class and applies "sync-badge sync-<state>" — those classes are
+ * authored here so the badge stops rendering unstyled.
+ *
+ * Six states (must match deriveBadgeView in sync-badge.js):
+ *   sync-ok         — synced, green, no motion
+ *   sync-syncing    — cyan, breathing dot (1.8s ease-in-out)
+ *   sync-pending    — amber, gentle pulse (1.6s)
+ *   sync-offline    — neutral gray
+ *   sync-offline-pending — orange, includes pending count copy
+ *   sync-quarantined — red, gentle pulse (1.4s), admin-attention
+ *
+ * Motion is killed globally by the prefers-reduced-motion block below.
+ */
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.sync-badge::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.sync-badge.sync-ok { background: rgba(0, 166, 206, 0.07); color: #006a85; }
+.sync-badge.sync-ok::before { background: var(--sync-done, #00A6CE); }
+.sync-badge.sync-syncing { background: rgba(0, 166, 206, 0.09); color: #006a85; }
+.sync-badge.sync-syncing::before {
+  background: var(--sync-done, #00A6CE);
+  animation: syncBadgeBreathe 1.8s ease-in-out infinite;
+}
+.sync-badge.sync-pending { background: rgba(247, 185, 40, 0.09); color: #8c6b00; }
+.sync-badge.sync-pending::before {
+  background: var(--sync-pending, #F7B928);
+  animation: syncBadgePulse 1.6s ease-in-out infinite;
+}
+.sync-badge.sync-offline { background: rgba(101, 103, 107, 0.08); color: #4a4d52; }
+.sync-badge.sync-offline::before { background: #8a8d91; }
+.sync-badge.sync-offline-pending { background: rgba(247, 185, 40, 0.10); color: #8a4b00; }
+.sync-badge.sync-offline-pending::before { background: #f59e0b; }
+.sync-badge.sync-quarantined { background: rgba(250, 56, 62, 0.08); color: #a51d22; }
+.sync-badge.sync-quarantined::before {
+  background: var(--sync-error, #FA383E);
+  animation: syncBadgePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes syncBadgeBreathe {
+  0%, 100% { transform: scale(0.92); }
+  50%      { transform: scale(1.08); }
+}
+@keyframes syncBadgePulse {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.3); opacity: 0.55; }
+}
+
 /* ============================================================
  * WCAG 2.3.3 — prefers-reduced-motion accessibility guard.
  * Vestibular / motion-sensitive users: collapse animations and
@@ -3619,7 +3690,6 @@ body:has(#page-farm-new.active)  #fab-btn {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
-  /* Skeleton shimmer = loading cue; keep it visible but gentle. */
   .skeleton {
     animation-duration: 3s !important;
     animation-iteration-count: infinite !important;
