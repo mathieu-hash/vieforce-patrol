@@ -33,6 +33,13 @@ body.sap-page {
   border-color: var(--blue);
 }
 
+/* A11y: visible focus ring for keyboard users — overrides the above. */
+.sap-toolbar input:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 166, 206, 0.20);
+}
+
 .sap-btn {
   min-height: 44px;
   padding: 10px 18px;

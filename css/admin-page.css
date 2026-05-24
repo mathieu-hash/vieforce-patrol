@@ -181,6 +181,12 @@ body.admin-page .admin-empty {
     outline: none;
     border-color: var(--blue);
   }
+  /* A11y: visible focus ring for keyboard users — overrides the above. */
+  .admin-actions input:focus-visible {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0, 166, 206, 0.20);
+  }
   .admin-actions .btn-action {
     flex-shrink: 0;
     padding: 10px 18px;
@@ -497,6 +503,13 @@ body.admin-page .admin-empty {
     outline: none;
     border-color: var(--blue);
   }
+  /* A11y: visible focus ring for keyboard users — overrides the above. */
+  .modal-body .form-group input:focus-visible,
+  .modal-body .form-group select:focus-visible {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0, 166, 206, 0.20);
+  }
 
   .modal-footer {
     display: flex;
@@ -530,7 +543,9 @@ body.admin-page .admin-empty {
   .modal-footer .btn-reset-pin {
     padding: 10px 20px;
     background: var(--gold);
-    color: var(--white);
+    /* WCAG AA: gold (#F1B11D) + white was 1.96:1 (fails). Dark brown reads
+       on gold and preserves the brand voice. Contrast now ~7.5:1. */
+    color: #5a3a00;
     border: none;
     border-radius: var(--radius);
     font-family: inherit;

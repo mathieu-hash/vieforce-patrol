@@ -2496,50 +2496,13 @@ body:has(#page-farm-new.active)  #fab-btn {
   align-items: center;
 }
 
-/* ── KPI tiles (Task 2) ── */
+/* ── KPI tiles — grid only; tile styling unified in elite-action.css
+ *    (covers both #page-home-dsm and .dsm-panel). Polish D-1 dedupe. ── */
 .dsm-panel .kpi-tile-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 16px;
-}
-.dsm-panel .kpi-tile {
-  background: white;
-  border-radius: 12px;
-  padding: 14px;
-  position: relative;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-}
-.dsm-panel .kpi-tile-label {
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--text-secondary);
-}
-.dsm-panel .kpi-tile-value {
-  font-size: 28px;
-  font-weight: 900;
-  margin-top: 4px;
-  color: var(--text-primary);
-  line-height: 1.1;
-}
-.dsm-panel .kpi-tile-trend {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.dsm-panel .kpi-tile-trend.up   { background: rgba(49,162,76,0.15); color: var(--status-ok); }
-.dsm-panel .kpi-tile-trend.down { background: rgba(250,56,62,0.15); color: var(--status-crit); }
-.dsm-panel .kpi-tile-trend.flat { background: rgba(101,103,107,0.12); color: var(--text-secondary); }
-.dsm-panel .kpi-tile-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: 2px;
 }
 
 /* ── Two-col layout ── */
@@ -2800,9 +2763,7 @@ body:has(#page-farm-new.active)  #fab-btn {
 @media (max-width: 720px) {
   .dsm-panel { padding: 10px 10px 80px; }
   .dsm-panel .kpi-tile-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .dsm-panel .kpi-tile { padding: 12px; }
-  .dsm-panel .kpi-tile-value { font-size: 22px; }
-  .dsm-panel .kpi-tile-trend { top: 10px; right: 10px; }
+  /* .kpi-tile / -value / -trend mobile rules unified in elite-action.css */
   .dsm-panel .dsm-two-col { grid-template-columns: 1fr; gap: 12px; }
   .dsm-panel .dsm-lb-row {
     grid-template-columns: 1.1fr 50px 50px 50px;

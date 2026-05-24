@@ -557,7 +557,11 @@
   gap: 8px;
   margin: 0 12px 12px;
 }
-#page-home-dsm .kpi-tile {
+/* Polish D-1: unified .kpi-tile treatment for DSM home + #page-team .dsm-panel.
+ * Replaces the older patrol.css .dsm-panel .kpi-tile* block which used a
+ * heavier 900-weight and no negative letter-spacing. */
+#page-home-dsm .kpi-tile,
+.dsm-panel .kpi-tile {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -566,12 +570,14 @@
   box-shadow: var(--shadow-sm);
   transition: all 0.18s;
 }
-#page-home-dsm .kpi-tile:hover {
+#page-home-dsm .kpi-tile:hover,
+.dsm-panel .kpi-tile:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   border-color: var(--border-glow);
 }
-#page-home-dsm .kpi-tile-label {
+#page-home-dsm .kpi-tile-label,
+.dsm-panel .kpi-tile-label {
   font-size: 11px;
   color: var(--text-secondary);
   font-weight: 700;
@@ -579,7 +585,8 @@
   margin-bottom: 4px;
   text-transform: uppercase;
 }
-#page-home-dsm .kpi-tile-trend {
+#page-home-dsm .kpi-tile-trend,
+.dsm-panel .kpi-tile-trend {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -591,11 +598,15 @@
   background: rgba(0, 184, 71, 0.15);
   color: var(--success);
 }
-#page-home-dsm .kpi-tile-trend.down {
+#page-home-dsm .kpi-tile-trend.down,
+.dsm-panel .kpi-tile-trend.down {
   background: rgba(224, 65, 63, 0.15);
   color: var(--danger);
 }
-#page-home-dsm .kpi-tile-value {
+.dsm-panel .kpi-tile-trend.up   { background: rgba(0, 184, 71, 0.15); color: var(--success); }
+.dsm-panel .kpi-tile-trend.flat { background: rgba(101,103,107,0.12); color: var(--text-secondary); }
+#page-home-dsm .kpi-tile-value,
+.dsm-panel .kpi-tile-value {
   font-size: 26px;
   font-weight: 800;
   font-family: 'Manrope', sans-serif;
@@ -604,11 +615,20 @@
   line-height: 1.1;
   margin-top: 4px;
 }
-#page-home-dsm .kpi-tile-sub {
+#page-home-dsm .kpi-tile-sub,
+.dsm-panel .kpi-tile-sub {
   font-size: 11px;
   color: var(--text-tertiary);
   margin-top: 2px;
   font-weight: 600;
+}
+@media (max-width: 720px) {
+  #page-home-dsm .kpi-tile,
+  .dsm-panel .kpi-tile { padding: 12px; }
+  #page-home-dsm .kpi-tile-value,
+  .dsm-panel .kpi-tile-value { font-size: 22px; }
+  #page-home-dsm .kpi-tile-trend,
+  .dsm-panel .kpi-tile-trend { top: 10px; right: 10px; }
 }
 
 /* ============= DSM TSR PERFORMANCE TABLE ============= */
