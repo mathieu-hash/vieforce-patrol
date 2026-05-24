@@ -12,7 +12,30 @@ var _visitData = {
   lat: null, lng: null
 };
 
+// R2 Track 2A (Q-P1-1): module-scoped trackers for blob URLs created via
+// URL.createObjectURL(). On a 2GB Redmi A3x ~30 retained URL handles/day
+// adds up to real GC pressure. Every assignment site below must revoke
+// the previous URL before creating a new one, and the form open/close/
+// submit paths must revoke + null these out.
+var _currentPhotoBlobUrl = null;        // preview thumbnail (line ~303)
+var _currentBubblePhotoBlobUrl = null;  // chat-bubble preview (line ~470)
+
+function _revokeVisitBlobUrls() {
+  if (_currentPhotoBlobUrl) {
+    try { URL.revokeObjectURL(_currentPhotoBlobUrl); } catch (_e) {}
+    _currentPhotoBlobUrl = null;
+  }
+  if (_currentBubblePhotoBlobUrl) {
+    try { URL.revokeObjectURL(_currentBubblePhotoBlobUrl); } catch (_e) {}
+    _currentBubblePhotoBlobUrl = null;
+  }
+}
+
 async function openVisitWizard(storeId, storeName) {
+  // R2 Track 2A (Q-P1-1): drop any blob URLs left over from a previous
+  // open of this form (e.g. user backed out without submitting).
+  _revokeVisitBlobUrls();
+
   // Reset state
   _visitData = {
     storeId: storeId, storeName: storeName || '', storePhone: '',
@@ -243,6 +266,9 @@ function selectOutcome(outcome) {
 }
 
 function visitBack() {
+  // R2 Track 2A (Q-P1-1): user is cancelling — no bubble was created so
+  // both blob URLs are safe to revoke immediately.
+  _revokeVisitBlobUrls();
   if (typeof closeVisitSheet === 'function') {
     closeVisitSheet();
   } else {
@@ -300,9 +326,15 @@ async function captureVisitPhoto() {
     var blob = await capturePhoto();
     if (blob) {
       _visitData.photo = blob;
-      var url = URL.createObjectURL(blob);
+      // R2 Track 2A (Q-P1-1): revoke the previous preview URL before
+      // assigning a new one. Retake-photo path used to leak every prior
+      // blob handle for the lifetime of the form.
+      if (_currentPhotoBlobUrl) {
+        try { URL.revokeObjectURL(_currentPhotoBlobUrl); } catch (_e) {}
+      }
+      _currentPhotoBlobUrl = URL.createObjectURL(blob);
       var img = document.getElementById('visit-photo-img');
-      if (img) img.src = url;
+      if (img) img.src = _currentPhotoBlobUrl;
       if (empty) empty.style.display = 'none';
       if (preview) preview.style.display = 'flex';
       _updateVisitSubmitState();
@@ -456,6 +488,14 @@ async function submitVisit() {
 
     // 6. Close sheet + append bubble to chat after brief delay
     setTimeout(function () {
+      // R2 Track 2A (Q-P1-1): the preview-thumbnail blob URL is no
+      // longer referenced (sheet is closing). Revoke now; the chat-
+      // bubble blob URL stays alive until the next form open since
+      // it's still attached to the appended <img>.
+      if (_currentPhotoBlobUrl) {
+        try { URL.revokeObjectURL(_currentPhotoBlobUrl); } catch (_e) {}
+        _currentPhotoBlobUrl = null;
+      }
       if (typeof closeVisitSheet === 'function') {
         closeVisitSheet();
       }
@@ -467,7 +507,21 @@ async function submitVisit() {
         newBubble.style.animation = 'msgPop 0.3s cubic-bezier(0.34,1.56,0.64,1)';
         var outcomeEmoji = _visitData.order_taken ? '\ud83d\uded2' : '\ud83d\udcac';
         var amountText = _visitData.order_taken ? ' \u00b7 \u20b1' + (_visitData.order_amount || 0).toLocaleString() : '';
-        var previewPhotoUrl = _visitData.photo_url || (_visitData.photo ? URL.createObjectURL(_visitData.photo) : '');
+        // R2 Track 2A (Q-P1-1): if no remote photo_url yet, mint a blob URL
+        // for the chat-bubble thumbnail and track it so we can revoke it
+        // on next form open / cancel. Browsers reclaim blob URLs when
+        // their owning <img> is detached only after GC — explicit revoke
+        // keeps memory pressure flat on 2GB Redmi A3x devices.
+        var previewPhotoUrl = '';
+        if (_visitData.photo_url) {
+          previewPhotoUrl = _visitData.photo_url;
+        } else if (_visitData.photo) {
+          if (_currentBubblePhotoBlobUrl) {
+            try { URL.revokeObjectURL(_currentBubblePhotoBlobUrl); } catch (_e) {}
+          }
+          _currentBubblePhotoBlobUrl = URL.createObjectURL(_visitData.photo);
+          previewPhotoUrl = _currentBubblePhotoBlobUrl;
+        }
         var timeNow = new Date().toLocaleTimeString('en-PH', {hour:'2-digit',minute:'2-digit'});
         newBubble.innerHTML = '<div><div class="bubble out gradient">' +
           outcomeEmoji + ' ' + (T.ordered || 'Na-log') + amountText +

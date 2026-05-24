@@ -77,10 +77,61 @@ offlineDb.version(4).stores({
   cachedDsmMetrics:     'id, updated_at'
 });
 
+// R2 Track 2A (Q-P1-11): detect QuotaExceededError raised by IDB when
+// the device storage budget is full (50 photos queued offline + 2GB
+// Redmi A3x = real risk). Dexie surfaces the underlying DOMException;
+// some browsers also throw an Error whose .name is "QuotaExceededError"
+// or whose message contains the phrase. Match both shapes defensively.
+function _isQuotaExceededError(err) {
+  if (!err) return false;
+  var name = err.name || (err.inner && err.inner.name) || '';
+  if (name === 'QuotaExceededError') return true;
+  // Legacy Firefox / Safari shapes
+  if (name === 'NS_ERROR_DOM_QUOTA_REACHED') return true;
+  // Dexie wraps with its own name but keeps the inner DOMException
+  if (err.inner && err.inner.name === 'QuotaExceededError') return true;
+  var msg = String((err && err.message) || '').toLowerCase();
+  return /quota/.test(msg) && /exceed|full|reached/.test(msg);
+}
+
+// R2 Track 2A (Q-P1-11): user-facing message when IDB is full. Surfaced
+// by every queue* helper below as the thrown error's .message so that
+// caller-side UI (visit-wizard's errorEl, store/farm wizards, etc.)
+// shows a specific recoverable instruction instead of a generic
+// "submit failed".
+//
+// TODO(locale): add T.errorStorageFull to locales/{tl,ceb,en}.json.
+// Proposed copy:
+//   tl:  "Wala nang space sa phone — i-sync muna para makapag-log ulit"
+//   ceb: "Wala nay space sa phone — i-sync una para makapag-log usab"
+//   en:  "Phone storage full — sync first before logging more"
+function _storageFullMessage() {
+  if (typeof T !== 'undefined' && T && T.errorStorageFull) return T.errorStorageFull;
+  return 'Wala nang space sa phone — i-sync muna para makapag-log ulit';
+}
+
+// R2 Track 2A (Q-P1-11): wraps a Dexie write so a QuotaExceededError
+// surfaces as a recoverable, trilingual error message. We do NOT
+// change the queue write itself — only the error reported back to the
+// caller. The underlying record was never persisted, which is correct.
+async function _quotaGuardedAdd(table, record) {
+  try {
+    return await table.add(record);
+  } catch (e) {
+    if (_isQuotaExceededError(e)) {
+      var quotaErr = new Error(_storageFullMessage());
+      quotaErr.name = 'QuotaExceededError';
+      quotaErr.cause = e;
+      throw quotaErr;
+    }
+    throw e;
+  }
+}
+
 async function queueVisit(visitData) {
   visitData.offline_id = 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   visitData.created_at = new Date().toISOString();
-  await _ensureOfflineDb().pendingVisits.add(visitData);
+  await _quotaGuardedAdd(_ensureOfflineDb().pendingVisits, visitData);
   // Update sync UI immediately after queue write
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
@@ -89,7 +140,7 @@ async function queueVisit(visitData) {
 async function queueStore(storeData) {
   storeData.offline_id = 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   storeData.created_at = new Date().toISOString();
-  await _ensureOfflineDb().pendingStores.add(storeData);
+  await _quotaGuardedAdd(_ensureOfflineDb().pendingStores, storeData);
   // Update sync UI immediately after queue write
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
@@ -98,7 +149,7 @@ async function queueStore(storeData) {
 async function queueFarm(farmData) {
   farmData.offline_id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   farmData.created_at = new Date().toISOString();
-  await _ensureOfflineDb().pendingFarms.add(farmData);
+  await _quotaGuardedAdd(_ensureOfflineDb().pendingFarms, farmData);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
 }
@@ -116,7 +167,7 @@ async function queueStoreUpdate(payload) {
   // payload: { store_id, patch }
   payload.offline_id = 'su_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   payload.created_at = new Date().toISOString();
-  await _ensureOfflineDb().pendingStoreUpdates.add(payload);
+  await _quotaGuardedAdd(_ensureOfflineDb().pendingStoreUpdates, payload);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
   if (typeof navigator !== 'undefined' && navigator.onLine) {
@@ -129,7 +180,7 @@ async function queueAssignment(payload) {
   // tsr_id === null is an unassign.
   payload.offline_id = 'a_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   payload.created_at = new Date().toISOString();
-  await _ensureOfflineDb().pendingAssignments.add(payload);
+  await _quotaGuardedAdd(_ensureOfflineDb().pendingAssignments, payload);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
   if (typeof navigator !== 'undefined' && navigator.onLine) {
@@ -141,7 +192,7 @@ async function queueVisitTouch(payload) {
   // payload: { store_id, visited_at }
   payload.offline_id = 'vt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   payload.created_at = new Date().toISOString();
-  await _ensureOfflineDb().pendingVisitTouches.add(payload);
+  await _quotaGuardedAdd(_ensureOfflineDb().pendingVisitTouches, payload);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
   if (typeof navigator !== 'undefined' && navigator.onLine) {
@@ -153,7 +204,7 @@ async function queueProfileEdit(payload) {
   // payload: { user_id, patch }
   payload.offline_id = 'pe_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   payload.created_at = new Date().toISOString();
-  await _ensureOfflineDb().pendingProfileEdits.add(payload);
+  await _quotaGuardedAdd(_ensureOfflineDb().pendingProfileEdits, payload);
   if (typeof enhancedSyncStatus === 'function') enhancedSyncStatus();
   if (typeof patrolUpdatePilotCard === 'function') patrolUpdatePilotCard();
   if (typeof navigator !== 'undefined' && navigator.onLine) {
@@ -984,6 +1035,31 @@ if (typeof window !== 'undefined' && typeof setTimeout === 'function') {
       }).catch(function (e) { /* never let cleanup break the app */ });
     } catch (e) {}
   }, 30000); // 30s after load — well after the initial sync attempt.
+}
+
+// R2 Track 2A (Q-P1-11): boot-time check for "approaching full" storage.
+// navigator.storage.estimate() is well-supported on modern Chrome/WebView
+// (the Redmi A3x target); if usage/quota exceeds 85% we log a console
+// warning so we can correlate quota errors with device state before they
+// actually fire. One-shot, deferred so it never blocks first paint.
+if (typeof window !== 'undefined' && typeof setTimeout === 'function') {
+  setTimeout(function () {
+    try {
+      if (navigator && navigator.storage && typeof navigator.storage.estimate === 'function') {
+        navigator.storage.estimate().then(function (est) {
+          if (!est || !est.quota || !est.usage) return;
+          var ratio = est.usage / est.quota;
+          if (ratio > 0.85) {
+            console.warn('[offline] storage approaching full', {
+              usage_mb: Math.round(est.usage / (1024 * 1024)),
+              quota_mb: Math.round(est.quota / (1024 * 1024)),
+              ratio: Math.round(ratio * 100) / 100
+            });
+          }
+        }).catch(function () { /* permission denied / unsupported — silent */ });
+      }
+    } catch (e) { /* never let the probe break the app */ }
+  }, 5000); // 5s after load — well before user can queue much.
 }
 
 // Convert base64 data URL back to Blob for upload during sync
