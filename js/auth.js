@@ -437,6 +437,11 @@ async function maybeHandleGoogleLoginOnLoad() {
   var email = normalizeEmail(authSession.user.email);
   if (!email || !email.endsWith('@' + GOOGLE_ALLOWED_DOMAIN)) {
     try { await supabaseClient.auth.signOut(); } catch (e) {}
+    // TODO(locale-parity-sweep): add `errorGoogleDomain` key to labels-v2.js
+    // + locales/*.json. Proposed copy (CLAUDE.md §17 — TL first / BIS / EN):
+    //   TL  → "Tanging @vienovo.ph Google account ang pwede sa manager login."
+    //   BIS → "Mga @vienovo.ph Google account ra ang pwede sa manager login."
+    //   EN  → "Only @vienovo.ph Google accounts are allowed for manager login."
     return {
       handled: true,
       success: false,
@@ -448,6 +453,11 @@ async function maybeHandleGoogleLoginOnLoad() {
   try {
     manager = await getManagerUserByEmail(email);
   } catch (e) {
+    // TODO(locale-parity-sweep): add `errorManagerValidateFailed` key to
+    // labels-v2.js + locales/*.json. Proposed copy:
+    //   TL  → "Hindi ma-validate ang Google manager account. Subukan ulit."
+    //   BIS → "Dili ma-validate ang Google manager account. Sulayi pag-usab."
+    //   EN  → "Unable to validate Google manager account."
     return {
       handled: true,
       success: false,
@@ -457,6 +467,11 @@ async function maybeHandleGoogleLoginOnLoad() {
 
   if (!manager) {
     try { await supabaseClient.auth.signOut(); } catch (e) {}
+    // TODO(locale-parity-sweep): add `errorManagerNotFound` key to labels-v2.js
+    // + locales/*.json. Proposed copy:
+    //   TL  → "Hindi nakita ang Google account sa Patrol managers. Tawagan ang admin para imap ang email mo."
+    //   BIS → "Wala makita ang Google account sa Patrol managers. Sangpita ang admin aron imapa ang imong email."
+    //   EN  → "Google account not found in Patrol managers. Contact admin to map your email."
     return {
       handled: true,
       success: false,
@@ -466,6 +481,11 @@ async function maybeHandleGoogleLoginOnLoad() {
 
   if (!isManagerRole(manager.role)) {
     try { await supabaseClient.auth.signOut(); } catch (e) {}
+    // TODO(locale-parity-sweep): add `errorManagerOnly` key to labels-v2.js
+    // + locales/*.json. Proposed copy:
+    //   TL  → "Para sa managers lang ang Google login. Ang TSR ay dapat mag-sign in gamit ang phone + PIN."
+    //   BIS → "Para sa managers ra ang Google login. Ang TSR kinahanglan mag-sign in gamit ang phone + PIN."
+    //   EN  → "This Google login is for managers only. TSR must sign in with phone + PIN."
     return {
       handled: true,
       success: false,

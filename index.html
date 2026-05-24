@@ -158,15 +158,32 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   </div>
 
   <div class="logo" style="background:none;width:auto;height:auto;font-size:0;box-shadow:none;margin-bottom:16px"><img src="icons/patrol-logo.png?v=2" style="width:280px;height:280px;object-fit:contain" alt="VieForce Elite Patrol"></div>
-  <h1>VieForce Patrol</h1>
-  <p>Vienovo Philippines Inc.</p>
+  <!-- "VieForce Patrol" is a brand proper noun and stays invariant across locales.
+       TODO(locale-parity-sweep): add a localized `brandSubtitle` key in labels-v2.js
+       + locales/{tl,ceb,en}.json. Proposed copy (company name itself is invariant,
+       but the key keeps the door open for a localized tagline later):
+         TL  → "Vienovo Philippines Inc."
+         BIS → "Vienovo Philippines Inc."
+         EN  → "Vienovo Philippines Inc." -->
+  <h1 id="brand-title">VieForce Patrol</h1>
+  <p id="brand-subtitle">Vienovo Philippines Inc.</p>
 
   <div class="login-box">
     <p class="login-option-title" id="lbl-tsr-section">TSR Login (Phone + PIN)</p>
     <label id="lbl-phone">Phone Number</label>
+    <!-- TODO(locale-parity-sweep): add `phonePlaceholder` key to labels-v2.js +
+         locales/*.json (read in applyLoginLang() via L.phonePlaceholder).
+         Proposed copy (digits are universal; the format hint stays the same):
+           TL/BIS/EN → "09XX XXX XXXX" -->
     <input type="tel" id="login-phone" placeholder="09XX XXX XXXX">
 
     <label id="lbl-pin">PIN Code</label>
+    <!-- TODO(locale-parity-sweep): add `pinPlaceholder` key to labels-v2.js +
+         locales/*.json (read in applyLoginLang() via L.pinPlaceholder).
+         Proposed copy:
+           TL  → "Ilagay ang PIN"
+           BIS → "Isulod ang PIN"
+           EN  → "Enter PIN" -->
     <input type="password" id="login-pin" maxlength="6" placeholder="Enter PIN">
 
     <button class="login-btn" id="login-btn">Mag-sign in</button>
@@ -179,7 +196,10 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
       <a href="https://vieforce-patrol.vercel.app/index.html#patrol_google=1" style="color:#7dd3fc;font-weight:700">vieforce-patrol.vercel.app</a>.
     </p>
 
-    <div class="error-msg" id="login-error"></div>
+    <!-- role="alert" + aria-live="assertive": screen readers announce login
+         errors immediately, e.g. "Mali ang numero o PIN" / Google domain rejection.
+         POLISH_AUDIT_E Login P2 (auth.js:438-473). -->
+    <div class="error-msg" id="login-error" role="alert" aria-live="assertive"></div>
   </div>
 
   <div class="login-footer">v1.0 — Vienovo Philippines Inc.</div>
