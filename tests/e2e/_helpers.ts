@@ -673,6 +673,15 @@ export async function loginAsDsm(page: Page) {
   });
   await page.goto('/app.html');
   await page.waitForSelector('#page-home-dsm.active', { timeout: 25000 });
+  // R8 T2: js/home-dsm.js is lazy-loaded once #page-home-dsm activates. Wait
+  // for the global so test specs that synchronously call renderDsmHome() /
+  // renderDsmSkeletons() inside page.evaluate() see them.
+  await page.waitForFunction(
+    () => typeof (window as any).renderDsmHome === 'function' &&
+          typeof (window as any).renderDsmSkeletons === 'function',
+    null,
+    { timeout: 25000 }
+  );
   await prepareAppPage(page);
   await stubPatrolApis(page);
   await stubAssignApis(page);
@@ -703,6 +712,12 @@ export async function loginAsRsm(page: Page) {
   });
   await page.goto('/app.html');
   await page.waitForSelector('#page-rsm-home.active', { timeout: 25000 });
+  // R8 T2: js/rsm.js is lazy-loaded — wait for initRsmHome so specs can use it.
+  await page.waitForFunction(
+    () => typeof (window as any).initRsmHome === 'function',
+    null,
+    { timeout: 25000 }
+  );
   await prepareAppPage(page);
   await stubPatrolApis(page);
 }
