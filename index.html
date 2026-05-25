@@ -150,7 +150,12 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
 </head>
 <body>
 
-<div class="login-page">
+<!-- Skip-to-content link — WCAG 2.4.1, Round 8 a11y sweep (2026-05-25).
+     Visually hidden until focused; jumps keyboard users past the language
+     pills to the login form. Styles in css/tokens.css. -->
+<a href="#login-main" class="skip-link" id="patrol-skip-link">Skip to content</a>
+
+<main id="login-main" class="login-page">
   <div class="login-lang-bar">
     <button onclick="switchLoginLang('TL')" id="pill-TL" class="lang-pill login-lang-btn" data-lang="TL">TL</button>
     <button onclick="switchLoginLang('BIS')" id="pill-BIS" class="lang-pill login-lang-btn" data-lang="BIS">BIS</button>
@@ -170,14 +175,14 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
 
   <div class="login-box">
     <p class="login-option-title" id="lbl-tsr-section">TSR Login (Phone + PIN)</p>
-    <label id="lbl-phone">Phone Number</label>
+    <label id="lbl-phone" for="login-phone">Phone Number</label>
     <!-- TODO(locale-parity-sweep): add `phonePlaceholder` key to labels-v2.js +
          locales/*.json (read in applyLoginLang() via L.phonePlaceholder).
          Proposed copy (digits are universal; the format hint stays the same):
            TL/BIS/EN → "09XX XXX XXXX" -->
     <input type="tel" id="login-phone" placeholder="09XX XXX XXXX">
 
-    <label id="lbl-pin">PIN Code</label>
+    <label id="lbl-pin" for="login-pin">PIN Code</label>
     <!-- TODO(locale-parity-sweep): add `pinPlaceholder` key to labels-v2.js +
          locales/*.json (read in applyLoginLang() via L.pinPlaceholder).
          Proposed copy:
@@ -203,7 +208,7 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   </div>
 
   <div class="login-footer">v1.0 — Vienovo Philippines Inc.</div>
-</div>
+</main>
 
 <script src="js/_util/escape.js?v=1"></script>
 <script src="js/labels-v2.js?v=11"></script>
@@ -219,6 +224,13 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
   function applyLoginLang() {
     var lang = (localStorage.getItem('patrol_lang') || 'TL').toUpperCase();
     var L = LABELS[lang] || LABELS['TL'];
+    // Round 8 a11y sweep (2026-05-25): mirror the active legacy lang into
+    // <html lang> so screen readers announce the login form in the right
+    // language. Maps TL→tl, BIS→ceb, EN→en (BCP47).
+    try {
+      var bcp = lang === 'TL' ? 'tl' : (lang === 'BIS' ? 'ceb' : 'en');
+      document.documentElement.setAttribute('lang', bcp);
+    } catch (eLang) {}
     document.getElementById('lbl-phone').textContent = L.phoneLabel;
     document.getElementById('lbl-pin').textContent = L.pinLabel;
     document.getElementById('login-btn').textContent = L.signIn;

@@ -74,6 +74,13 @@
 </head>
 <body>
 
+<!-- Skip-to-content link — WCAG 2.4.1, Round 8 a11y sweep (2026-05-25).
+     SPA-aware: the click handler focuses the <main> of the currently active
+     .page so a keyboard user skips the top bar of whichever screen is open.
+     Visually hidden until focused (styles in css/tokens.css). -->
+<a href="#main-content" class="skip-link" id="patrol-skip-link"
+   onclick="(function(e){try{var p=document.querySelector('.page.active');var m=p&&(p.querySelector('main')||p.querySelector('.app-content'));if(m){e.preventDefault();if(!m.hasAttribute('tabindex'))m.setAttribute('tabindex','-1');m.focus({preventScroll:false});}}catch(err){}})(event)">Skip to content</a>
+
 <!-- Boot debug: add ?bootlog=1 once → stores patrol_bootlog=1. Any uncaught error opens this panel. -->
 <div id="patrol-boot-debug" aria-live="polite" lang="en"
   style="display:none;position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;z-index:2147483647;background:#0b0b0b;color:#e8e8e8;font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:10px 12px 48px;padding-bottom:max(48px, env(safe-area-inset-bottom));border-top:2px solid #00A6CE;white-space:pre-wrap;word-break:break-word;box-shadow:0 -4px 24px rgba(0,0,0,.45)"></div>
@@ -327,7 +334,7 @@
 
   <div class="assign-stats-bar" id="assign-stats" data-i18n="assign.loading">Naglo-load...</div>
 
-  <div class="assign-layout">
+  <main class="assign-layout">
     <!-- Left: TSR List -->
     <div class="assign-panel">
       <div class="assign-panel-header">
@@ -354,7 +361,7 @@
         <div style="text-align:center;color:#888;padding:24px;font-size:13px" data-i18n="assign.loading">Naglo-load...</div>
       </div>
     </div>
-  </div>
+  </main>
 
   <button class="assign-bulk-btn" id="assign-bulk-btn" onclick="bulkAssignAll()"></button>
 </div>
@@ -406,7 +413,7 @@
 
   <div class="stories" id="story-circles-row" style="display:none!important;flex-shrink:0" aria-hidden="true"></div>
 
-  <div class="tindahan-scroll stores-list-scroll" id="tindahan-scroll-host" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
+  <main class="tindahan-scroll stores-list-scroll" id="tindahan-scroll-host" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
     <div class="tindahan-section-label" id="tindahanSectionPriority"></div>
     <div id="tindahanPriorityList"></div>
     <div class="tindahan-section-label" id="tindahanSectionAll"></div>
@@ -415,7 +422,7 @@
       <div style="font-size:36px;margin-bottom:8px;opacity:0.6;">🎯</div>
       <div style="font-weight:600;" id="stores-empty-hint-text" data-i18n="tindahan.empty_cta_hdr">I-tap ang ✏️ sa taas para mag-register ng bagong POS</div>
     </div>
-  </div>
+  </main>
 
   <!-- Hidden hooks for nav badge counts (stores.js _updateFilterCounts) -->
   <span id="cntAll" style="display:none">0</span>
@@ -451,7 +458,7 @@
   </div>
 
   <!-- Full-bleed map container -->
-  <div id="map-container"></div>
+  <main id="map-container" aria-label="Territory map"></main>
 
   <!-- Floating glass legend -->
   <div class="map-legend" id="map-legend">
@@ -517,10 +524,10 @@
     </button>
   </div>
 
-  <div class="tindahan-scroll vf-visits-scroll stores-list-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
+  <main class="tindahan-scroll vf-visits-scroll stores-list-scroll" style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg)">
     <div class="tindahan-section-label vf-visits-section-label" id="visits-section-label">RECENT</div>
     <div id="visit-list" class="vf-visits-list"></div>
-  </div>
+  </main>
 </div>
 
 <!-- ========================================= -->
@@ -532,7 +539,7 @@
     <div style="flex:1;font-weight:800;font-size:16px;font-family:'Manrope',sans-serif;letter-spacing:-0.02em;" id="profileHeaderName">Patrol</div>
     <button type="button" class="icon-btn" onclick="patrolPhase4MoreStub()" aria-label="More">⋯</button>
   </div>
-  <div class="app-content" style="padding:0;">
+  <main class="app-content" style="padding:0;">
     <div class="profile-cover" id="profileCover"></div>
     <div class="phase4-profile-header-block">
       <div class="profile-header">
@@ -663,7 +670,7 @@
       <a href="admin.html" id="admin-link" class="btn-primary" style="margin:16px 12px;display:none;text-align:center;text-decoration:none" data-t="adminPanel">Admin Panel</a>
       <button class="btn-secondary" style="margin:16px 12px;color:var(--sync-error);border-color:var(--sync-error)" id="btn-logout" data-t="signOut">Mag-sign out</button>
     </div>
-  </div>
+  </main>
 </div>
 
 <!-- ========================================= -->
@@ -813,9 +820,9 @@
       </div>
     </div>
   </div>
-  <div class="sales-page-inner sales-v2-inner">
+  <main class="sales-page-inner sales-v2-inner">
     <div id="sales-sap-summary" class="sales-sap-summary-host" data-period="MTD" data-unit="BAGS"></div>
-  </div>
+  </main>
 </div>
 
 <div class="page" id="pg-region">
@@ -1126,7 +1133,11 @@
 <!-- ========================================= -->
 <!-- BOTTOM NAVIGATION                         -->
 <!-- ========================================= -->
-<div class="bottom-nav" id="bottom-nav">
+<!-- <nav> for AT users — Round 8 a11y sweep (2026-05-25). Kept .bottom-nav
+     class + #bottom-nav id so all existing CSS selectors and JS hooks (see
+     js/nav-role-device.js + querySelectorAll('#bottom-nav .nav-item') above)
+     continue to work unchanged. -->
+<nav class="bottom-nav" id="bottom-nav" aria-label="Primary">
   <button class="nav-item active" data-page="page-home" data-i18n="nav.home" style="min-height:64px">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
     Bahay
@@ -1143,7 +1154,7 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></svg>
     Higit pa
   </button>
-</div>
+</nav>
 
 <!-- ========================================= -->
 <!-- SCRIPTS                                   -->

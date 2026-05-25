@@ -5,10 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VieForce Patrol — Admin (Beta)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css?v=1">
 <link rel="stylesheet" href="css/patrol.css">
 <link rel="stylesheet" href="css/admin-page.css?v=5">
 </head>
 <body class="admin-page">
+
+<!-- Skip-to-content link — WCAG 2.4.1, Round 8 a11y sweep (2026-05-25).
+     Visually hidden until focused. Styles in css/tokens.css. -->
+<a href="#admin-main" class="skip-link" id="patrol-skip-link">Skip to content</a>
 
 <!-- ===== TOP BAR ===== -->
 <div class="top-bar">
@@ -20,7 +25,7 @@
   <button class="action-btn" onclick="logout()">Logout</button>
 </div>
 
-<div class="admin-body">
+<main class="admin-body" id="admin-main">
 
   <nav class="admin-subnav" aria-label="Admin sections">
     <a href="admin.html" class="admin-subnav-link" aria-current="page">Sales Admin</a>
@@ -66,7 +71,7 @@
 
   <!-- ===== ACTION BAR ===== -->
   <div class="admin-actions">
-    <input type="text" id="admin-search" placeholder="Search name, phone, region, district, territory…">
+    <input type="text" id="admin-search" placeholder="Search name, phone, region, district, territory…" aria-label="Search users">
     <button class="btn-action btn-add" onclick="openAddUserModal()">+ Add User</button>
     <button class="btn-action btn-export" onclick="exportUsersCSV()">Export CSV</button>
   </div>
@@ -77,7 +82,7 @@
     <!-- Populated by js/admin.js -->
   </div>
 
-</div>
+</main>
 
 <!-- ===== ADD USER MODAL ===== -->
 <div class="modal-overlay" id="modal-add-user" role="dialog" aria-modal="true" aria-labelledby="modal-add-title" onclick="closeModalOnOverlay(event, 'modal-add-user')">
@@ -88,11 +93,11 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label>Name</label>
+        <label for="add-name">Name</label>
         <input type="text" id="add-name" required placeholder="Full name">
       </div>
       <div class="form-group">
-        <label>Phone</label>
+        <label for="add-phone">Phone</label>
         <input type="tel" id="add-phone" required placeholder="09XXXXXXXXX">
       </div>
       <div class="form-group">
@@ -101,12 +106,12 @@
         <small class="form-hint" id="add-email-hint">Required for DSM, RSM, Exec, Sales Admin, and CEO. Must match their Google account (@vienovo.ph).</small>
       </div>
       <div class="form-group">
-        <label>PIN</label>
+        <label for="add-pin">PIN</label>
         <input type="password" id="add-pin" required maxlength="6" placeholder="4-6 digit PIN" autocomplete="new-password">
         <small class="form-hint">PIN is set once here and never displayed afterward. Use <strong>Edit → Reset PIN</strong> to change it later.</small>
       </div>
       <div class="form-group">
-        <label>Role</label>
+        <label for="add-role">Role</label>
         <select id="add-role" aria-describedby="add-org-hint">
           <option value="tsr">TSR</option>
           <option value="champion">Champion</option>
@@ -159,11 +164,11 @@
     <div class="modal-body">
       <input type="hidden" id="edit-user-id">
       <div class="form-group">
-        <label>Name</label>
+        <label for="edit-name">Name</label>
         <input type="text" id="edit-name" required placeholder="Full name">
       </div>
       <div class="form-group">
-        <label>Phone</label>
+        <label for="edit-phone">Phone</label>
         <input type="tel" id="edit-phone" required placeholder="09XXXXXXXXX">
       </div>
       <div class="form-group">
@@ -172,12 +177,12 @@
         <small class="form-hint" id="edit-email-hint">Required for DSM, RSM, Exec, Sales Admin, and CEO. Must match their Google account (@vienovo.ph).</small>
       </div>
       <div class="form-group">
-        <label>Login PIN</label>
+        <label for="edit-pin-display">Login PIN</label>
         <div class="admin-pin-readonly admin-pin-readonly--mask" id="edit-pin-display" aria-label="PIN is hidden">PIN: &bull;&bull;&bull;&bull;</div>
         <small class="form-hint">PINs are never shown here. Tap <strong data-i18n="admin.resetPin.button">Reset PIN</strong> below to set a new one.</small>
       </div>
       <div class="form-group">
-        <label>Role</label>
+        <label for="edit-role">Role</label>
         <select id="edit-role" aria-describedby="edit-org-hint">
           <option value="tsr">TSR</option>
           <option value="champion">Champion</option>
@@ -213,7 +218,7 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Status</label>
+        <label for="edit-status">Status</label>
         <select id="edit-status">
           <option value="true">Active</option>
           <option value="false">Inactive</option>

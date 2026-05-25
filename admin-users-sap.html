@@ -5,11 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VieForce Patrol — User admin / SAP (Beta)</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css?v=1">
 <link rel="stylesheet" href="css/patrol.css">
 <link rel="stylesheet" href="css/admin-page.css?v=4">
 <link rel="stylesheet" href="css/admin-sap.css?v=1">
 </head>
 <body class="admin-page sap-page">
+
+<!-- Skip-to-content link — WCAG 2.4.1, Round 8 a11y sweep (2026-05-25).
+     Visually hidden until focused. Styles in css/tokens.css. -->
+<a href="#sap-main" class="skip-link" id="patrol-skip-link">Skip to content</a>
 
 <div class="top-bar">
   <a href="admin.html" class="back-btn" style="text-decoration:none;">&#8592;</a>
@@ -21,7 +26,7 @@
   <button class="action-btn" onclick="logout()">Logout</button>
 </div>
 
-<div class="sap-body">
+<main class="sap-body" id="sap-main">
   <nav class="admin-subnav" aria-label="Admin sections">
     <a href="admin.html" class="admin-subnav-link">Sales Admin</a>
     <a href="admin-users-sap.html" class="admin-subnav-link" aria-current="page">SAP roster</a>
@@ -57,7 +62,7 @@
   </div>
 
   <div class="sap-toolbar">
-    <input type="search" id="sap-filter" placeholder="Filter by name, code, phone, role, memo…" autocomplete="off">
+    <input type="search" id="sap-filter" placeholder="Filter by name, code, phone, role, memo…" autocomplete="off" aria-label="Filter SAP roster">
     <button type="button" class="sap-btn secondary" id="sap-export">Export CSV</button>
   </div>
 
@@ -98,7 +103,7 @@
   </div>
 
   <div id="sap-cards" class="sap-cards hidden" aria-label="SAP roster cards"></div>
-</div>
+</main>
 
 <script src="js/_util/escape.js?v=1"></script>
 <script src="config.js"></script>
