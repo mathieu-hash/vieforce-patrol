@@ -541,14 +541,15 @@ function requireAuth() {
  * Returns the Supabase Auth Bearer token for API requests when a manager
  * is signed in via Google OAuth. TSR PIN sessions have no Bearer token
  * (api/_lib/auth.js falls back to x-session-id for them). Returns null
- * synchronously; callers that need the token MUST handle null.
+ * when no manager session exists; callers MUST handle null.
  *
- * Note: this is the synchronous best-effort shape — the actual fresh
- * token lives in supabaseClient.auth.getSession() which is async. For
- * callers that need a guaranteed-fresh token, they should call
- * supabaseClient.auth.getSession() directly.
+ * Always returns a Promise — callers can safely `await` or `.then()`.
+ * Tries the synchronous supabase-js cache first (`auth._currentSession`)
+ * and falls back to async `auth.getSession()` for cases where the cache
+ * has not been populated yet (e.g. just-exchanged PKCE code, or e2e
+ * stubs that override getSession but not the internal cache field).
  */
-function getAuthBearer() {
+async function getAuthBearer() {
   try {
     if (!window.supabaseClient || !supabaseClient.auth) return null;
     // supabase-js v2 caches the current session synchronously on the client
@@ -557,12 +558,50 @@ function getAuthBearer() {
       ? supabaseClient.auth._currentSession
       : null;
     if (s && s.access_token) return s.access_token;
+    // Fallback: ask Supabase Auth directly. This is what the test stub in
+    // tests/e2e/21-oauth-flow.spec.ts overrides, and what supabase-js will
+    // hit when the internal cache has not been populated yet.
+    if (typeof supabaseClient.auth.getSession === 'function') {
+      var r = await supabaseClient.auth.getSession();
+      var sess = r && r.data && r.data.session;
+      if (sess && sess.access_token) return sess.access_token;
+    }
     return null;
   } catch (_e) {
     return null;
   }
 }
 window.getAuthBearer = getAuthBearer;
+
+/**
+ * W1-AuthCore: returns the canonical Patrol-API headers for the current session.
+ *
+ * Manager (Google OAuth) sessions → { Authorization: 'Bearer <jwt>' } only.
+ * TSR (PIN) sessions               → { 'x-session-id': '<user.id>' } only.
+ *
+ * Async because the OAuth bearer must come from supabaseClient.auth.getSession()
+ * (the live source of truth) — getAuthBearer()'s synchronous cache misses when
+ * the supabase-js client just exchanged a PKCE code and has not yet populated
+ * its internal _currentSession (or when an e2e stub overrides getSession but
+ * not the cache, as in tests/e2e/21-oauth-flow.spec.ts).
+ */
+async function authHeaders() {
+  var headers = { 'Content-Type': 'application/json' };
+  try {
+    if (window.supabaseClient && supabaseClient.auth && typeof supabaseClient.auth.getSession === 'function') {
+      var r = await supabaseClient.auth.getSession();
+      var sess = r && r.data && r.data.session;
+      if (sess && sess.access_token) {
+        headers['Authorization'] = 'Bearer ' + sess.access_token;
+        return headers;
+      }
+    }
+  } catch (_e) { /* fall through to PIN session */ }
+  var pin = getSession();
+  if (pin && pin.id) headers['x-session-id'] = pin.id;
+  return headers;
+}
+window.authHeaders = authHeaders;
 
 /**
  * Clear Patrol + Supabase sessions, then go to login.
