@@ -501,7 +501,14 @@ async function openTsrScorecard(tsrId) {
 
 async function renderTsrScorecardDetail(tsrId) {
   var contentEl = document.getElementById('tsc-content');
-  if (contentEl) contentEl.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-secondary)">' + (T.loading || 'Loading...') + '</div>';
+  if (contentEl) {
+    // CLAUDE.md Rule 7: no spinners/Loading text for TSRs — use skeleton rows.
+    if (typeof PatrolSkeleton !== 'undefined' && PatrolSkeleton.renderSkeletonRows) {
+      PatrolSkeleton.renderSkeletonRows(contentEl, 4);
+    } else {
+      contentEl.innerHTML = '<div class="skeleton-row"><div class="skeleton skeleton-circle"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div class="skeleton skeleton-line w60"></div><div class="skeleton skeleton-line w80"></div></div></div>';
+    }
+  }
 
   var tsrRes = await supabaseClient
     .from('users')

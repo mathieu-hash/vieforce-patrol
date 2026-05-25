@@ -43,14 +43,14 @@
   --brand-gold: #FFC72C;
   --brand-gold-2: #FA9E1B;
 
-  --accent: #2D7FF9;
-  --accent-2: #1E5FCB;
-  --accent-glow: rgba(45, 127, 249, 0.35);
+  --accent: #00A6CE;
+  --accent-2: #004D71;
+  --accent-glow: rgba(0, 166, 206, 0.35);
   --success: #00B847;
   --warning: #F7B928;
   --danger: #E0413F;
 
-  --like: #2D7FF9;
+  --like: #00A6CE;
   --love: #F33E58;
   --fire: #FA6E32;
 
@@ -97,14 +97,14 @@
   --brand-gold: #FFC72C;
   --brand-gold-2: #FA9E1B;
 
-  --accent: #4595FF;
-  --accent-2: #2D7FF9;
-  --accent-glow: rgba(45, 127, 249, 0.5);
+  --accent: #00A6CE;
+  --accent-2: #004D71;
+  --accent-glow: rgba(0, 166, 206, 0.5);
   --success: #45BD62;
   --warning: #F7B928;
   --danger: #E0413F;
 
-  --like: #4595FF;
+  --like: #00A6CE;
   --love: #F33E58;
   --fire: #FA6E32;
 
