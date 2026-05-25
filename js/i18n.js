@@ -63,6 +63,14 @@
       .then(function (data) {
         dictionary = Object.assign({}, NAV_BOOTSTRAP, data);
         currentLocale = code;
+        // Round 8 a11y sweep (2026-05-25): keep <html lang> in sync with the
+        // active PatrolI18n locale so screen readers announce trilingual
+        // content correctly. Codes are BCP47-compatible (en / tl / ceb).
+        try {
+          if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.setAttribute('lang', code);
+          }
+        } catch (e3) {}
       })
       .catch(function (e) {
         if (code !== FALLBACK_LOCALE) {

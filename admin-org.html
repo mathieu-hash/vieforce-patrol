@@ -5,11 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VieForce Patrol — Region / District / Territory</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css?v=1">
 <link rel="stylesheet" href="css/patrol.css">
 <link rel="stylesheet" href="css/admin-page.css?v=4">
 <link rel="stylesheet" href="css/admin-org.css?v=1">
 </head>
 <body class="admin-page">
+
+<!-- Skip-to-content link — WCAG 2.4.1, Round 8 a11y sweep (2026-05-25).
+     Visually hidden until focused. Styles in css/tokens.css. -->
+<a href="#admin-org-main" class="skip-link" id="patrol-skip-link">Skip to content</a>
 
 <div class="top-bar">
   <a href="admin.html" class="back-btn" style="text-decoration:none;">&#8592;</a>
@@ -20,7 +25,7 @@
   <button class="action-btn" type="button" onclick="logout()">Logout</button>
 </div>
 
-<div class="admin-body">
+<main class="admin-body" id="admin-org-main">
 
   <nav class="admin-subnav" aria-label="Admin sections">
     <a href="admin.html" class="admin-subnav-link">Sales Admin</a>
@@ -35,7 +40,7 @@
   </p>
 
   <div class="org-toolbar">
-    <input type="search" id="org-search" class="org-search" placeholder="Filter regions, districts, territories…" autocomplete="off">
+    <input type="search" id="org-search" class="org-search" placeholder="Filter regions, districts, territories…" autocomplete="off" aria-label="Filter regions, districts, territories">
     <button type="button" class="org-btn secondary" id="org-retry">Reload</button>
     <button type="button" class="org-btn" id="org-sync-sap">Sync from SAP</button>
   </div>
@@ -73,7 +78,7 @@
     </section>
   </div>
 
-</div>
+</main>
 
 <script src="js/_util/escape.js?v=1"></script>
 <script src="config.js"></script>
