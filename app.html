@@ -68,8 +68,8 @@
   });
 })();
 </script>
-<link href="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.js"></script>
+<!-- MapLibre GL (~700KB total) lazy-loaded via ensureManagerMapAssets() when a manager opens page-map.
+     TSRs route to page-mapa-tsr (a stub) and never trigger this. R8 T2 / CLAUDE.md Rule 2. -->
 <!-- chart.js + xlsx loaded on-demand for manager roles only — saves TSR data budget -->
 </head>
 <body>
@@ -1178,29 +1178,22 @@
 <script src="js/lang-picker.js?v=1"></script>
 <script src="js/role-scope.js?v=1"></script>
 <script src="js/home-tsr.js?v=4"></script>
-<script src="js/home-dsm.js?v=5"></script>
+<!-- Manager-only JS lazy-loaded via ensureManager*Script() helpers (R8 T2 — see CLAUDE.md Rule 2):
+       home-dsm.js · sales-tab.js · map.js · dashboard.js · assign.js · dsm-coaching.js ·
+       dsm-forecast.js · dsm-audit.js · team.js · rsm.js · export.js
+     MapLibre CDN (~700KB) lazy-loaded alongside js/map.js when DSM/RSM/CEO opens page-map. -->
 <script src="js/stores-nav-pref.js?v=1"></script>
-<script src="js/sales-tab.js?v=16"></script>
 <script src="js/gps.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/offline.js?v=4"></script>
 <script src="js/stores.js?v=13"></script>
 <script src="js/visits.js?v=4"></script>
 <script src="js/visit-wizard.js?v=6"></script>
-<script src="js/map.js"></script>
 <script src="js/activity-feed.js?v=4"></script>
 <script src="js/phase4-social.js?v=5"></script>
-<script src="js/dashboard.js?v=7"></script>
-<script src="js/assign.js"></script>
 <script src="js/champion.js"></script>
 <script src="js/scorecard.js?v=4"></script>
-<script src="js/dsm-coaching.js?v=1"></script>
-<script src="js/dsm-forecast.js?v=1"></script>
-<script src="js/dsm-audit.js?v=1"></script>
-<script src="js/team.js?v=5"></script>
-<script src="js/rsm.js?v=1"></script>
 <script src="js/nav-role-device.js?v=18"></script>
-<script src="js/export.js"></script>
 <script src="js/ux-polish.js"></script>
 <script src="js/pilot-readiness.js?v=1"></script>
 <script src="js/chatbot-register.js?v=4"></script>
@@ -1455,6 +1448,74 @@
     return _loadScriptOnce('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX');
   };
 
+  // === Manager-only JS lazy-load (R8 T2 — sibling of the CSS helpers above) ===
+  // Each helper returns a Promise that resolves once the script(s) are in DOM and
+  // the named global exists. _loadScriptOnce is idempotent (dedup by [src=...] +
+  // global-name short-circuit), so repeated calls during role/page switches do
+  // not double-fetch. Helpers are no-ops for TSR/champion sessions — the gate
+  // lives at the call site (route handlers below) so this stays loud if misused.
+
+  // Coaching/forecast/audit are pulled in by dashboard + team + home-dsm rendering.
+  window.ensureManagerDsmSupportScripts = function () {
+    return Promise.all([
+      _loadScriptOnce('js/dsm-coaching.js?v=1', 'generateCoachingCards'),
+      _loadScriptOnce('js/dsm-forecast.js?v=1', 'computeDsmForecast'),
+      _loadScriptOnce('js/dsm-audit.js?v=1', 'fetchAuditData')
+    ]);
+  };
+
+  window.ensureManagerHomeDsmScript = function () {
+    return window.ensureManagerDsmSupportScripts().then(function () {
+      return _loadScriptOnce('js/home-dsm.js?v=5', 'renderDsmHome');
+    });
+  };
+
+  window.ensureManagerDashboardScript = function () {
+    return window.ensureManagerDsmSupportScripts().then(function () {
+      return Promise.all([
+        _loadScriptOnce('js/dashboard.js?v=7', 'initDashboard'),
+        // dashboard.js renders inline `onclick="ExportModule.exportVisits()"` buttons,
+        // so ExportModule must be defined before the user can click them.
+        _loadScriptOnce('js/export.js', 'ExportModule')
+      ]);
+    });
+  };
+
+  window.ensureManagerRsmScript = function () {
+    // RSM page uses audit + coaching helpers inline (see js/rsm.js).
+    return window.ensureManagerDsmSupportScripts().then(function () {
+      return _loadScriptOnce('js/rsm.js?v=1', 'initRsmHome');
+    });
+  };
+
+  window.ensureManagerTeamScript = function () {
+    return window.ensureManagerDsmSupportScripts().then(function () {
+      return _loadScriptOnce('js/team.js?v=5', 'renderTeamPage');
+    });
+  };
+
+  window.ensureManagerSalesScript = function () {
+    return _loadScriptOnce('js/sales-tab.js?v=16', 'initSalesTab');
+  };
+
+  window.ensureManagerAssignScript = function () {
+    return _loadScriptOnce('js/assign.js', 'initAssignPage');
+  };
+
+  window.ensureManagerExportScript = function () {
+    return _loadScriptOnce('js/export.js', 'ExportModule');
+  };
+
+  // MapLibre GL (~700KB) + js/map.js — TSR routes to page-mapa-tsr stub instead.
+  window.ensureManagerMapAssets = function () {
+    return Promise.all([
+      _loadCssOnce('https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css'),
+      _loadScriptOnce('https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.js', 'maplibregl')
+    ]).then(function () {
+      return _loadScriptOnce('js/map.js', 'initMap');
+    });
+  };
+
   if (session && typeof PatrolScope !== 'undefined') {
     window.PatrolSession = {
       user: {
@@ -1503,7 +1564,13 @@
         if (typeof window.ensureManagerRsmAssets === 'function') {
           window.ensureManagerRsmAssets();
         }
-        if (typeof initRsmHome === 'function') initRsmHome();
+        if (typeof window.ensureManagerRsmScript === 'function') {
+          window.ensureManagerRsmScript().then(function () {
+            if (typeof initRsmHome === 'function') initRsmHome();
+          });
+        } else if (typeof initRsmHome === 'function') {
+          initRsmHome();
+        }
       };
       var periodLabel = document.getElementById('rsm-period-label');
       if (periodLabel) {
@@ -1520,7 +1587,13 @@
         if (typeof window.ensureManagerSocialAssets === 'function') {
           window.ensureManagerSocialAssets();
         }
-        if (typeof initDashboard === 'function') initDashboard();
+        if (typeof window.ensureManagerDashboardScript === 'function') {
+          window.ensureManagerDashboardScript().then(function () {
+            if (typeof initDashboard === 'function') initDashboard();
+          });
+        } else if (typeof initDashboard === 'function') {
+          initDashboard();
+        }
       };
     } else if (landingPageId === 'page-home-tsr') {
       landingInit = function () { if (typeof renderTsrHome === 'function') renderTsrHome(); };
@@ -1529,7 +1602,13 @@
         if (typeof window.ensureManagerSocialAssets === 'function') {
           window.ensureManagerSocialAssets();
         }
-        if (typeof renderDsmHome === 'function') renderDsmHome();
+        if (typeof window.ensureManagerHomeDsmScript === 'function') {
+          window.ensureManagerHomeDsmScript().then(function () {
+            if (typeof renderDsmHome === 'function') renderDsmHome();
+          });
+        } else if (typeof renderDsmHome === 'function') {
+          renderDsmHome();
+        }
       };
     } else if (landingPageId === 'page-home') {
       landingInit = function () {
@@ -2866,11 +2945,17 @@
     if (pageId === 'page-home-tsr' && typeof renderTsrHome === 'function') {
       renderTsrHome();
     }
-    if (pageId === 'page-home-dsm' && typeof renderDsmHome === 'function') {
+    if (pageId === 'page-home-dsm') {
       if (typeof window.ensureManagerSocialAssets === 'function') {
         window.ensureManagerSocialAssets();
       }
-      renderDsmHome();
+      if (typeof window.ensureManagerHomeDsmScript === 'function') {
+        window.ensureManagerHomeDsmScript().then(function () {
+          if (typeof renderDsmHome === 'function') renderDsmHome();
+        });
+      } else if (typeof renderDsmHome === 'function') {
+        renderDsmHome();
+      }
     }
     if (pageId === 'page-mapa-tsr' && typeof renderMapaTsr === 'function') {
       renderMapaTsr();
@@ -2892,37 +2977,74 @@
       _bootstrapVisitsPage();
     }
     if (pageId === 'page-map') {
-      if (typeof initMapFilters === 'function') initMapFilters();
-      setTimeout(function() {
-        if (!_mapInitialized) {
-          _mapInitialized = true;
-          initMap();
-          initMapFilters();
-        }
-        loadMapMarkers();
-      }, 100);
+      var _runMap = function () {
+        if (typeof initMapFilters === 'function') initMapFilters();
+        setTimeout(function () {
+          if (!_mapInitialized && typeof initMap === 'function') {
+            _mapInitialized = true;
+            initMap();
+            initMapFilters();
+          }
+          if (typeof loadMapMarkers === 'function') loadMapMarkers();
+        }, 100);
+      };
+      if (typeof window.ensureManagerMapAssets === 'function') {
+        window.ensureManagerMapAssets().then(_runMap);
+      } else {
+        _runMap();
+      }
     }
     if (pageId === 'page-assign') {
-      initAssignPage();
+      if (typeof window.ensureManagerAssignScript === 'function') {
+        window.ensureManagerAssignScript().then(function () {
+          if (typeof initAssignPage === 'function') initAssignPage();
+        });
+      } else if (typeof initAssignPage === 'function') {
+        initAssignPage();
+      }
     }
-    if (pageId === 'page-team' && typeof renderTeamPage === 'function') {
-      renderTeamPage();
+    if (pageId === 'page-team') {
+      if (typeof window.ensureManagerTeamScript === 'function') {
+        window.ensureManagerTeamScript().then(function () {
+          if (typeof renderTeamPage === 'function') renderTeamPage();
+        });
+      } else if (typeof renderTeamPage === 'function') {
+        renderTeamPage();
+      }
     }
-    if (pageId === 'page-rsm-home' && typeof initRsmHome === 'function') {
+    if (pageId === 'page-rsm-home') {
       if (typeof window.ensureManagerRsmAssets === 'function') {
         window.ensureManagerRsmAssets();
       }
-      initRsmHome();
-    }
-    if (pageId === 'pg-sales' && typeof initSalesTab === 'function') {
-      if (typeof window.ensureManagerSalesAssets === 'function') {
-        window.ensureManagerSalesAssets().finally(function () { initSalesTab(); });
-      } else {
-        initSalesTab();
+      if (typeof window.ensureManagerRsmScript === 'function') {
+        window.ensureManagerRsmScript().then(function () {
+          if (typeof initRsmHome === 'function') initRsmHome();
+        });
+      } else if (typeof initRsmHome === 'function') {
+        initRsmHome();
       }
     }
-    if (pageId === 'page-tsr-scorecard' && typeof renderTsrScorecardDetail === 'function' && window._selectedTsrId) {
-      renderTsrScorecardDetail(window._selectedTsrId);
+    if (pageId === 'pg-sales') {
+      var _runSales = function () {
+        if (typeof initSalesTab === 'function') initSalesTab();
+      };
+      var cssP = (typeof window.ensureManagerSalesAssets === 'function')
+        ? window.ensureManagerSalesAssets() : Promise.resolve();
+      var jsP = (typeof window.ensureManagerSalesScript === 'function')
+        ? window.ensureManagerSalesScript() : Promise.resolve();
+      Promise.all([cssP, jsP]).then(_runSales, _runSales);
+    }
+    if (pageId === 'page-tsr-scorecard') {
+      // renderTsrScorecardDetail lives in js/team.js — lazy-load it here.
+      if (typeof window.ensureManagerTeamScript === 'function' && window._selectedTsrId) {
+        window.ensureManagerTeamScript().then(function () {
+          if (typeof renderTsrScorecardDetail === 'function') {
+            renderTsrScorecardDetail(window._selectedTsrId);
+          }
+        });
+      } else if (typeof renderTsrScorecardDetail === 'function' && window._selectedTsrId) {
+        renderTsrScorecardDetail(window._selectedTsrId);
+      }
     }
   };
 
@@ -2957,12 +3079,15 @@
     _bootstrapStoresPage();
   }
   if (_activeOnLoad && _activeOnLoad.id === 'page-visits') _bootstrapVisitsPage();
-  if (_activeOnLoad && _activeOnLoad.id === 'pg-sales' && typeof initSalesTab === 'function') {
-    if (typeof window.ensureManagerSalesAssets === 'function') {
-      window.ensureManagerSalesAssets().finally(function () { initSalesTab(); });
-    } else {
-      initSalesTab();
-    }
+  if (_activeOnLoad && _activeOnLoad.id === 'pg-sales') {
+    var _runSalesOnLoad = function () {
+      if (typeof initSalesTab === 'function') initSalesTab();
+    };
+    var cssPL = (typeof window.ensureManagerSalesAssets === 'function')
+      ? window.ensureManagerSalesAssets() : Promise.resolve();
+    var jsPL = (typeof window.ensureManagerSalesScript === 'function')
+      ? window.ensureManagerSalesScript() : Promise.resolve();
+    Promise.all([cssPL, jsPL]).then(_runSalesOnLoad, _runSalesOnLoad);
   }
   // Landing init (renderTsrHome / renderDsmHome) runs after PatrolI18n.init() in the Phase 4.5 landing block.
 
