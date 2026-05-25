@@ -141,11 +141,19 @@ test.describe('20 — TSR tap targets (CLAUDE.md Rule 3 / 64px floor)', () => {
     );
 
     // Profile-actions row is rendered by phase4-social.js asynchronously;
-    // wait for the row to be populated, then assert each prof-btn.
+    // wait for the row to be populated, then assert each prof-btn that is
+    // actually visible. phase4-social.js intentionally injects some
+    // .prof-btn buttons as `style="display:none" aria-hidden="true"`
+    // (Phase 5 stubs — Edit profile / Follow / Message). Those are NOT
+    // user-tappable and must not count toward the 64px floor.
     await page.waitForFunction(
       () => {
         const row = document.querySelector('#profileActions');
-        return !!row && row.querySelectorAll('.prof-btn').length >= 1;
+        if (!row) return false;
+        const visible = Array.from(row.querySelectorAll('.prof-btn')).filter(
+          (el) => (el as HTMLElement).offsetParent !== null,
+        );
+        return visible.length >= 1;
       },
       undefined,
       { timeout: 15000 },
@@ -153,10 +161,11 @@ test.describe('20 — TSR tap targets (CLAUDE.md Rule 3 / 64px floor)', () => {
       // If the JS never injects a button (e.g. anonymous role), skip the assertion.
     });
 
-    const profBtns = page.locator('#profileActions .prof-btn');
+    // Only assert on tappable (visible) buttons. Phase 5 stubs are hidden.
+    const profBtns = page.locator('#profileActions .prof-btn:visible');
     const count = await profBtns.count();
     for (let i = 0; i < count; i += 1) {
-      await expectMinHeight(profBtns.nth(i), MIN_TAP, `#profileActions .prof-btn[${i}]`);
+      await expectMinHeight(profBtns.nth(i), MIN_TAP, `#profileActions .prof-btn:visible[${i}]`);
     }
   });
 

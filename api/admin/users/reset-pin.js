@@ -9,14 +9,15 @@
 // removes the *exposure surface* — the digit is still stored in the
 // `pin_hash` column (legacy name) in plaintext until W1-PinHash lands.
 //
-// Audit-log: written via `console.log('[AUDIT pin_reset] …')` because the
-// dedicated audit table doesn't exist yet. A real audit table is on the
-// post-pilot backlog (F-08).
+// Audit-log: durable row into `public.admin_audit_log`
+// (migration 20260525120000_admin_audit_log.sql) PLUS a structured
+// console.log for live-tail. Audit-write failures are logged but never
+// block the pin reset operation.
 
 const authLib = require('../../_lib/auth');
 const { verifySession, unauthorized } = authLib;
 const { applyPatrolCors } = require('../../_lib/patrol-cors');
-const { sbPatch } = require('../../_lib/supabase-service');
+const { sbPatch, sbPost } = require('../../_lib/supabase-service');
 
 const ALLOWED_ROLES = ['admin', 'ceo', 'evp', 'marketing'];
 const ALLOWED_ROLES_SET = new Set(ALLOWED_ROLES);
@@ -100,8 +101,28 @@ module.exports = async function handler(req, res) {
     return res.status(result.status || 500).json(result.body || { error: 'SUPABASE_WRITE_FAILED' });
   }
 
-  // Audit trail. Until the admin_audit_log table exists (F-08), emit a
-  // structured console line that ops can grep in Vercel logs.
+  // Audit trail. Write durable row into admin_audit_log (migration
+  // 20260525120000_admin_audit_log.sql). Vercel logs roll in 24h so the
+  // console.log is kept for live-tail but the table is the source of truth.
+  // Audit failure must NEVER block the pin reset itself.
+  const auditRow = {
+    actor_user_id: session.id || null,
+    actor_email: session.email || null,
+    action: 'pin_reset',
+    target_user_id: targetUserId,
+    payload: { pin_length: newPin.length }
+  };
+  try {
+    const auditResult = await sbPost('admin_audit_log', auditRow, 'return=minimal');
+    if (!auditResult.ok) {
+      console.error('[reset-pin] audit log insert failed', auditResult.status, auditResult.body);
+    }
+  } catch (auditErr) {
+    console.error('[reset-pin] audit log threw', auditErr && auditErr.message);
+  }
+
+  // Live-tail line kept per ops request — Vercel log search still works for
+  // realtime incident triage even with the durable table in place.
   console.log(
     '[AUDIT pin_reset]',
     JSON.stringify({
