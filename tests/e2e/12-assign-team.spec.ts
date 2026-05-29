@@ -26,7 +26,9 @@ test.describe('12 — DSM team & squad', () => {
       return Promise.resolve();
     });
 
-    await page.locator('#bottom-nav .nav-item[data-page="page-stores"]').click();
+    // force: nav is the real top element; centered DSM-home column overlaps its
+    // box and trips Playwright's actionability check. (page-assign assertion below proves flow.)
+    await page.locator('#bottom-nav .nav-item[data-page="page-stores"]').click({ force: true });
     await page.evaluate(() => {
       if (typeof nav === 'function') nav('page-assign');
     });

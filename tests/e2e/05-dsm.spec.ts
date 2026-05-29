@@ -14,6 +14,10 @@ test.describe('05 — DSM Home', () => {
 
   test('DSM TSR performance table is present', async ({ page }) => {
     await page.evaluate(() => {
+      // getDirectReports is consumed by the mock metrics path; the real path
+      // queries Supabase (mocked-empty in e2e → 0 rows). Enable the mock flag
+      // so renderDsmHome() builds the perf table from these stubbed reports.
+      window.PATROL_DSM_USE_MOCKS = true;
       window.getDirectReports = async function () {
         return [
           { id: 'tsr-1', name: 'Alpha One', role: 'tsr' },
@@ -55,7 +59,11 @@ test.describe('05 — DSM Home', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     const moreBtn = page.locator('#bottom-nav button[data-action="more-sheet"]');
     await expect(moreBtn).toBeVisible();
-    await moreBtn.click();
+    // force: the nav (z-index:5000, fixed) is the real top element at the
+    // button center (verified via elementFromPoint), but the centered DSM-home
+    // content column overlaps its bounding box and trips Playwright's
+    // actionability heuristic. The #more-sheet assertion below proves the click landed.
+    await moreBtn.click({ force: true });
     await expect(page.locator('#more-sheet')).toBeVisible();
     await page.locator('#more-sheet .more-sheet-backdrop').click();
     await expect(page.locator('#more-sheet')).toBeHidden();

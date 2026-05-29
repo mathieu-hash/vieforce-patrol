@@ -752,6 +752,29 @@ export async function loginAsCeo(page: Page) {
   await expectSapRosterLoaded(page);
 }
 
+/**
+ * Click a #bottom-nav item on the manager (DSM/RSM) home.
+ *
+ * The manager home is taller than the mobile viewport, so its centered
+ * max-width:480px content column (#dsmHomeMain) shares the same horizontal band
+ * as the position:fixed, z-index:5000 #bottom-nav. The nav wins the stacking
+ * context and IS the top element at the button's center (verified directly via
+ * document.elementFromPoint() in a real Chromium — it returns the nav icon, the
+ * button is genuinely user-tappable). But Playwright's actionability heuristic
+ * sees the overlapping page-content container's bounding box and refuses to
+ * click, timing out. `force: true` dispatches the real click; the caller's
+ * follow-up assertion (sheet visible / target page active) proves the handler
+ * actually fired, so this is not masking a broken control.
+ */
+export async function forceClickManagerNav(
+  page: Page,
+  selector: string
+) {
+  const btn = page.locator(selector);
+  await expect(btn).toBeVisible({ timeout: 15000 });
+  await btn.click({ force: true });
+}
+
 export async function openMoreSheet(page: Page) {
   const moreBtn = page.locator('#bottom-nav button[data-action="more-sheet"]');
   await expect(moreBtn).toBeVisible({ timeout: 15000 });

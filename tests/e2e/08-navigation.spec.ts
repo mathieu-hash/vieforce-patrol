@@ -27,7 +27,9 @@ test.describe('08 — Role-aware navigation', () => {
     await expect(page.locator('script[src*="chart.js"]')).toHaveCount(0);
     await expect(page.locator('script[src*="xlsx"]')).toHaveCount(0);
     await expect(page.locator('link[href*="sales-tab-v2.css"]')).toHaveCount(0);
-    await sales.click();
+    // force: nav is the real top element; centered DSM-home column overlaps its
+    // box and trips Playwright's actionability check. #pg-sales assertion proves the click landed.
+    await sales.click({ force: true });
     await expect(page.locator('#pg-sales')).toHaveClass(/active/, { timeout: 10000 });
     await expect(page.locator('script[src*="chart.js"]')).toHaveCount(1, { timeout: 10000 });
     await expect(page.locator('link[href*="sales-tab-v2.css"]')).toHaveCount(1, { timeout: 10000 });

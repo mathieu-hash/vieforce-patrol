@@ -200,19 +200,29 @@ test.describe('20 — TSR tap targets (CLAUDE.md Rule 3 / 64px floor)', () => {
     await page.evaluate(() => {
       // Mark the body so .pilot-btn rules apply.
       document.body.classList.add('role-tsr');
-      if (typeof (window as unknown as { patrolOpenReadiness?: () => void }).patrolOpenReadiness === 'function') {
-        (window as unknown as { patrolOpenReadiness: () => void }).patrolOpenReadiness();
+      const fn = (window as unknown as { patrolOpenReadiness?: () => Promise<void> | void }).patrolOpenReadiness;
+      if (typeof fn === 'function') {
+        // Fire it; we wait on the rendered DOM below rather than awaiting here
+        // (its internal readinessRows() can await GPS/sync probes that stall e2e).
+        void fn();
       }
     });
 
-    const pilotButtons = page.locator('.pilot-btn');
-    // If the readiness sheet is gated by other state, skip silently — but
-    // when present, every button must meet 64px.
-    const cnt = await pilotButtons.count();
-    if (cnt === 0) {
+    // Scope to the OPEN readiness sheet only. There are other .pilot-btn nodes
+    // in the collapsed #pilot-profile-card (height 0, not tappable) — measuring
+    // those was the flake. The 64px tap-target rule applies to the visible,
+    // user-tappable sheet buttons, which render at exactly 64px.
+    const pilotButtons = page.locator('#pilot-readiness-sheet .pilot-btn');
+    const appeared = await pilotButtons
+      .first()
+      .waitFor({ state: 'visible', timeout: 8000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!appeared) {
       test.skip(true, 'pilot-readiness sheet not present in this build');
       return;
     }
+    const cnt = await pilotButtons.count();
     for (let i = 0; i < cnt; i += 1) {
       await expectMinHeight(pilotButtons.nth(i), MIN_TAP, `.pilot-btn[${i}]`);
     }

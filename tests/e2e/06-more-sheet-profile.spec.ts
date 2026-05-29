@@ -26,7 +26,9 @@ test.describe('06 — More sheet, profile menu, scorecard retention', () => {
     await loginAsDsm(page);
 
     const moreBtn = page.locator('#bottom-nav button[data-action="more-sheet"]');
-    await moreBtn.click();
+    // force: nav is the real top element; centered DSM-home column overlaps its
+    // box and trips Playwright's actionability check. #more-sheet assertion proves the click landed.
+    await moreBtn.click({ force: true });
     await expect(page.locator('#more-sheet')).toBeVisible();
     await page.locator('#more-sheet .more-sheet-backdrop').click();
     await expect(page.locator('#more-sheet')).toBeHidden();

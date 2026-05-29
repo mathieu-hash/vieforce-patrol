@@ -11,6 +11,13 @@ test.describe('15 — Farms smoke', () => {
       if (typeof nav === 'function') nav('page-map');
     });
     await expect(page.locator('#page-map.active')).toBeVisible({ timeout: 15000 });
+    // R8 T2 made js/map.js + MapLibre lazy-load; the filter chips are static
+    // HTML (visible immediately) but only become interactive once initMapFilters()
+    // runs after ensureManagerMapAssets() resolves. Wait for the wiring flag
+    // before clicking, otherwise the click lands before the listener is attached.
+    await page.waitForFunction(() => window._mapFiltersWired === true, null, {
+      timeout: 20000,
+    });
     await hideBootDebug(page);
     const farmChip = page.locator('#page-map .map-filter-chip[data-filter="farm"]');
     await expect(farmChip).toBeVisible({ timeout: 10000 });
