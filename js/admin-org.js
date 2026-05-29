@@ -14,9 +14,12 @@
     return document.getElementById(id);
   }
 
-  // W1-AuthCore: Bearer JWT replaces x-session-id. Async because Supabase
-  // session lookup is async.
+  // Hybrid auth: prefer Bearer JWT (OAuth managers), fall back to x-session-id
+  // (legacy PIN sessions — evp/marketing admins authenticate via PIN, so a
+  // Bearer-only header 401s and the org tree never loads). Delegate to the
+  // canonical authHeaders() in js/auth.js which handles both paths.
   function apiHeaders() {
+    if (typeof window.authHeaders === 'function') return window.authHeaders();
     var p = (typeof window.getAuthBearer === 'function')
       ? window.getAuthBearer()
       : Promise.resolve(null);

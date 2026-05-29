@@ -188,13 +188,18 @@
           ? window.getAuthBearer()
           : Promise.resolve(null);
         return bearerPromise.then(function (bearer) {
-          if (!bearer) return code;
+          // Hybrid auth: prefer Bearer JWT (OAuth managers), fall back to
+          // x-session-id (TSR PIN sessions). Without this fallback the entire
+          // TSR population — the trilingual target audience (Rule 5) — could
+          // never persist their language, so it never survived a cache clear.
+          // api/user/language.js accepts both via requireUser(); mirrors
+          // js/db.js createFarm hybrid-auth fix (R6 P0).
+          var headers = { 'Content-Type': 'application/json' };
+          if (bearer) headers.Authorization = 'Bearer ' + bearer;
+          else headers['x-session-id'] = session.id;
           return fetch('/api/user/language', {
             method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: 'Bearer ' + bearer
-            },
+            headers: headers,
             body: JSON.stringify({ language: code })
           })
             .then(function (res) {

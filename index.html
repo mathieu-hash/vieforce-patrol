@@ -252,6 +252,12 @@ html, body { background: #0F1923 !important; margin: 0; height: 100vh; overflow:
     if (lang !== 'TL' && lang !== 'BIS' && lang !== 'EN') return;
     localStorage.setItem('patrol_lang', lang);
     window.currentLang = lang;
+    // Rebuild the global T object so auth.js login-error strings
+    // (errorWrongPin, errorNetworkLogin, errorThrottled, ...) render in the
+    // just-selected language instead of the page-load language.
+    if (typeof window.setLanguage === 'function') {
+      window.setLanguage(lang, { silent: true });
+    }
     applyLoginLang();
   }
 
