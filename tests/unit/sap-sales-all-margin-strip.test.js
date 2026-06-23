@@ -53,8 +53,8 @@ function mockReq(q) { return { headers: {}, query: q || {} }; }
 
 function loadHandler() {
   delete require.cache[require.resolve('../../api/_lib/api-auth.js')];
-  delete require.cache[require.resolve('../../api/sap/sales/all.js')];
-  return require('../../api/sap/sales/all.js');
+  delete require.cache[require.resolve('../../api/_lib/sap-proxy.js')];
+  return require('../../api/_lib/sap-proxy.js').salesAll;
 }
 
 const DSM = {
