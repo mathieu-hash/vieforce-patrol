@@ -1,6 +1,5 @@
 {
   "alias": ["patrol.vienovo.ph"],
-  "rewrites": [{ "source": "/(.*)", "destination": "/$1" }],
   "headers": [
     {
       "source": "/(.*)",
