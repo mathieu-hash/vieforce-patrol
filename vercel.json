@@ -1,5 +1,8 @@
 {
   "alias": ["patrol.vienovo.ph"],
+  "rewrites": [
+    { "source": "/api/sap/:path*", "destination": "/api/sap/proxy?sapPath=:path*" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
