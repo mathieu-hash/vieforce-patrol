@@ -13,19 +13,22 @@ function decode(s) {
   try { return decodeURIComponent(s); } catch (e) { return s; }
 }
 
+// Normalise a value into path segments. Vercel passes the rewrite splat as a
+// JOINED string ("sales/all"); unit tests may pass an array (["sales","all"]).
+// Handle both: split strings on "/", flatten arrays, decode each segment.
+function toSegments(v) {
+  if (v == null) return null;
+  const parts = (Array.isArray(v) ? v.join('/') : String(v)).split('/').filter(Boolean);
+  return parts.length ? parts.map(decode) : null;
+}
+
 // Resolve the path segments after /api/sap/, robust to how the request arrives:
-//   1. req.query.path    — direct/unit invocation (handler test fast-path)
-//   2. req.query.sapPath — the rewrite param ("sales/all" or ["sales","all"])
-//   3. req.url parse     — last-resort fallback
+//   1. req.query.path / req.query.sapPath — auto-bound + explicit rewrite params
+//   2. req.url parse                       — last-resort fallback
 function sapSegments(req) {
   const q = req.query || {};
-
-  if (q.path && [].concat(q.path).length) return [].concat(q.path);
-
-  if (q.sapPath) {
-    const joined = Array.isArray(q.sapPath) ? q.sapPath.join('/') : String(q.sapPath);
-    return joined.split('/').filter(Boolean).map(decode);
-  }
+  const fromQuery = toSegments(q.path) || toSegments(q.sapPath);
+  if (fromQuery) return fromQuery;
 
   let url = req.url || '';
   const i = url.indexOf('?');
