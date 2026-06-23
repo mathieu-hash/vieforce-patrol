@@ -186,6 +186,18 @@
     window.__chatbotSend = function () {
       var val = (inp.value || '').trim();
       if (!val && !step.allowEmpty) return;
+      // Step-level validation (e.g. phone format). On failure, show the error
+      // as a bot message, clear the field, and keep the input open \u2014 do NOT
+      // advance. (Fix: registration used to accept incomplete numbers.)
+      if (typeof step.validate === 'function') {
+        var vErr = step.validate(val);
+        if (vErr) {
+          self._addBotMessage(vErr);
+          inp.value = '';
+          try { inp.focus(); } catch (e) {}
+          return;
+        }
+      }
       self._addUserMessage(val || (step.emptyUserHint || '\u2014'));
       if (step.field) {
         if (val) self.data[step.field] = val;
@@ -226,10 +238,18 @@
           if (blob) {
             self.data.photo = blob;
             self._addUserMessage('\ud83d\udcf8 Litrato ' + Math.round(blob.size / 1024) + 'KB');
+            if (step.next) self._goNext(step.next);
+          } else if (step.required) {
+            // Required photo not captured \u2014 block proceed. Send the user back to
+            // a tappable "take photo" step (onMissingBack) so the next capture has
+            // a real user gesture; browsers block programmatic file-picker opens.
+            self._addBotMessage(step.missingMsg || 'Kailangan ng litrato. \ud83d\udcf8');
+            if (step.onMissingBack) self._goNext(step.onMissingBack);
+            else setTimeout(function () { self._showStep(step); }, 700);
           } else {
             self._addUserMessage('\u23ed\ufe0f Walang litrato');
+            if (step.next) self._goNext(step.next);
           }
-          if (step.next) self._goNext(step.next);
         });
       } else if (step.next) {
         self._goNext(step.next);
@@ -289,6 +309,16 @@
         });
       }
     }, 400);
+  };
+
+  // Philippine mobile number validator. Accepts 09XXXXXXXXX, 9XXXXXXXXX,
+  // or 639XXXXXXXXX. Returns null when valid, else a Tagalog-first error string.
+  // (Fix: registration used to accept incomplete contact numbers.)
+  ChatbotWizard.validatePhone = function (raw) {
+    var d = String(raw == null ? '' : raw).replace(/\D/g, '');
+    var ok = /^09\d{9}$/.test(d) || /^9\d{9}$/.test(d) || /^639\d{9}$/.test(d);
+    return ok ? null
+      : '⚠️ Mukhang kulang ang numero. Ilagay ang buong 11-digit na mobile (hal. 09171234567). (Dili kompleto ang numero.)';
   };
 
   window.ChatbotWizard = ChatbotWizard;
