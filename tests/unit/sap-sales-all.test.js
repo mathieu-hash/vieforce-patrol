@@ -71,7 +71,7 @@ const DSM = {
 test('/all: 401 when no session', async () => {
   reset();
   _state.session = null;
-  const handler = load('../../api/sap/sales/all.js');
+  const handler = load('../../api/_lib/sap-proxy.js').salesAll;
   const res = mockRes();
   await handler(mockReq(), res);
   assert.equal(res.statusCode, 401);
@@ -81,7 +81,7 @@ test('/all: 502 when HQ returns upstream error', async () => {
   reset();
   _state.session = DSM;
   _captures.hqResult = { status: 503, body: { error: 'upstream' } };
-  const handler = load('../../api/sap/sales/all.js');
+  const handler = load('../../api/_lib/sap-proxy.js').salesAll;
   const res = mockRes();
   await handler(mockReq({ period: 'MTD' }), res);
   assert.equal(res.statusCode, 502);
@@ -92,7 +92,7 @@ test('/all: 504 when HQ times out', async () => {
   reset();
   _state.session = DSM;
   _captures.hqResult = { status: 504, body: { error: 'HQ timeout' } };
-  const handler = load('../../api/sap/sales/all.js');
+  const handler = load('../../api/_lib/sap-proxy.js').salesAll;
   const res = mockRes();
   await handler(mockReq({ period: 'MTD' }), res);
   assert.equal(res.statusCode, 504);
@@ -128,7 +128,7 @@ test('/all: reshapes HQ body + calls callHqProxy with include', async () => {
       }]
     }
   };
-  const handler = load('../../api/sap/sales/all.js');
+  const handler = load('../../api/_lib/sap-proxy.js').salesAll;
   const res = mockRes();
   await handler(mockReq({ period: 'YTD' }), res);
   assert.equal(res.statusCode, 200);

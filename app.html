@@ -265,11 +265,13 @@
     <div class="dsm-home-quick-row" style="display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px;">
       <button type="button" class="dsm-home-quick-btn" onclick="typeof openVisitFlow==='function'&&openVisitFlow()" data-t="recentVisits"></button>
       <button type="button" class="dsm-home-quick-btn" onclick="nav('page-stores')" data-t="stores"></button>
+      <button type="button" class="dsm-home-quick-btn" onclick="typeof openChatbotMarketing==='function'&&openChatbotMarketing()">&#128227; Marketing Request</button>
+      <button type="button" class="dsm-home-quick-btn" onclick="typeof openMarketingDashboard==='function'&&openMarketingDashboard()">&#128203; Marketing Approvals</button>
     </div>
     <div class="table-card">
       <div class="table-card-hdr">
-        <div class="table-card-title" id="dsmTsrPerfTitle"></div>
-        <button type="button" class="tsr-section-action" id="dsmTsrPerfDetails" onclick="nav('page-team')"></button>
+        <div class="table-card-title" id="dsmTsrPerfTitle" onclick="nav('page-team')" style="cursor:pointer"></div>
+        <button type="button" class="tsr-section-action" id="dsmTsrPerfDetails" onclick="nav('page-team')">View details →</button>
       </div>
       <table>
         <thead>
@@ -968,6 +970,43 @@
 </div>
 
 <!-- ========================================= -->
+<!-- NEW MARKETING REQUEST — chatbot (spec v1.1) -->
+<!-- ========================================= -->
+<div id="page-marketing-new" class="page">
+  <div class="chat-header">
+    <div class="back" onclick="navBack()">&#8249;</div>
+    <div class="chat-av" style="background:linear-gradient(135deg,#db2777,#ec4899);font-size:22px">&#128227;</div>
+    <div class="chat-hdr-info">
+      <div class="chat-hdr-name">VieForce Assistant</div>
+      <div class="chat-hdr-sub">&#9679; Online &middot; Marketing Request</div>
+    </div>
+  </div>
+  <div class="messages" id="new-mkt-messages"></div>
+  <div class="quick-replies" id="new-mkt-quick-replies"></div>
+  <div class="input-bar" id="new-mkt-input-bar" style="display:none">
+    <div class="input-field">
+      <input type="text" id="new-mkt-chat-input" placeholder="Sagot mo..." onkeydown="if(event.key==='Enter')window.__chatbotSend&&window.__chatbotSend()">
+    </div>
+  </div>
+  <div class="chat-hint" aria-hidden="true">Pindutin ang <b>Enter</b> &#9166; para magpadala &middot; Press Enter to send</div>
+</div>
+
+<!-- ========================================= -->
+<!-- MARKETING REQUESTS — back-office dashboard (Marketing / EVP / RSM / Admin) -->
+<!-- ========================================= -->
+<div id="page-marketing-dash" class="page phase4-page" style="background:var(--bg-main)">
+  <div class="app-header" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--divider);">
+    <button type="button" class="icon-btn" onclick="navBack()" aria-label="Back">&#8592;</button>
+    <div style="flex:1;font-weight:800;font-size:16px;font-family:'Manrope',sans-serif;">Marketing Requests</div>
+    <button type="button" class="icon-btn" onclick="renderMktList()" aria-label="Refresh">&#8635;</button>
+  </div>
+  <main class="app-content" style="padding:8px 12px 80px;">
+    <div id="mkt-dash-list"></div>
+    <div id="mkt-dash-detail" style="display:none"></div>
+  </main>
+</div>
+
+<!-- ========================================= -->
 <!-- VISIT BOTTOM SHEET (replaces full-page)   -->
 <!-- ========================================= -->
 <div class="overlay" id="visit-overlay" onclick="closeVisitSheet()"></div>
@@ -1066,9 +1105,14 @@
           <span class="merch-label">Signage</span>
           <span class="merch-check">&#10003;</span>
         </div>
-        <div class="merch-chip merch-check-item" data-item="price_board" onclick="toggleMerchItem(this)">
-          <span class="merch-icon">&#128176;</span>
-          <span class="merch-label">Price Board</span>
+        <div class="merch-chip merch-check-item" data-item="sunshade" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#9748;</span>
+          <span class="merch-label">Sunshade</span>
+          <span class="merch-check">&#10003;</span>
+        </div>
+        <div class="merch-chip merch-check-item" data-item="price_sticks" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#127991;</span>
+          <span class="merch-label">Price Sticks</span>
           <span class="merch-check">&#10003;</span>
         </div>
         <div class="merch-chip merch-check-item" data-item="flyers" onclick="toggleMerchItem(this)">
@@ -1076,14 +1120,9 @@
           <span class="merch-label">Flyers</span>
           <span class="merch-check">&#10003;</span>
         </div>
-        <div class="merch-chip merch-check-item" data-item="standee" onclick="toggleMerchItem(this)">
-          <span class="merch-icon">&#127959;</span>
-          <span class="merch-label">Standee</span>
-          <span class="merch-check">&#10003;</span>
-        </div>
-        <div class="merch-chip merch-check-item" data-item="price_talkers" onclick="toggleMerchItem(this)">
-          <span class="merch-icon">&#127991;</span>
-          <span class="merch-label">Price Talker</span>
+        <div class="merch-chip merch-check-item" data-item="staff_tshirt" onclick="toggleMerchItem(this)">
+          <span class="merch-icon">&#128085;</span>
+          <span class="merch-label">Staff T-shirt</span>
           <span class="merch-check">&#10003;</span>
         </div>
       </div>
@@ -2459,6 +2498,47 @@
       photo_take: '📷 Kumuha ngayon',
       skip_now: '⏭️ Skip muna',
       photo_loading: 'Binubuksan ang camera...',
+      photo_required: 'Kailangan ang litrato bago magpatuloy. 📸',
+      mkt_start: 'Kamusta! 📣 May marketing request ka ba ngayon?',
+      mkt_have_yes: '✅ Oo, mayroon',
+      mkt_have_no: '❌ Wala',
+      mkt_no_close: 'Sige, salamat! 🙏',
+      mkt_ask_distributor: 'Anong distributor? Ilagay ang: Pangalan / Contact Number / Location (Province)',
+      mkt_dist_ph: 'hal. Pacifica / 09171010222 / Cebu',
+      mkt_ask_delivery: 'Paano mo nais matanggap ang request?',
+      mkt_delivery_pickup: '🏬 Pick-Up',
+      mkt_delivery_customer: '🚚 Thru Customer',
+      mkt_ask_type: 'Anong klaseng request mo?',
+      mkt_type_signages: '🪧 Signages',
+      mkt_type_dressup: '🏪 Store Dress-Up',
+      mkt_type_seminar: '🎓 Seminar',
+      mkt_type_vetmission: '🩺 Vet Mission',
+      mkt_type_vetproducts: '💊 Vet Products',
+      mkt_type_feedsampling: '🌾 Feed Sampling',
+      mkt_type_special: '⭐ Special Request',
+      mkt_ask_species: 'Anong species?',
+      mkt_species_hogs: '🐖 Hogs (Viepro)',
+      mkt_species_gamefowl: '🐓 Gamefowl (Powerboost)',
+      mkt_species_petfood: '🐕 Petfood (Keos)',
+      mkt_ask_detail: 'Ibigay ang detalye (qty, klase, o suporta na kailangan).',
+      mkt_detail_ph: 'hal. 2 Store Signage / 30 participants / 2 Vitamins',
+      mkt_ask_date: 'Kailan ang activity? (Month / Day / Year)',
+      mkt_date_ph: 'hal. June 30, 2026',
+      mkt_ask_store: 'Ibigay ang store details: Store / Owner / Address / Contact',
+      mkt_store_ph: 'hal. Pedro Poultry / Pedro / Cebu City / 0917',
+      mkt_ask_other: 'May iba pang instruction para sa Marketing?',
+      mkt_other_yes: '✅ Oo',
+      mkt_other_no: '❌ Wala',
+      mkt_ask_other_text: 'Ilagay ang instruction mo:',
+      mkt_confirm: 'Salamat! I-save ang request na ito?',
+      mkt_save: '✅ I-save',
+      mkt_cancel: '❌ Kanselahin',
+      mkt_saving: 'Sine-save... 💾',
+      mkt_saved: '✅ Na-save na ang request!',
+      mkt_saved_addmore: '➕ Magdagdag pa?',
+      mkt_addmore_yes: '➕ Oo, dagdag pa',
+      mkt_addmore_done: '✔ Tapos na',
+      mkt_saved_done: '🌐 Kumpleto na ang request mo. Salamat!',
       store_confirm: 'Salamat! Pwede na ba i-save? ✅',
       confirm_save: '✅ Oo, i-save na',
       confirm_cancel: '❌ Kanselahin',
@@ -2522,6 +2602,7 @@
       photo_take: '📷 Kuha karon',
       skip_now: '⏭️ Skip una',
       photo_loading: 'Gibuksan ang camera...',
+      photo_required: 'Kinahanglan ang litrato sa dili pa magpadayon. 📸',
       store_confirm: 'Salamat! Pwede na ba i-save? ✅',
       confirm_save: '✅ O, i-save na',
       confirm_cancel: '❌ I-cancel',
@@ -2585,6 +2666,47 @@
       photo_take: '📷 Take now',
       skip_now: '⏭️ Skip for now',
       photo_loading: 'Opening camera...',
+      photo_required: 'A photo is required to continue. 📸',
+      mkt_start: 'Hi! 📣 Do you have a marketing request today?',
+      mkt_have_yes: '✅ Yes',
+      mkt_have_no: '❌ No',
+      mkt_no_close: 'Okay, thank you! 🙏',
+      mkt_ask_distributor: 'Under what distributor? Enter: Name / Contact Number / Location (Province)',
+      mkt_dist_ph: 'e.g. Pacifica / 09171010222 / Cebu',
+      mkt_ask_delivery: 'How do you want to receive your request?',
+      mkt_delivery_pickup: '🏬 Pick-Up',
+      mkt_delivery_customer: '🚚 Thru Customer',
+      mkt_ask_type: 'What is your request?',
+      mkt_type_signages: '🪧 Signages',
+      mkt_type_dressup: '🏪 Store Dress-Up',
+      mkt_type_seminar: '🎓 Seminar',
+      mkt_type_vetmission: '🩺 Vet Mission',
+      mkt_type_vetproducts: '💊 Vet Products',
+      mkt_type_feedsampling: '🌾 Feed Sampling',
+      mkt_type_special: '⭐ Special Request',
+      mkt_ask_species: 'What species?',
+      mkt_species_hogs: '🐖 Hogs (Viepro)',
+      mkt_species_gamefowl: '🐓 Gamefowl (Powerboost)',
+      mkt_species_petfood: '🐕 Petfood (Keos)',
+      mkt_ask_detail: 'Give the details (qty, type, or support needed).',
+      mkt_detail_ph: 'e.g. 2 Store Signage / 30 participants / 2 Vitamins',
+      mkt_ask_date: 'When is the activity? (Month / Day / Year)',
+      mkt_date_ph: 'e.g. June 30, 2026',
+      mkt_ask_store: 'Give store details: Store / Owner / Address / Contact',
+      mkt_store_ph: 'e.g. Pedro Poultry / Pedro / Cebu City / 0917',
+      mkt_ask_other: 'Any other instructions for Marketing?',
+      mkt_other_yes: '✅ Yes',
+      mkt_other_no: '❌ No',
+      mkt_ask_other_text: 'State your instruction:',
+      mkt_confirm: 'Thanks! Save this request?',
+      mkt_save: '✅ Save it',
+      mkt_cancel: '❌ Cancel',
+      mkt_saving: 'Saving... 💾',
+      mkt_saved: '✅ Request saved!',
+      mkt_saved_addmore: '➕ Add another?',
+      mkt_addmore_yes: '➕ Yes, add another',
+      mkt_addmore_done: '✔ No, complete',
+      mkt_saved_done: '🌐 Your request is complete. Thank you!',
       store_confirm: 'Thanks! Save now? ✅',
       confirm_save: '✅ Yes, save it',
       confirm_cancel: '❌ Cancel',
@@ -2631,7 +2753,7 @@
           { text: _ct('store_type_other'),  value: 'other' }
         ] },
       { id: 'ask_owner', msg: _ct('store_ask_owner'), input: 'text', placeholder: _ct('store_owner_ph'), field: 'owner_name', next: 'ask_phone' },
-      { id: 'ask_phone', msg: _ct('store_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_messenger' },
+      { id: 'ask_phone', msg: _ct('store_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', validate: ChatbotWizard.validatePhone, next: 'ask_messenger' },
       { id: 'ask_messenger', msg: _ct('store_ask_messenger'), input: 'text', placeholder: _ct('store_messenger_ph'), field: 'owner_messenger', allowEmpty: true, emptyUserHint: _ct('messenger_skipped'), next: 'ask_status' },
       { id: 'ask_status', msg: _ct('store_ask_status'), field: 'store_status_raw', next: 'ask_city',
         quickReplies: [
@@ -2653,12 +2775,11 @@
           { text: _ct('vol_low'),    value: 'C' }
         ] },
       { id: 'ask_bags', msg: _ct('store_ask_bags'), input: 'number', placeholder: _ct('bags_ph'), field: 'bags_per_month', next: 'ask_photo' },
-      { id: 'ask_photo', msg: _ct('store_ask_photo'), next: 'confirm',
+      { id: 'ask_photo', msg: _ct('store_ask_photo'), next: 'do_photo',
         quickReplies: [
-          { text: _ct('photo_take'), value: 'photo', next: 'do_photo' },
-          { text: _ct('skip_now'),   value: 'skip',  next: 'confirm' }
+          { text: _ct('photo_take'), value: 'photo', next: 'do_photo' }
         ] },
-      { id: 'do_photo', msg: _ct('photo_loading'), action: 'photo', next: 'confirm' },
+      { id: 'do_photo', msg: _ct('photo_loading'), action: 'photo', required: true, onMissingBack: 'ask_photo', missingMsg: _ct('photo_required'), next: 'confirm' },
       { id: 'confirm', msg: _ct('store_confirm'), summary: true,
         fields: ['name','store_type','store_status_raw','owner_name','phone','owner_messenger','city','vol_class','bags_per_month'],
         quickReplies: [
@@ -2691,7 +2812,7 @@
           { text: _ct('vet_none'),       value: 'none' }
         ] },
       { id: 'ask_owner', msg: _ct('farm_ask_owner'), input: 'text', placeholder: _ct('farm_owner_ph'), field: 'owner_name', next: 'ask_phone' },
-      { id: 'ask_phone', msg: _ct('farm_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', next: 'ask_location' },
+      { id: 'ask_phone', msg: _ct('farm_ask_phone'), input: 'tel', placeholder: '09171234567', field: 'phone', validate: ChatbotWizard.validatePhone, next: 'ask_location' },
       { id: 'ask_location', msg: _ct('farm_ask_location'), next: 'confirm',
         quickReplies: [
           { text: _ct('gps_take'), value: 'gps',  next: 'do_gps' },
@@ -2833,6 +2954,290 @@
   });
   // Back-compat aliases
   window.openNewStoreWizard = openChatbotStore;
+
+  // ===== Marketing Request chatbot (Functional Spec v1.1) =====
+  // DSM-facing intake: opening Qs -> 7 request types -> "add another" loop.
+  // The 3-level approval (RSM -> Marketing -> EVP) + email happen server-side
+  // at /api/marketing. Reuses the ChatbotWizard (js/chatbot-register.js).
+  var _mktBot = null;
+  var _mktCtx = { items: [], distributor_raw: null, delivery_method: null };
+
+  async function _mktHeaders() {
+    // window.authHeaders is the canonical Patrol-API header builder: it returns
+    // Authorization: Bearer <jwt> for Google-OAuth managers and x-session-id for
+    // PIN sessions. Fall back to a bare bearer only if it's somehow unavailable.
+    if (typeof window.authHeaders === 'function') {
+      try { return await window.authHeaders(); } catch (e) {}
+    }
+    var h = { 'Content-Type': 'application/json' };
+    if (typeof window.getAuthBearer === 'function') {
+      try { var b = await window.getAuthBearer(); if (b) h['Authorization'] = 'Bearer ' + b; } catch (e) {}
+    }
+    return h;
+  }
+
+  function _mktSpeciesStep(id, next) {
+    return { id: id, msg: _ct('mkt_ask_species'), field: 'species', next: next, quickReplies: [
+      { text: _ct('mkt_species_hogs'), value: 'hogs' },
+      { text: _ct('mkt_species_gamefowl'), value: 'gamefowl' },
+      { text: _ct('mkt_species_petfood'), value: 'petfood' }
+    ]};
+  }
+  function _mktDetailStep(id, next) {
+    return { id: id, msg: _ct('mkt_ask_detail'), input: 'text', placeholder: _ct('mkt_detail_ph'), field: 'detail', next: next };
+  }
+  function _mktDateStep(id, next) {
+    return { id: id, msg: _ct('mkt_ask_date'), input: 'text', placeholder: _ct('mkt_date_ph'), field: 'when_date', next: next };
+  }
+  function _mktStoreStep(id, next) {
+    return { id: id, msg: _ct('mkt_ask_store'), input: 'text', placeholder: _ct('mkt_store_ph'), field: 'store_details', next: next };
+  }
+
+  function buildMarketingFlow(retainOpening) {
+    var typeReplies = [
+      { text: _ct('mkt_type_signages'), value: 'signages', next: 't_sig_sp' },
+      { text: _ct('mkt_type_dressup'), value: 'store_dress_up', next: 't_du_sp' },
+      { text: _ct('mkt_type_seminar'), value: 'seminar', next: 't_sem_sp' },
+      { text: _ct('mkt_type_vetmission'), value: 'vet_mission', next: 't_vm_date' },
+      { text: _ct('mkt_type_vetproducts'), value: 'vet_products', next: 't_vp_det' },
+      { text: _ct('mkt_type_feedsampling'), value: 'feed_sampling', next: 't_fs_sp' },
+      { text: _ct('mkt_type_special'), value: 'special_request', next: 't_spl_det' }
+    ];
+    var flow = [];
+    if (!retainOpening) {
+      flow.push({ id: 'start', msg: _ct('mkt_start'), next: 'ask_have' });
+      flow.push({ id: 'ask_have', msg: _ct('mkt_start'), next: 'ask_distributor', quickReplies: [
+        { text: _ct('mkt_have_yes'), value: 'yes', next: 'ask_distributor' },
+        { text: _ct('mkt_have_no'), value: 'no', next: 'no_close' }
+      ]});
+      flow.push({ id: 'no_close', msg: _ct('mkt_no_close') });
+      flow.push({ id: 'ask_distributor', msg: _ct('mkt_ask_distributor'), input: 'text', placeholder: _ct('mkt_dist_ph'), field: 'distributor_raw', next: 'ask_delivery' });
+      flow.push({ id: 'ask_delivery', msg: _ct('mkt_ask_delivery'), field: 'delivery_method', next: 'ask_type', quickReplies: [
+        { text: _ct('mkt_delivery_pickup'), value: 'pick_up' },
+        { text: _ct('mkt_delivery_customer'), value: 'thru_customer' }
+      ]});
+      flow.push({ id: 'ask_type', msg: _ct('mkt_ask_type'), field: 'request_type', quickReplies: typeReplies });
+    } else {
+      flow.push({ id: 'start', msg: _ct('mkt_ask_type'), field: 'request_type', quickReplies: typeReplies });
+    }
+
+    // Type branches — each rejoins at 'ask_other'.
+    flow.push(_mktSpeciesStep('t_sig_sp', 't_sig_store'));
+    flow.push(_mktStoreStep('t_sig_store', 't_sig_det'));
+    flow.push(_mktDetailStep('t_sig_det', 'ask_other'));
+
+    flow.push(_mktSpeciesStep('t_du_sp', 't_du_store'));
+    flow.push(_mktStoreStep('t_du_store', 't_du_det'));
+    flow.push(_mktDetailStep('t_du_det', 'ask_other'));
+
+    flow.push(_mktSpeciesStep('t_sem_sp', 't_sem_det'));
+    flow.push(_mktDetailStep('t_sem_det', 't_sem_date'));
+    flow.push(_mktDateStep('t_sem_date', 'ask_other'));
+
+    flow.push(_mktDateStep('t_vm_date', 't_vm_det'));
+    flow.push(_mktDetailStep('t_vm_det', 'ask_other'));
+
+    flow.push(_mktDetailStep('t_vp_det', 'ask_other'));
+
+    flow.push(_mktSpeciesStep('t_fs_sp', 't_fs_det'));
+    flow.push(_mktDetailStep('t_fs_det', 't_fs_date'));
+    flow.push(_mktDateStep('t_fs_date', 'ask_other'));
+
+    flow.push(_mktDetailStep('t_spl_det', 't_spl_date'));
+    flow.push(_mktDateStep('t_spl_date', 'ask_other'));
+
+    // Shared tail: other-instructions -> confirm -> (save) -> add-another loop.
+    flow.push({ id: 'ask_other', msg: _ct('mkt_ask_other'), next: 'confirm', quickReplies: [
+      { text: _ct('mkt_other_yes'), value: 'yes', next: 'ask_other_text' },
+      { text: _ct('mkt_other_no'), value: 'no', next: 'confirm' }
+    ]});
+    flow.push({ id: 'ask_other_text', msg: _ct('mkt_ask_other_text'), input: 'text', placeholder: '...', field: 'other_instructions', next: 'confirm' });
+    flow.push({ id: 'confirm', msg: _ct('mkt_confirm'), summary: true,
+      fields: ['request_type', 'species', 'detail', 'when_date', 'store_details', 'other_instructions', 'distributor_raw', 'delivery_method'],
+      quickReplies: [
+        { text: _ct('mkt_save'), value: 'save', next: 'ask_addmore' },
+        { text: _ct('mkt_cancel'), value: 'cancel' }
+      ],
+      onAnswer: function (val) { if (val === 'cancel') navBack(); }
+    });
+    flow.push({ id: 'ask_addmore', msg: _ct('mkt_saved'), quickReplies: [
+      { text: _ct('mkt_addmore_yes'), value: 'add' },
+      { text: _ct('mkt_addmore_done'), value: 'done', next: 'done' }
+    ], onAnswer: function (val) { if (val === 'add') _mktPushAndRestart(this.data); } });
+
+    return flow;
+  }
+
+  function _mktItemFromData(data) {
+    var d = data || {};
+    return {
+      type: d.request_type,
+      details: { species: d.species || null, detail: d.detail || null, when_date: d.when_date || null, store_details: d.store_details || null },
+      other_instructions: d.other_instructions || null,
+      photo_url: null
+    };
+  }
+
+  function _mktPushAndRestart(data) {
+    _mktCtx.items.push(_mktItemFromData(data));
+    _mktCtx.distributor_raw = (data && data.distributor_raw) || _mktCtx.distributor_raw;
+    _mktCtx.delivery_method = (data && data.delivery_method) || _mktCtx.delivery_method;
+    openChatbotMarketing(true);
+  }
+
+  async function _submitMarketingFromChatbot(data) {
+    var all = _mktCtx.items.slice();
+    all.push(_mktItemFromData(data));
+    var raw = (data && data.distributor_raw) || _mktCtx.distributor_raw || '';
+    var parts = String(raw).split('/').map(function (s) { return (s || '').trim(); });
+    var body = {
+      action: 'submit',
+      session_id: 'mrs-' + Date.now(),
+      distributor: { name: parts[0] || null, contact: parts[1] || null, location: parts[2] || null },
+      delivery_method: (data && data.delivery_method) || _mktCtx.delivery_method || 'pick_up',
+      items: all
+    };
+    _mktCtx.items = []; _mktCtx.distributor_raw = null; _mktCtx.delivery_method = null;
+    var headers = await _mktHeaders();
+    var r = await fetch('/api/marketing', { method: 'POST', headers: headers, body: JSON.stringify(body) });
+    var j = {}; try { j = await r.json(); } catch (e) {}
+    if (!r.ok) throw new Error((j && j.error) || ('HTTP ' + r.status));
+    return { message: _ct('mkt_saved_done') + ' (' + (j.created || 0) + ' request' + ((j.created === 1) ? '' : 's') + ')' };
+  }
+
+  function openChatbotMarketing(retain) {
+    nav('page-marketing-new');
+    _mktBot = new ChatbotWizard({
+      flow: buildMarketingFlow(!!retain),
+      messagesId: 'new-mkt-messages',
+      quickRepliesId: 'new-mkt-quick-replies',
+      inputBarId: 'new-mkt-input-bar',
+      inputId: 'new-mkt-chat-input',
+      onFinish: _submitMarketingFromChatbot
+    });
+    if (!retain) { _mktCtx.items = []; _mktCtx.distributor_raw = null; _mktCtx.delivery_method = null; }
+    _mktBot.start();
+    // start() resets this.data={}, so re-seed retained opening answers AFTER it.
+    if (retain) { _mktBot.data.distributor_raw = _mktCtx.distributor_raw; _mktBot.data.delivery_method = _mktCtx.delivery_method; }
+  }
+  window.openChatbotMarketing = openChatbotMarketing;
+
+  // ===== Marketing Requests dashboard (approver back-office) =====
+  // Reads /api/marketing?action=list|detail and posts approve/reject. The
+  // server enforces who may act (canApprove); non-approvers get a 403.
+  // _esc is a global elsewhere in the app; fall back to a local escaper if not.
+  var _esc = (typeof _esc === 'function') ? _esc : function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  };
+  function _mktStatusBadge(s) {
+    var map = {
+      submitted: { t: 'Submitted', c: '#b45309', bg: '#fef3c7' },
+      rsm_review: { t: 'RSM Review', c: '#1d4ed8', bg: '#dbeafe' },
+      marketing_review: { t: 'Marketing Review', c: '#6d28d9', bg: '#ede9fe' },
+      evp_review: { t: 'EVP Review', c: '#0e7490', bg: '#cffafe' },
+      approved: { t: 'Approved', c: '#15803d', bg: '#dcfce7' },
+      rejected: { t: 'Rejected', c: '#b91c1c', bg: '#fee2e2' }
+    };
+    var m = map[s] || { t: s, c: '#374151', bg: '#f3f4f6' };
+    return '<span style="display:inline-block;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;color:' + m.c + ';background:' + m.bg + '">' + m.t + '</span>';
+  }
+  function _mktTypeLabel(t) {
+    return ({ signages: 'Signages', store_dress_up: 'Store Dress-Up', seminar: 'Seminar', vet_mission: 'Vet Mission', vet_products: 'Vet Products', feed_sampling: 'Feed Sampling', special_request: 'Special Request' })[t] || t;
+  }
+
+  async function openMarketingDashboard() {
+    nav('page-marketing-dash');
+    var list = document.getElementById('mkt-dash-list');
+    var det = document.getElementById('mkt-dash-detail');
+    if (!list || !det) return;
+    det.style.display = 'none';
+    list.style.display = 'block';
+    list.innerHTML = '<div style="padding:16px;color:var(--text-secondary)">Loading…</div>';
+    await renderMktList();
+  }
+
+  async function renderMktList() {
+    var headers = await _mktHeaders();
+    var r = await fetch('/api/marketing?action=list', { headers: headers });
+    var j = {}; try { j = await r.json(); } catch (e) {}
+    var rows = (j && j.rows) || [];
+    var el = document.getElementById('mkt-dash-list');
+    if (!el) return;
+    if (!rows.length) { el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-secondary)">No requests yet.</div>'; return; }
+    el.innerHTML = rows.map(function (row) {
+      return '<div class="card" style="margin:8px 0;padding:12px;cursor:pointer" onclick="openMktDetail(\'' + row.id + '\')">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+        + '<div style="font-weight:800;font-size:14px">' + _esc(row.request_number) + '</div>'
+        + _mktStatusBadge(row.status)
+        + '</div>'
+        + '<div style="font-size:13px;margin-top:4px"><b>' + _esc(_mktTypeLabel(row.request_type)) + '</b> &middot; ' + _esc(row.dsm_name || '') + (row.dsm_region ? (' (' + _esc(row.dsm_region) + ')') : '') + '</div>'
+        + '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">' + _esc(row.distributor_name || '-') + (row.distributor_location ? (', ' + _esc(row.distributor_location)) : '') + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  async function openMktDetail(id) {
+    var list = document.getElementById('mkt-dash-list');
+    var det = document.getElementById('mkt-dash-detail');
+    if (!list || !det) return;
+    list.style.display = 'none';
+    det.style.display = 'block';
+    det.innerHTML = '<div style="padding:16px;color:var(--text-secondary)">Loading…</div>';
+    var headers = await _mktHeaders();
+    var r = await fetch('/api/marketing?action=detail&id=' + encodeURIComponent(id), { headers: headers });
+    var j = {}; try { j = await r.json(); } catch (e) {}
+    var row = j && j.row;
+    if (!row) { det.innerHTML = '<div style="padding:16px">Not found. <button class="dsm-home-quick-btn" onclick="openMarketingDashboard()">Back</button></div>'; return; }
+    var log = row.approval_log || [];
+    var parts = [];
+    parts.push('<div class="card" style="margin:8px 0;padding:14px">');
+    parts.push('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div style="font-weight:800">' + _esc(row.request_number) + '</div>' + _mktStatusBadge(row.status) + '</div>');
+    parts.push('<div style="font-size:13px;line-height:1.6">');
+    parts.push('<b>Type:</b> ' + _esc(_mktTypeLabel(row.request_type)) + '<br>');
+    parts.push('<b>DSM:</b> ' + _esc(row.dsm_name || '-') + (row.dsm_region ? (' (' + _esc(row.dsm_region) + ')') : '') + '<br>');
+    parts.push('<b>Distributor:</b> ' + _esc(row.distributor_name || '-') + (row.distributor_location ? (', ' + _esc(row.distributor_location)) : '') + '<br>');
+    parts.push('<b>Delivery:</b> ' + (row.delivery_method === 'pick_up' ? 'Pick-Up' : (row.delivery_method === 'thru_customer' ? 'Thru Customer' : '-')) + '<br>');
+    parts.push('<b>Details:</b> ' + _esc(JSON.stringify(row.request_details || {})) + '<br>');
+    if (row.other_instructions) parts.push('<b>Instructions:</b> ' + _esc(row.other_instructions) + '<br>');
+    if (row.rejection_reason) parts.push('<b>Returned:</b> ' + _esc(row.rejection_reason) + '<br>');
+    parts.push('</div>');
+    parts.push('<div style="margin-top:10px;font-size:12px;color:var(--text-secondary)"><b>Timeline</b><br>');
+    parts.push(log.length ? log.map(function (l) { return _esc(String(l.actioned_at || '').slice(0, 16)) + ' — ' + _esc(l.approver_name) + ' ' + _esc(l.action) + (l.comments ? (' (' + _esc(l.comments) + ')') : ''); }).join('<br>') : 'No actions yet.');
+    parts.push('</div></div>');
+    parts.push('<div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap">');
+    parts.push('<button class="dsm-home-quick-btn" onclick="openMarketingDashboard()">&#8592; Back</button>');
+    // Server enforces authorization; show actions, 403 if the caller may not act.
+    parts.push('<button class="dsm-home-quick-btn" style="background:var(--status-ok);color:#fff" onclick="mktApprove(\'' + id + '\')">&#10003; Approve</button>');
+    parts.push('<button class="dsm-home-quick-btn" style="background:var(--status-crit);color:#fff" onclick="mktReject(\'' + id + '\')">&#10007; Return</button>');
+    parts.push('</div>');
+    det.innerHTML = parts.join('');
+  }
+
+  async function _mktPostAction(id, action, extra) {
+    var headers = await _mktHeaders();
+    var body = Object.assign({ action: action, id: id }, extra || {});
+    var r = await fetch('/api/marketing', { method: 'POST', headers: headers, body: JSON.stringify(body) });
+    var j = {}; try { j = await r.json(); } catch (e) {}
+    if (!r.ok) { alert((j && (j.error + (j.reason ? ' / ' + j.reason : ''))) || ('HTTP ' + r.status)); return null; }
+    return j;
+  }
+  async function mktApprove(id) {
+    var comments = window.prompt('Approve this request. Any note? (optional)') || '';
+    if (await _mktPostAction(id, 'approve', { comments: comments })) openMktDetail(id);
+  }
+  async function mktReject(id) {
+    var reason = window.prompt('Reason for returning this request? (required)');
+    if (!reason || !reason.trim()) { alert('A reason is required to return a request.'); return; }
+    if (await _mktPostAction(id, 'reject', { reason: reason })) openMktDetail(id);
+  }
+
+  window.openMarketingDashboard = openMarketingDashboard;
+  window.renderMktList = renderMktList;
+  window.openMktDetail = openMktDetail;
+  window.mktApprove = mktApprove;
+  window.mktReject = mktReject;
 
   // ===== Visit detail sheet =====
   function _fmtPH(n) {

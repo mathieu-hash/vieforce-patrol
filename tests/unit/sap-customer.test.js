@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const H = require('./_helpers');
 
 H.installMocks();
-const handler = H.loadEndpoint('../../api/sap/customer/[cardcode].js');
+const handler = H.loadEndpoint('../../api/_lib/sap-proxy.js').customer;
 
 const DSM = { id: '5d710fc6-8351-439f-b0e1-c91a76719ccb', role: 'dsm' };
 const EXEC = { id: 'b3bb7fc6-8e8d-4529-9166-db11b2c78b61', role: 'exec' };
