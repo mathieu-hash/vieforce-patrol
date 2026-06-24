@@ -11,7 +11,7 @@ var SESSION_KEY = 'patrol_session';
 var ATTEMPTS_KEY = 'patrol_login_attempts';
 var SESSION_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 var GOOGLE_ALLOWED_DOMAIN = 'vienovo.ph';
-var GOOGLE_MANAGER_ROLES = ['dsm', 'rsm', 'exec', 'admin', 'ceo'];
+var GOOGLE_MANAGER_ROLES = ['dsm', 'rsm', 'exec', 'evp', 'admin', 'ceo', 'marketing'];
 
 /** Where Supabase redirects after Google (must match Dashboard redirect allow-list + Site URL). */
 function getOAuthRedirectUrl() {
