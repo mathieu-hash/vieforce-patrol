@@ -334,6 +334,13 @@
           { icon: '\ud83d\udeaa', labelKey: 'nav.sheet_logout', label: 'Logout', action: 'logout' }
         ];
 
+    // Marketing Request approvers (RSM -> Marketing -> EVP, plus admin) reach the
+    // approvals dashboard here \u2014 their home screens don't carry the DSM home button.
+    if (!isField && ['rsm', 'exec', 'evp', 'admin', 'marketing'].indexOf(roleLc) !== -1) {
+      items.splice(items.length - 1, 0,
+        { icon: '\ud83d\udccb', label: 'Marketing Approvals', action: 'marketingApprovals' });
+    }
+
     var sheet = document.getElementById('more-sheet');
     if (!sheet) {
       sheet = document.createElement('div');
@@ -351,6 +358,8 @@
         onclickAttr = "closeMoreSheet();if(typeof window.openVisitFlow==='function')window.openVisitFlow();else if(typeof window.nav==='function')window.nav('page-stores')";
       } else if (it.action === 'logout') {
         onclickAttr = 'closeMoreSheet();if(typeof logout===\'function\')logout()';
+      } else if (it.action === 'marketingApprovals') {
+        onclickAttr = "closeMoreSheet();if(typeof window.openMarketingDashboard==='function')window.openMarketingDashboard()";
       } else {
         onclickAttr = "navTo('" + escAttr(it.page) + "');closeMoreSheet()";
       }
