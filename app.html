@@ -2963,12 +2963,15 @@
   var _mktCtx = { items: [], distributor_raw: null, delivery_method: null };
 
   async function _mktHeaders() {
-    var h = { 'Content-Type': 'application/json' };
-    if (typeof window.getAuthHeaders === 'function') {
-      try { Object.assign(h, await window.getAuthHeaders()); return h; } catch (e) {}
+    // window.authHeaders is the canonical Patrol-API header builder: it returns
+    // Authorization: Bearer <jwt> for Google-OAuth managers and x-session-id for
+    // PIN sessions. Fall back to a bare bearer only if it's somehow unavailable.
+    if (typeof window.authHeaders === 'function') {
+      try { return await window.authHeaders(); } catch (e) {}
     }
+    var h = { 'Content-Type': 'application/json' };
     if (typeof window.getAuthBearer === 'function') {
-      try { var b = await window.getAuthBearer(); if (b) { h['Authorization'] = 'Bearer ' + b; return h; } } catch (e) {}
+      try { var b = await window.getAuthBearer(); if (b) h['Authorization'] = 'Bearer ' + b; } catch (e) {}
     }
     return h;
   }
