@@ -1,7 +1,7 @@
 /* VieForce Patrol — app shell cache-first (same-origin static assets only).
  * API / Supabase / map tiles are never intercepted (network-only).
  */
-var SHELL_CACHE = 'patrol-shell-v4';
+var SHELL_CACHE = 'patrol-shell-v5';
 
 function isShellAsset(urlStr) {
   try {
